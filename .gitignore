@@ -1,0 +1,33 @@
+# Mac/OSX
+.DS_Store
+
+# Windows
+Thumbs.db
+*.dll
+*.exe
+
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Sphinx documentation
+doc/_build/
+public
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Editors
+.vscode/
+.idea/
