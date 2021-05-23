@@ -1,0 +1,153 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# Image functions related to MCR measurements
+#
+# Copyright (C) 2021 Martin Knopp, Technical University of Munich
+#
+# This program is free software, see the LICENSE file in the root of this repository for details
+
+
+import re
+from pathlib import Path
+
+import numpy as np
+
+
+class Image:
+    def __init__(self, fp=None):
+        self.img = None
+        self._size = (0, 0)
+
+        # Support StringIO
+        if is_path(fp):
+            self.file = open(fp, "rb")
+        else:
+            self.file = fp
+
+        # Identify file
+        header = peek(self.file, length=2)
+        # Comparison of bytes needs 'in' operator
+        if header[0] in b"P" and header[1] in b"123456":
+            self._read_pnm(int(header[1:]))
+        elif header[0] in b"123456789" and header[1] in b"0123456789":
+            self._read_txt()
+        else:
+            raise TypeError("File does not seem to be either PNM or MCR ASCII.")
+
+    @property
+    def width(self):
+        return self.size[0]
+
+    @property
+    def height(self):
+        return self.size[1]
+
+    @property
+    def size(self):
+        return self._size
+
+    # Context manager support
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        if hasattr(self, "file"):
+            self.file.close()
+        self.file = None
+
+    def _parse_header(self, regex):
+        header = b""
+        while True:
+            header += self.file.read(1)
+            match = re.search(regex, header)
+            if match:
+                return match.group()
+
+    @staticmethod
+    def _pnm_kind(char):
+        return {
+            1: ("ascii", "bitmap"),
+            2: ("ascii", "gray"),
+            3: ("ascii", "color"),
+            4: ("binary", "bitmap"),
+            5: ("binary", "gray"),
+            6: ("binary", "color"),
+        }[char]
+
+    def _read_pnm(self, pnm_kind):
+        # We know about the header at this point
+        self.file.seek(2)
+        pnm_type = self._pnm_kind(pnm_kind)
+        encoding = pnm_type[0]
+        width = int(self._parse_header(br"^\s*(\d+)\D+"))
+        height = int(self._parse_header(br"^\s*(\d+)\D+"))
+        self._size = (width, height)
+        if pnm_type[1] != "bitmap":
+            maxval = int(self._parse_header(br"^\s*(\d+)\D"))
+        else:
+            maxval = 1
+        if pnm_type[1] != "gray":
+            raise NotImplementedError("Only grayscale is supported at the moment.")
+        if maxval <= 255:
+            dtype = "B"
+        elif maxval < 2 ** 16:
+            dtype = "u2"
+        else:
+            raise TypeError(f"PNM only supports values up to {2**16}.")
+        if encoding == "ascii":
+            sep = " "
+        else:
+            sep = ""
+            dtype = ">" + dtype
+        self.data = np.fromfile(self.file, dtype=dtype, sep=sep).reshape(height, width)
+
+    def _write_pnm_ascii(self, path):
+        header = (
+            f"P2\n{self.width} {self.height}\n{2**(self.data.dtype.itemsize * 8) - 1}"
+        )
+        np.savetxt(
+            path, self.data, fmt="%d", delimiter="\t", header=header, comments=""
+        )
+
+    def _write_pgm_binary(self, path):
+        if self.data.dtype.itemsize > 2:
+            raise RuntimeError(
+                f"Unsupported data type '{self.data.dtype.name}', PGM only supports uint8 and uint16."
+            )
+        header = (
+            f"P5\n{self.width} {self.height}\n{2**(self.data.dtype.itemsize * 8) - 1}\n"
+        )
+        with open(path, "wb") as f:
+            f.write(header.encode("ascii"))
+            if self.data.dtype.itemsize == 2:
+                f.write(self.data.astype(">u2").tobytes())
+            else:
+                f.write(self.data.tobytes())
+
+    def _read_txt(self):
+        width = int(self.file.readline())
+        height = int(self.file.readline())
+        self._size = (width, height)
+        self.data = np.flip(np.fromfile(self.file, dtype="u2", sep=" ")).reshape(
+            height, width
+        )
+
+    def _write_txt(self, path):
+        with open(path, "w") as f:
+            # Write header (width, height and newline)
+            f.write(f"{self.width}\n{self.height}\n\n")
+            # Write image data
+            img = np.flip(self.data.reshape((self.size[0] * self.size[1],)))
+            img.tofile(f, sep="\n")
+
+
+def is_path(file):
+    return isinstance(file, (bytes, str, Path))
+
+
+def peek(file, length=1):
+    pos = file.tell()
+    data = file.read(length)
+    file.seek(pos)
+    return data
