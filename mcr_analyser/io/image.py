@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# Image functions related to MCR measurements
-#
 # Copyright (C) 2021 Martin Knopp, Technical University of Munich
 #
 # This program is free software, see the LICENSE file in the root of this repository for details
 
+"""Image functions related to MCR measurements"""
 
 import re
 from pathlib import Path
@@ -15,11 +14,23 @@ import numpy as np
 
 
 class Image:
+    """Class for reading and writing image data of single measurements.
+
+    It supports PNM gray maps as well as MCR's own TXT format (autodetected) and
+    has functions for writing all these formats as well.
+    """
+
     def __init__(self, fp=None):
+        """
+        Initialize image object using data from *fp*.
+
+        :param fp: (File) pointer to image data, usually a filename.
+        :type fp: str, bytes, pathlib.Path, or file like.
+        """
         self.img = None
         self._size = (0, 0)
 
-        # Support StringIO
+        # Support file like objects and direct stream
         if is_path(fp):
             self.file = open(fp, "rb")
         else:
@@ -30,21 +41,24 @@ class Image:
         # Comparison of bytes needs 'in' operator
         if header[0] in b"P" and header[1] in b"123456":
             self._read_pnm(int(header[1:]))
-        elif header[0] in b"123456789" and header[1] in b"0123456789":
+        elif header[0] in b"123456789" and header[1] in b"0123456789\n":
             self._read_txt()
         else:
             raise TypeError("File does not seem to be either PNM or MCR ASCII.")
 
     @property
     def width(self):
+        """ Width of the image. """
         return self.size[0]
 
     @property
     def height(self):
+        """ Height of the image. """
         return self.size[1]
 
     @property
     def size(self):
+        """ Size of the image as tuple (width, height). """
         return self._size
 
     # Context manager support
@@ -75,7 +89,7 @@ class Image:
             6: ("binary", "color"),
         }[char]
 
-    def _read_pnm(self, pnm_kind):
+    def _read_pnm(self, pnm_kind: _pnm_kind):
         # We know about the header at this point
         self.file.seek(2)
         pnm_type = self._pnm_kind(pnm_kind)
@@ -143,10 +157,13 @@ class Image:
 
 
 def is_path(file):
+    """Helper function for testing whether *file* needs an :func:`open` call."""
     return isinstance(file, (bytes, str, Path))
 
 
 def peek(file, length=1):
+    """Helper function for reading *length* bytes from *file* without advancing
+    the current position."""
     pos = file.tell()
     data = file.read(length)
     file.seek(pos)
