@@ -25,8 +25,9 @@ class FileImporter:
 class RsltParser:
     """Reads in RSLT file produced by the MCR."""
 
-    meta = {}
-    """Dictionary of all meta information.
+    @property
+    def meta(self):
+        """Dictionary of all meta information.
 
         :Keys:
             * Date/time (`datetime.datetime`): Date and time of the measurement.
@@ -47,20 +48,28 @@ class RsltParser:
             * Y (`int`): Number of (redundant) spot rows.
             * Spot size (`int`): Size (in pixels) of the configured square for
               result computation.
-    """
-    results = None
-    """Two dimensional `numpy.ndarray` with spot results calculated by the MCR.
-    """
+        """
+        return self._meta
 
-    spots = None
-    """Two dimensional `numpy.ndarray` with (x, y) tuples defining the upper
-    left corner of a result tile. """
+    @property
+    def results(self):
+        """Two dimensional `numpy.ndarray` with spot results calculated by the MCR."""
+        return self._results
+
+    @property
+    def spots(self):
+        """Two dimensional `numpy.ndarray` with (x, y) tuples defining the upper
+        left corner of a result tile."""
+        return self._spots
 
     def __init__(self, path: str):
         """Parses file `path` and populates class attributes.
 
         :raises FileNotFoundError: `path` does not exist.
         """
+        self._meta = {}
+        self._results = None
+        self._spots = None
         self.path = Path(path)
         if not self.path.exists():
             raise FileNotFoundError(ENOENT, "File does not exist", str(path))
@@ -71,35 +80,35 @@ class RsltParser:
             for _ in range(14):
                 match = re.match(identifier_pattern, file.readline())
                 if match:
-                    self.meta[match.group(1)] = match.group(2)
+                    self._meta[match.group(1)] = match.group(2)
 
             # Post-process results (map to corresponding types)
-            self.meta["Date/time"] = dt.datetime.strptime(
-                self.meta["Date/time"], "%Y-%m-%d %H:%M"
+            self._meta["Date/time"] = dt.datetime.strptime(
+                self._meta["Date/time"], "%Y-%m-%d %H:%M"
             )
             if (
-                self.meta["Dark frame image PGM"]
+                self._meta["Dark frame image PGM"]
                 == "Do not store PGM file for dark frame any more"
             ):
-                self.meta["Dark frame image PGM"] = None
-            if self.meta["Temperature ok"] == "yes":
-                self.meta["Temperature ok"] = True
+                self._meta["Dark frame image PGM"] = None
+            if self._meta["Temperature ok"] == "yes":
+                self._meta["Temperature ok"] = True
             else:
-                self.meta["Temperature ok"] = False
-            if self.meta["Clean image"] == "yes":
-                self.meta["Clean image"] = True
+                self._meta["Temperature ok"] = False
+            if self._meta["Clean image"] == "yes":
+                self._meta["Clean image"] = True
             else:
-                self.meta["Clean image"] = False
-            self.meta["X"] = int(self.meta["X"])
-            self.meta["Y"] = int(self.meta["Y"])
+                self._meta["Clean image"] = False
+            self._meta["X"] = int(self._meta["X"])
+            self._meta["Y"] = int(self._meta["Y"])
 
-            columns = range(1, self.meta["X"] + 1)
-            rows = range(self.meta["Y"] + 1)
+            columns = range(1, self._meta["X"] + 1)
+            rows = range(self._meta["Y"] + 1)
             # Read in result table
             results = []
             for _ in rows:
                 results.append(file.readline())
-            self.results = np.genfromtxt(
+            self._results = np.genfromtxt(
                 results, dtype=np.uint16, skip_header=1, usecols=columns
             )
 
@@ -108,8 +117,8 @@ class RsltParser:
             for _ in range(3):
                 match = re.match(identifier_pattern, file.readline())
                 if match:
-                    self.meta[match.group(1)] = match.group(2)
-            self.meta["Spot size"] = int(self.meta["Spot size"])
+                    self._meta[match.group(1)] = match.group(2)
+            self._meta["Spot size"] = int(self._meta["Spot size"])
 
             # Parse table
             results = []
@@ -122,7 +131,7 @@ class RsltParser:
             spots = np.fromiter(
                 [self._parse_spot_coordinates(x) for x in results.flat], coord_type
             )
-            self.spots = spots.reshape(self.results.shape)
+            self._spots = spots.reshape(self.results.shape)
 
     @staticmethod
     def _parse_spot_coordinates(string: str):
