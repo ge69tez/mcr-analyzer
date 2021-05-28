@@ -1,5 +1,6 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+#
+# MCR-Analyser
 #
 # Copyright (C) 2021 Martin Knopp, Technical University of Munich
 #
@@ -7,7 +8,6 @@
 # repository for details
 
 """Import functions related to MCR measurements."""
-
 
 import datetime as dt
 import re
