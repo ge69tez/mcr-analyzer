@@ -11,6 +11,7 @@ for developers.
    :maxdepth: 5
    :caption: Contents:
 
+   modules/database
    modules/io
 
 Indices and tables
