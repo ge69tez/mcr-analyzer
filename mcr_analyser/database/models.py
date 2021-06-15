@@ -12,7 +12,7 @@
 import datetime
 
 from sqlalchemy import (
-    CHAR,
+    BINARY,
     Boolean,
     Column,
     DateTime,
@@ -60,7 +60,7 @@ class Measurement(Base):
     """A single measurement. This is the central table everything is about."""
 
     __tablename__ = "measurement"
-    id: str = Column(CHAR(32), primary_key=True)
+    id: str = Column(BINARY(32), primary_key=True)
     """SHA256 hash of the raw 16-bit image data. Used for duplicate detection
     and potential future database merges."""
     chipID: int = Column(Integer, ForeignKey("chip.id"))
@@ -73,7 +73,9 @@ class Measurement(Base):
     """Refers to the measured :class:`Sample`."""
     relationship("Sample", back_populates="measurement")
     image: bytes = Column(LargeBinary, nullable=False)
-    """Raw 16-bit image data."""
+    """Raw 16-bit image data, big endian. (Numpy's ``>u2`` datatype, for
+    compatibility with `netpbm <http://netpbm.sourceforge.net/doc/pgm.html>`_).
+    """
     timestamp: datetime.datetime = Column(DateTime)
     """Date and time of the measurement."""
     userID: int = Column(Integer, ForeignKey("user.id"))
