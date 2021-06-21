@@ -70,7 +70,8 @@ class RsltParser:
         self._meta = {}
         self._results = None
         self._spots = None
-        self.path = Path(path)
+        self.path = Path(path).resolve()
+        self.dir = self.path.parent
         if not self.path.exists():
             raise FileNotFoundError(ENOENT, "File does not exist", str(path))
         with open(self.path) as file:
