@@ -35,6 +35,8 @@ class Chip(Base):
     id: int = Column(Integer, primary_key=True)
     """Internal ID, used for cross-references."""
     relationship("Measurement", back_populates="chip")
+    name: str = Column(String)
+    """Chip ID assigned by user during measurement."""
     rowCount: int = Column(Integer, nullable=False)
     """Number of rows, typically five. Used for redundancy and error
     reduction."""
@@ -132,6 +134,9 @@ class Sample(Base):
     __tablename__ = "sample"
     id: int = Column(Integer, primary_key=True)
     """Internal ID, used for cross-references."""
+    name: str = Column(String)
+    """Short description of the sample, entered as Probe ID during
+    measurement."""
     knownPositive: bool = Column(Boolean)
     """Is this a know positive sample? Makes use of the tri-state SQL bool
     `None`, `True`, or `False`."""
