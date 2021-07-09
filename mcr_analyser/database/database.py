@@ -19,10 +19,24 @@ Base = declarative_base()
 
 
 class Database:
-    def __init__(self, engine: str):
+    # Singleton as we want only one database engine throughout the program
+    def __new__(cls, *args, **kwargs):  # pylint: disable=unused-argument
+        if not hasattr(cls, '_instance'):
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __init__(self, engine: str = "sqlite:///database.sqlite"):
         self.base = Base
-        self.engine = create_engine(engine)
-        self.Session = sessionmaker(bind=self.engine)
+        self.Session = sessionmaker()
+        if engine:
+            self._engine = create_engine(engine)
+            self.Session.configure(bind=self._engine)
+
+    def connect_database(self, engine: str):
+        if self._engine:
+            self._engine.dispose()
+        self._engine = create_engine(engine)
+        self.Session.configure(bind=self._engine)
 
     def empty_and_init_db(self):
         import mcr_analyser.database.models  # noqa: F401
