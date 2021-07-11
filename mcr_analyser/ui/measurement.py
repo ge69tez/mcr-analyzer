@@ -51,12 +51,25 @@ class MeasurementWidget(QtWidgets.QWidget):
         layout.addWidget(gbox)
 
         gbox = QtWidgets.QGroupBox(_("Visualisation"))
-        h_layout = QtWidgets.QHBoxLayout()
-        gbox.setLayout(h_layout)
+        v_layout = QtWidgets.QVBoxLayout()
+        gbox.setLayout(v_layout)
         self.image = QtWidgets.QLabel()
         self.image.setMinimumHeight(520)
         self.image.setMinimumWidth(696)
-        h_layout.addWidget(self.image)
+        v_layout.addWidget(self.image)
+        form_layout = QtWidgets.QFormLayout()
+        self.spot_size = QtWidgets.QLineEdit()
+        form_layout.addRow(_("Spot size"), self.spot_size)
+        self.margin_left = QtWidgets.QLineEdit()
+        form_layout.addRow(_("Margin left"), self.margin_left)
+        self.margin_top = QtWidgets.QLineEdit()
+        form_layout.addRow(_("Margin top"), self.margin_top)
+        self.spot_margin_horiz = QtWidgets.QLineEdit()
+        form_layout.addRow(_("Horizontal Spot Margin"), self.spot_margin_horiz)
+        self.spot_margin_vert = QtWidgets.QLineEdit()
+        form_layout.addRow(_("Vertical Spot Margin"), self.spot_margin_vert)
+        v_layout.addLayout(form_layout)
+
         layout.addWidget(gbox)
 
     def selChanged(self, selected, deselected):  # pylint: disable=unused-argument
@@ -69,7 +82,7 @@ class MeasurementWidget(QtWidgets.QWidget):
                 .filter(Measurement.id == meas_hash)
                 .one_or_none()
             )
-            if (measurement.user):
+            if measurement.user:
                 self.measurer.setText(measurement.user.name)
             else:
                 self.measurer.clear()
@@ -77,6 +90,11 @@ class MeasurementWidget(QtWidgets.QWidget):
             self.timestamp.setText(measurement.timestamp.strftime(_("%Y-%m-%d %H:%M")))
             self.chip.setText(measurement.chip.name)
             self.sample.setText(measurement.sample.name)
+            self.spot_size.setText(str(measurement.chip.spotSize))
+            self.margin_left.setText(str(measurement.chip.marginLeft))
+            self.margin_top.setText(str(measurement.chip.marginTop))
+            self.spot_margin_horiz.setText(str(measurement.chip.spotMarginHoriz))
+            self.spot_margin_vert.setText(str(measurement.chip.spotMarginVert))
             img = np.frombuffer(measurement.image, dtype=">u2").reshape(520, 696)
             # Gamma correction for better visualization
             # Convert to float (0<=x<=1)
@@ -93,5 +111,3 @@ class MeasurementWidget(QtWidgets.QWidget):
                     rgb = QtGui.qRgb(val, val, val)
                     qimg.setPixel(c, r, rgb)
             self.image.setPixmap(QtGui.QPixmap.fromImage(qimg))
-
-
