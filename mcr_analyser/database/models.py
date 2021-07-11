@@ -41,9 +41,19 @@ class Chip(Base):
     reduction."""
     columnCount: int = Column(Integer, nullable=False)
     """Number of columns. Different anti-bodies or anti-gens."""
+    marginLeft: int = Column(Integer, nullable=False)
+    """Distance between left border of the image and first column of spots."""
+    marginTop: int = Column(Integer, nullable=False)
+    """Distance between top border of the image and first row of spots."""
     spotSize: int = Column(Integer, nullable=False)
     """Size (in pixels) of a single spot. Side length of the square used for
     processing."""
+    spotMarginHoriz: int = Column(Integer, nullable=False)
+    """"Horizontal margin between two adjacent spots: skip N pixels before
+    processing the next spot."""
+    spotMarginVert: int = Column(Integer, nullable=False)
+    """Vertical margin between two adjacent spots: skip N pixels before
+    processing the next spot."""
     measurements: relationship = relationship(
         "Measurement", back_populates="chip", order_by="Measurement.timestamp"
     )

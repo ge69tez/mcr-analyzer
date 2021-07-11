@@ -134,6 +134,16 @@ class RsltParser:
             )
             self._spots = spots.reshape(self.results.shape)
 
+            # Compute grid settings from spots
+            self._meta["Margin left"] = int(self._spots[0, 0][0])
+            self._meta["Margin top"] = int(self._spots[0, 0][1])
+            spot_margin = (
+                np.subtract(tuple(self._spots[1, 1]), tuple(self._spots[0, 0]))
+                - self._meta["Spot size"]
+            )
+            self._meta["Spot margin horizontal"] = int(spot_margin[0])
+            self._meta["Spot margin vertical"] = int(spot_margin[1])
+
     @staticmethod
     def _parse_spot_coordinates(string: str):
         match = re.match(r"X=(\d+)Y=(\d+)", string)
