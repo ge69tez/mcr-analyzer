@@ -21,7 +21,7 @@ Base = declarative_base()
 class Database:
     # Singleton as we want only one database engine throughout the program
     def __new__(cls, *args, **kwargs):  # pylint: disable=unused-argument
-        if not hasattr(cls, '_instance'):
+        if not hasattr(cls, "_instance"):
             cls._instance = super().__new__(cls)
         return cls._instance
 
@@ -41,8 +41,8 @@ class Database:
     def empty_and_init_db(self):
         import mcr_analyser.database.models  # noqa: F401
 
-        self.base.metadata.drop_all(bind=self.engine)
-        self.base.metadata.create_all(bind=self.engine)
+        self.base.metadata.drop_all(bind=self._engine)
+        self.base.metadata.create_all(bind=self._engine)
 
     def get_or_create(self, session, model, **kwargs):
         instance = session.query(model).filter_by(**kwargs).one_or_none()
