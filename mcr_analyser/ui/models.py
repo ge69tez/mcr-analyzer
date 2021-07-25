@@ -14,6 +14,7 @@ import datetime
 from mcr_analyser.database.database import Database
 from mcr_analyser.database.models import Device, Measurement
 
+
 class ResultItem:
     def __init__(self, data: list = None, parent=None):
         self.parentItem = parent

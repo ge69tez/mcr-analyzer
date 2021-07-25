@@ -54,10 +54,10 @@ class MeasurementWidget(QtWidgets.QWidget):
         v_layout = QtWidgets.QVBoxLayout()
         gbox.setLayout(v_layout)
         self.image = QtWidgets.QLabel()
-        self.image.setMinimumHeight(520)
-        self.image.setMinimumWidth(696)
+        # self.image.setMinimumHeight(520)
+        # self.image.setMinimumWidth(696)
         v_layout.addWidget(self.image)
-        form_layout = QtWidgets.QFormLayout()
+        # form_layout = QtWidgets.QFormLayout()
         self.spot_size = QtWidgets.QLineEdit()
         form_layout.addRow(_("Spot size"), self.spot_size)
         self.margin_left = QtWidgets.QLineEdit()
@@ -68,7 +68,9 @@ class MeasurementWidget(QtWidgets.QWidget):
         form_layout.addRow(_("Horizontal Spot Margin"), self.spot_margin_horiz)
         self.spot_margin_vert = QtWidgets.QLineEdit()
         form_layout.addRow(_("Vertical Spot Margin"), self.spot_margin_vert)
-        v_layout.addLayout(form_layout)
+        # v_layout.addLayout(form_layout)
+        self.results = QtWidgets.QTextEdit()
+        v_layout.addWidget(self.results)
 
         layout.addWidget(gbox)
 
@@ -95,6 +97,7 @@ class MeasurementWidget(QtWidgets.QWidget):
             self.margin_top.setText(str(measurement.chip.marginTop))
             self.spot_margin_horiz.setText(str(measurement.chip.spotMarginHoriz))
             self.spot_margin_vert.setText(str(measurement.chip.spotMarginVert))
+            self.results.clear()
             img = np.frombuffer(measurement.image, dtype=">u2").reshape(520, 696)
             # Gamma correction for better visualization
             # Convert to float (0<=x<=1)
@@ -110,4 +113,31 @@ class MeasurementWidget(QtWidgets.QWidget):
                     val = int(img[r, c])
                     rgb = QtGui.qRgb(val, val, val)
                     qimg.setPixel(c, r, rgb)
+            painter = QtGui.QPainter(qimg)
+            painter.setPen(QtGui.QColorConstants.Red)
+            for j in range(measurement.chip.rowCount):
+                vals = []
+                for i in range(measurement.chip.columnCount):
+                    x = measurement.chip.marginLeft + i * (
+                        measurement.chip.spotSize + measurement.chip.spotMarginHoriz
+                    )
+                    y = measurement.chip.marginTop + j * (
+                        measurement.chip.spotSize + measurement.chip.spotMarginVert
+                    )
+                    spot = np.frombuffer(measurement.image, dtype=">u2").reshape(
+                        520, 696
+                    )[
+                        y : y + measurement.chip.spotSize,
+                        x : x + measurement.chip.spotSize,
+                    ]
+                    sorted_vals = np.sort(spot, axis=None)
+                    vals.append(np.mean(sorted_vals[-10:]))
+                    painter.drawRect(
+                        x, y, measurement.chip.spotSize, measurement.chip.spotSize
+                    )
+                self.results.append(
+                    "<pre>" + "   ".join(f"{v:5.0f}" for v in vals) + "</pre>"
+                )
+            painter.end()
+            qimg = qimg.copy(10, 150, qimg.width() - 20, qimg.height() - 300)
             self.image.setPixmap(QtGui.QPixmap.fromImage(qimg))
