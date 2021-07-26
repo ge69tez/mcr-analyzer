@@ -13,13 +13,14 @@ import numpy as np
 from mcr_analyser.database.database import Database
 from mcr_analyser.database.models import Device, Measurement
 from mcr_analyser.io.image import Image as mcrImage
-from mcr_analyser.ui.models import ResultsModel
+from mcr_analyser.ui.models import MeasurementModel
 
 
 class MeasurementWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.model = ResultsModel()
+        self.model = MeasurementModel()
+        self.result_model = None
 
         layout = QtWidgets.QHBoxLayout()
         self.setLayout(layout)
@@ -69,7 +70,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.spot_margin_vert = QtWidgets.QLineEdit()
         form_layout.addRow(_("Vertical Spot Margin"), self.spot_margin_vert)
         # v_layout.addLayout(form_layout)
-        self.results = QtWidgets.QTextEdit()
+        self.results = QtWidgets.QTableView()
         v_layout.addWidget(self.results)
 
         layout.addWidget(gbox)
@@ -97,7 +98,6 @@ class MeasurementWidget(QtWidgets.QWidget):
             self.margin_top.setText(str(measurement.chip.marginTop))
             self.spot_margin_horiz.setText(str(measurement.chip.spotMarginHoriz))
             self.spot_margin_vert.setText(str(measurement.chip.spotMarginVert))
-            self.results.clear()
             img = np.frombuffer(measurement.image, dtype=">u2").reshape(520, 696)
             # Gamma correction for better visualization
             # Convert to float (0<=x<=1)
@@ -115,13 +115,15 @@ class MeasurementWidget(QtWidgets.QWidget):
                     qimg.setPixel(c, r, rgb)
             painter = QtGui.QPainter(qimg)
             painter.setPen(QtGui.QColorConstants.Red)
-            for j in range(measurement.chip.rowCount):
-                vals = []
-                for i in range(measurement.chip.columnCount):
-                    x = measurement.chip.marginLeft + i * (
+            self.result_model = QtGui.QStandardItemModel(
+                measurement.chip.rowCount, measurement.chip.columnCount
+            )
+            for r in range(measurement.chip.rowCount):
+                for c in range(measurement.chip.columnCount):
+                    x = measurement.chip.marginLeft + c * (
                         measurement.chip.spotSize + measurement.chip.spotMarginHoriz
                     )
-                    y = measurement.chip.marginTop + j * (
+                    y = measurement.chip.marginTop + r * (
                         measurement.chip.spotSize + measurement.chip.spotMarginVert
                     )
                     spot = np.frombuffer(measurement.image, dtype=">u2").reshape(
@@ -131,13 +133,16 @@ class MeasurementWidget(QtWidgets.QWidget):
                         x : x + measurement.chip.spotSize,
                     ]
                     sorted_vals = np.sort(spot, axis=None)
-                    vals.append(np.mean(sorted_vals[-10:]))
+                    result = QtGui.QStandardItem(f"{np.mean(sorted_vals[-10:]):5.0f}")
+                    result.setTextAlignment(
+                        QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
+                    )
+                    self.result_model.setItem(r, c, result)
                     painter.drawRect(
                         x, y, measurement.chip.spotSize, measurement.chip.spotSize
                     )
-                self.results.append(
-                    "<pre>" + "   ".join(f"{v:5.0f}" for v in vals) + "</pre>"
-                )
+                self.results.setModel(self.result_model)
+                self.results.resizeColumnsToContents()
             painter.end()
             qimg = qimg.copy(10, 150, qimg.width() - 20, qimg.height() - 300)
             self.image.setPixmap(QtGui.QPixmap.fromImage(qimg))

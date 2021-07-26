@@ -15,7 +15,7 @@ from mcr_analyser.database.database import Database
 from mcr_analyser.database.models import Device, Measurement
 
 
-class ResultItem:
+class MeasurementItem:
     def __init__(self, data: list = None, parent=None):
         self.parentItem = parent
         self._data = data
@@ -51,17 +51,19 @@ class ResultItem:
         return self.parentItem
 
 
-class ResultsModel(QtCore.QAbstractItemModel):
+class MeasurementModel(QtCore.QAbstractItemModel):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.root_item = ResultItem(["Date/Time", "Chip", "Sample"])
+        self.root_item = MeasurementItem(["Date/Time", "Chip", "Sample"])
 
         self.db = Database()
         self.session = self.db.Session()
         for day in self.session.query(Measurement).group_by(
             sqlalchemy.func.strftime("%Y-%m-%d", Measurement.timestamp)
         ):
-            child = ResultItem([str(day.timestamp.date()), None, None], self.root_item)
+            child = MeasurementItem(
+                [str(day.timestamp.date()), None, None], self.root_item
+            )
             self.root_item.appendChild(child)
             for result in (
                 self.session.query(Measurement)
@@ -72,7 +74,7 @@ class ResultsModel(QtCore.QAbstractItemModel):
                 )
             ):
                 child.appendChild(
-                    ResultItem(
+                    MeasurementItem(
                         [
                             result.timestamp.time().strftime("%H:%M"),
                             result.chip.name,
