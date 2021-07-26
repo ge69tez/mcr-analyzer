@@ -28,6 +28,9 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+# PIP
+*.egg-info
+
 # Editors
 .vscode/
 .idea/
