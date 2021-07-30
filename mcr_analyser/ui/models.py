@@ -130,9 +130,9 @@ class MeasurementModel(QtCore.QAbstractItemModel):
 
     def data(self, index, role):
         if not index.isValid():
-            return QtCore.QVariant()
+            return None
         if role != QtCore.Qt.DisplayRole:
-            return QtCore.QVariant()
+            return None
 
         item = index.internalPointer()
 
@@ -148,4 +148,4 @@ class MeasurementModel(QtCore.QAbstractItemModel):
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
             return self.root_item.data(section)
 
-        return QtCore.QVariant()
+        return None
