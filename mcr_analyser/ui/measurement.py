@@ -114,7 +114,7 @@ class MeasurementWidget(QtWidgets.QWidget):
                     rgb = QtGui.qRgb(val, val, val)
                     qimg.setPixel(c, r, rgb)
             painter = QtGui.QPainter(qimg)
-            painter.setPen(QtGui.QColorConstants.Red)
+            painter.setPen(QtGui.QColor("red"))
             self.result_model = QtGui.QStandardItemModel(
                 measurement.chip.rowCount, measurement.chip.columnCount
             )
