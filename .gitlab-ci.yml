@@ -1,0 +1,66 @@
+image: "python:3.7"
+
+before_script:
+  - apt-get update
+  - apt-get dist-upgrade -y
+
+stages:
+  - test
+  - deploy
+
+flake8:
+  stage: test
+  script:
+    - pip install .[tests]
+    - flake8 --max-line-length=120 mcr_analyser
+  tags:
+    - docker
+
+pylint:
+  stage: test
+  script:
+    - pip install .[tests]
+    - pylint
+      -d all
+      -e F
+      -e E
+      -e unreachable
+      -e duplicate-key
+      -e unnecessary-semicolon
+      -e global-variable-not-assigned
+      -e unused-variable
+      -e binary-op-exception
+      -e bad-format-string
+      -e anomalous-backslash-in-string
+      -e bad-open-mode
+      --ignored-modules=qtpy
+      mcr_analyser
+  tags:
+    - docker
+
+pytest:
+  stage: test
+  script:
+    - pip install .[tests]
+    - coverage run --source=mcr_analyser,tests -m pytest tests
+    - coverage report
+    - coverage xml
+  coverage: '/^TOTAL.+?(\d+\%)$/'
+  artifacts:
+    reports:
+      cobertura: coverage.xml
+  tags:
+    - docker
+
+pages:
+  stage: deploy
+  script:
+    - pip install .[doc]
+    - sphinx-build -b html doc public
+  artifacts:
+    paths:
+      - public
+  tags:
+    - docker
+  only:
+    - master
