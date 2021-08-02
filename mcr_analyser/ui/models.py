@@ -12,7 +12,7 @@ import sqlalchemy
 import datetime
 
 from mcr_analyser.database.database import Database
-from mcr_analyser.database.models import Device, Measurement
+from mcr_analyser.database.models import Measurement
 
 
 class MeasurementItem:

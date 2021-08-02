@@ -11,8 +11,7 @@ from qtpy import QtCore, QtGui, QtWidgets
 import numpy as np
 
 from mcr_analyser.database.database import Database
-from mcr_analyser.database.models import Device, Measurement
-from mcr_analyser.io.image import Image as mcrImage
+from mcr_analyser.database.models import Measurement
 from mcr_analyser.ui.models import MeasurementModel
 
 
@@ -129,8 +128,8 @@ class MeasurementWidget(QtWidgets.QWidget):
                     spot = np.frombuffer(measurement.image, dtype=">u2").reshape(
                         520, 696
                     )[
-                        y : y + measurement.chip.spotSize,
-                        x : x + measurement.chip.spotSize,
+                        y : y + measurement.chip.spotSize,  # noqa: E203
+                        x : x + measurement.chip.spotSize,  # noqa: E203
                     ]
                     sorted_vals = np.sort(spot, axis=None)
                     result = QtGui.QStandardItem(f"{np.mean(sorted_vals[-10:]):5.0f}")

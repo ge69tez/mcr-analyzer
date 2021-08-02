@@ -9,7 +9,7 @@
 
 import sys
 
-from qtpy import QtCore, QtGui, QtWidgets
+from qtpy import QtCore, QtWidgets
 
 from mcr_analyser.i18n import setup_getext
 from mcr_analyser.ui.mainwindow import MainWindow
