@@ -1,0 +1,52 @@
+name: Run tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install .[tests]
+    - name: Check coding style (flake8)
+      run: |
+        flake8 \
+          --count \
+          --show-source \
+          --statistics \
+          --max-line-length=120 \
+          --builtins=_ \
+          mcr_analyser
+    - name: Check coding errors (pylint)
+      run: |
+        pylint \
+          -d all \
+          -e F \
+          -e E \
+          -e unreachable \
+          -e duplicate-key \
+          -e unnecessary-semicolon \
+          -e global-variable-not-assigned \
+          -e unused-variable \
+          -e binary-op-exception \
+          -e bad-format-string \
+          -e anomalous-backslash-in-string \
+          -e bad-open-mode \
+          --ignored-modules=qtpy \
+          mcr_analyser
+    - name: Run unit tests / coverage analysis (pytest)
+      run: |
+        coverage run --source=mcr_analyser,tests -m pytest tests
+        coverage report
+        coverage xml
