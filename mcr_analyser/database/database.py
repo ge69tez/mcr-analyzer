@@ -46,10 +46,8 @@ class Database:
 
     def get_or_create(self, session, model, **kwargs):
         instance = session.query(model).filter_by(**kwargs).one_or_none()
-        if instance:
-            return instance
-        else:
+        if not instance:
             instance = model(**kwargs)
             session.add(instance)
             session.commit()
-            return instance
+        return instance
