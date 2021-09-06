@@ -50,17 +50,17 @@ class Image:
 
     @property
     def width(self):
-        """ Width of the image. """
+        """Width of the image."""
         return self.size[0]
 
     @property
     def height(self):
-        """ Height of the image. """
+        """Height of the image."""
         return self.size[1]
 
     @property
     def size(self):
-        """ Size of the image as tuple (width, height). """
+        """Size of the image as tuple (width, height)."""
         return self._size
 
     # Context manager support

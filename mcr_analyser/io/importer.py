@@ -18,8 +18,32 @@ import numpy as np
 
 
 class FileImporter:
+    """Collect all measurements in the given path.
+
+    This function handles multi-image measurements by copying their base
+    metadata and delaying each image by one second."""
+
     def gather_measurements(self, path):
-        return Path(path).glob("**/*.rslt")
+        measurements = []
+        results = Path(path).glob("**/*.rslt")
+
+        for res in results:
+            rslt = RsltParser(res)
+
+            img = rslt.dir.joinpath(rslt.meta["Result image PGM"])
+            if img.exists():
+                measurements.append(rslt)
+            else:
+                # Check for multi image measurements and mock them as individual
+                base = Path(rslt.meta["Result image PGM"]).stem
+                for i, name in enumerate(sorted(rslt.dir.glob(f"{base}-*.pgm"))):
+                    temp_result = rslt
+                    temp_result.meta["Result image PGM"] = name.name
+                    temp_result.meta["Date/time"] = rslt.meta[
+                        "Date/time"
+                    ] + dt.timedelta(seconds=i)
+                    measurements.append(temp_result)
+        return measurements
 
 
 class RsltParser:
@@ -59,11 +83,12 @@ class RsltParser:
     @property
     def spots(self):
         """Two dimensional `numpy.ndarray` with (x, y) tuples defining the upper
-        left corner of a result tile."""
+        left corner of a result tile.
+        """
         return self._spots
 
     def __init__(self, path: str):
-        """Parses file `path` and populates class attributes.
+        """Parse file `path` and populate class attributes.
 
         :raises FileNotFoundError: `path` does not exist.
         """
@@ -143,6 +168,15 @@ class RsltParser:
             )
             self._meta["Spot margin horizontal"] = int(spot_margin[0])
             self._meta["Spot margin vertical"] = int(spot_margin[1])
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}('{self.path}')"
+
+    def __str__(self):
+        sample = self.meta["Probe ID"]
+        chip = self.meta["Chip ID"]
+        date = self.meta["Date/time"]
+        return f"MCR-Result (Sample: {sample}, Chip: {chip}, Date: {date})"
 
     @staticmethod
     def _parse_spot_coordinates(string: str):
