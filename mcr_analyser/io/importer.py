@@ -9,6 +9,7 @@
 
 """Import functions related to MCR measurements."""
 
+import copy
 import datetime as dt
 import re
 from errno import ENOENT
@@ -37,7 +38,7 @@ class FileImporter:
                 # Check for multi image measurements and mock them as individual
                 base = Path(rslt.meta["Result image PGM"]).stem
                 for i, name in enumerate(sorted(rslt.dir.glob(f"{base}-*.pgm"))):
-                    temp_result = rslt
+                    temp_result = copy.deepcopy(rslt)
                     temp_result.meta["Result image PGM"] = name.name
                     temp_result.meta["Date/time"] = rslt.meta[
                         "Date/time"
