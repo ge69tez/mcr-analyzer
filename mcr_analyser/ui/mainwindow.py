@@ -9,7 +9,7 @@
 
 from qtpy import QtCore, QtGui, QtWidgets
 
-from mcr_analyser.ui.importer import ImportDialog
+from mcr_analyser.ui.importer import ImportWidget
 from mcr_analyser.ui.measurement import MeasurementWidget
 
 
@@ -23,17 +23,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.create_menus()
         self.create_status_bar()
 
+        self.import_widget = ImportWidget()
         self.measurement_widget = MeasurementWidget()
+        self.tab_widget.addTab(self.import_widget, _("Import measurements"))
         self.tab_widget.addTab(self.measurement_widget, _("Measurement && Data Entry"))
+
+        self.tab_widget.setCurrentWidget(self.measurement_widget)
 
     def create_actions(self):
         self.about_action = QtWidgets.QAction(_("&About"), self)
         self.about_action.triggered.connect(self.show_about_dialog)
-
-        self.import_action = QtWidgets.QAction(_("&Import Measurements..."), self)
-        self.import_action.setStatusTip(_("Import measurements into the database."))
-        self.import_action.setShortcut(QtCore.Qt.CTRL + QtCore.Qt.Key_I)
-        self.import_action.triggered.connect(self.show_import_dialog)
 
         self.quit_action = QtWidgets.QAction(_("&Quit"), self)
         self.quit_action.setShortcut(QtGui.QKeySequence.Quit)
@@ -42,8 +41,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def create_menus(self):
         file_menu = self.menuBar().addMenu(_("&File"))
-        file_menu.addAction(self.import_action)
-        file_menu.addSeparator()
         file_menu.addAction(self.quit_action)
 
         self.menuBar().addSeparator()
@@ -94,5 +91,5 @@ class MainWindow(QtWidgets.QMainWindow):
         )
 
     def show_import_dialog(self):
-        import_dialog = ImportDialog(self)
+        import_dialog = ImportWidget(self)
         import_dialog.show()
