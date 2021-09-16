@@ -76,7 +76,7 @@ class MeasurementModel(QtCore.QAbstractItemModel):
                 child.appendChild(
                     MeasurementItem(
                         [
-                            result.timestamp.time().strftime("%H:%M"),
+                            result.timestamp.time().strftime("%H:%M:%S"),
                             result.chip.name,
                             result.sample.name,
                             result.id,

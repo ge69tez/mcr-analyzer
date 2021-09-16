@@ -89,7 +89,7 @@ class MeasurementWidget(QtWidgets.QWidget):
             else:
                 self.measurer.clear()
             self.device.setText(measurement.device.serial)
-            self.timestamp.setText(measurement.timestamp.strftime(_("%Y-%m-%d %H:%M")))
+            self.timestamp.setText(measurement.timestamp.strftime(_("%Y-%m-%d %H:%M:%S")))
             self.chip.setText(measurement.chip.name)
             self.sample.setText(measurement.sample.name)
             self.spot_size.setText(str(measurement.chip.spotSize))
