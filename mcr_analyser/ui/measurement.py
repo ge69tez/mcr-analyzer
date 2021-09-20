@@ -74,6 +74,10 @@ class MeasurementWidget(QtWidgets.QWidget):
 
         layout.addWidget(gbox)
 
+    def refreshDatabase(self):
+        self.model.refreshModel()
+        self.tree.expandAll()
+
     def selChanged(self, selected, deselected):  # pylint: disable=unused-argument
         meas_hash = selected.indexes()[0].internalPointer().data(3)
         if meas_hash:

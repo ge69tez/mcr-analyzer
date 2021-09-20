@@ -25,6 +25,9 @@ class ImportWidget(QtWidgets.QWidget):
     Provides a preview table of found results and handles import
     in a separate thread.
     """
+
+    importDone = QtCore.Signal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.dirs = []
@@ -90,6 +93,7 @@ class ImportWidget(QtWidgets.QWidget):
         self.result_worker.finished.connect(self.thread.quit)
         self.result_worker.finished.connect(self.result_worker.deleteLater)
         self.result_worker.finished.connect(self.thread.deleteLater)
+        self.result_worker.finished.connect(self.finishImport)
         self.thread.start()
 
     def update_filelist(self):
@@ -179,6 +183,9 @@ class ImportWidget(QtWidgets.QWidget):
             self.file_model.item(step, 4).setIcon(
                 self.style().standardIcon(QtWidgets.QStyle.SP_DialogYesButton)
             )
+
+    def finishImport(self):
+        self.importDone.emit()
 
 
 class ResultWorker(QtCore.QObject):

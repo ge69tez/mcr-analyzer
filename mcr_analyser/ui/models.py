@@ -149,3 +149,36 @@ class MeasurementModel(QtCore.QAbstractItemModel):
             return self.root_item.data(section)
 
         return None
+
+    def refreshModel(self):
+        self.beginResetModel()
+
+        self.root_item = MeasurementItem(["Date/Time", "Chip", "Sample"])
+
+        for day in self.session.query(Measurement).group_by(
+            sqlalchemy.func.strftime("%Y-%m-%d", Measurement.timestamp)
+        ):
+            child = MeasurementItem(
+                [str(day.timestamp.date()), None, None], self.root_item
+            )
+            self.root_item.appendChild(child)
+            for result in (
+                self.session.query(Measurement)
+                .filter(Measurement.timestamp >= day.timestamp.date())
+                .filter(
+                    Measurement.timestamp
+                    <= datetime.datetime.combine(day.timestamp, datetime.time.max)
+                )
+            ):
+                child.appendChild(
+                    MeasurementItem(
+                        [
+                            result.timestamp.time().strftime("%H:%M:%S"),
+                            result.chip.name,
+                            result.sample.name,
+                            result.id,
+                        ],
+                        child,
+                    )
+                )
+        self.endResetModel()

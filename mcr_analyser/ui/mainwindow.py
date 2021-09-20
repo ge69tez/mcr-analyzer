@@ -28,6 +28,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tab_widget.addTab(self.import_widget, _("Import measurements"))
         self.tab_widget.addTab(self.measurement_widget, _("Measurement && Data Entry"))
 
+        self.import_widget.importDone.connect(self.measurement_widget.refreshDatabase)
+
         self.tab_widget.setCurrentWidget(self.measurement_widget)
 
     def create_actions(self):
