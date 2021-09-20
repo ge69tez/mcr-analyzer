@@ -118,7 +118,12 @@ class ImportWidget(QtWidgets.QWidget):
                 self.file_model.appendRow(measurement)
 
         self.measurements_table.setModel(self.file_model)
-        self.measurements_table.resizeColumnsToContents()
+        # Work around https://bugreports.qt.io/browse/QTBUG-52307:
+        # resize all columns except the last one individually
+        for i in range(self.file_model.columnCount() - 1):
+            self.measurements_table.resizeColumnToContents(i)
+
+        self.progress_bar.setValue(0)
 
     def update_status(self, step, checksum):
         """Slot to be called whenever our thread has calculated a SHA256 sum."""
