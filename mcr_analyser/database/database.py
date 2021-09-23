@@ -23,14 +23,22 @@ class Database:
     def __new__(cls, *args, **kwargs):  # pylint: disable=unused-argument
         if not hasattr(cls, "_instance"):
             cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self, engine: str = "sqlite:///database.sqlite"):
-        self.base = Base
-        self.Session = sessionmaker()
-        if engine:
-            self._engine = create_engine(engine)
-            self.Session.configure(bind=self._engine)
+    def __init__(self, engine: str = None):
+        super().__init__()
+        if not self._initialized:
+            self._initialized = True
+            self.base = Base
+            self.Session = sessionmaker()
+            if engine:
+                self._engine = create_engine(engine)
+                self.Session.configure(bind=self._engine)
+            else:
+                self._engine = None
+        elif engine:
+            self.connect_database(engine)
 
     def connect_database(self, engine: str):
         if self._engine:
