@@ -20,7 +20,7 @@ from mcr_analyser.io.importer import FileImporter
 
 
 class ImportWidget(QtWidgets.QWidget):
-    """ User interface for selecting a folder to import.
+    """User interface for selecting a folder to import.
 
     Provides a preview table of found results and handles import
     in a separate thread.
@@ -44,6 +44,7 @@ class ImportWidget(QtWidgets.QWidget):
             self.style().standardIcon(QtWidgets.QStyle.SP_DirOpenIcon),
             _("Select Folder..."),
         )
+        self.path_button.setIconSize(QtCore.QSize(48, 48))
         self.path_button.clicked.connect(self.path_dialog)
         self.path_button.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Preferred,
@@ -55,6 +56,7 @@ class ImportWidget(QtWidgets.QWidget):
             self.style().standardIcon(QtWidgets.QStyle.SP_DialogSaveButton),
             _("Import into Database"),
         )
+        self.import_button.setIconSize(QtCore.QSize(48, 48))
         self.import_button.clicked.connect(self.start_import)
         self.import_button.hide()
         layout.addWidget(self.import_button)

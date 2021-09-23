@@ -18,7 +18,7 @@ from mcr_analyser.ui.models import MeasurementModel
 class MeasurementWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.model = MeasurementModel()
+        self.model = None
         self.result_model = None
 
         layout = QtWidgets.QHBoxLayout()
@@ -26,12 +26,9 @@ class MeasurementWidget(QtWidgets.QWidget):
 
         self.tree = QtWidgets.QTreeView()
         self.tree.setUniformRowHeights(True)
-        self.tree.setModel(self.model)
+
         layout.addWidget(self.tree)
         self.tree.expandAll()
-        for i in range(self.model.columnCount()):
-            self.tree.resizeColumnToContents(i)
-        self.tree.selectionModel().selectionChanged.connect(self.selChanged)
 
         gbox = QtWidgets.QGroupBox(_("Record data"))
         form_layout = QtWidgets.QFormLayout()
@@ -78,6 +75,14 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.model.refreshModel()
         self.tree.expandAll()
 
+    def switchDatabase(self):
+        self.model = MeasurementModel()
+        self.tree.setModel(self.model)
+
+        for i in range(self.model.columnCount()):
+            self.tree.resizeColumnToContents(i)
+        self.tree.selectionModel().selectionChanged.connect(self.selChanged)
+
     def selChanged(self, selected, deselected):  # pylint: disable=unused-argument
         meas_hash = selected.indexes()[0].internalPointer().data(3)
         if meas_hash:
@@ -93,7 +98,9 @@ class MeasurementWidget(QtWidgets.QWidget):
             else:
                 self.measurer.clear()
             self.device.setText(measurement.device.serial)
-            self.timestamp.setText(measurement.timestamp.strftime(_("%Y-%m-%d %H:%M:%S")))
+            self.timestamp.setText(
+                measurement.timestamp.strftime(_("%Y-%m-%d %H:%M:%S"))
+            )
             self.chip.setText(measurement.chip.name)
             self.sample.setText(measurement.sample.name)
             self.spot_size.setText(str(measurement.chip.spotSize))

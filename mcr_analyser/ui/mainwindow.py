@@ -11,6 +11,7 @@ from qtpy import QtCore, QtGui, QtWidgets
 
 from mcr_analyser.ui.importer import ImportWidget
 from mcr_analyser.ui.measurement import MeasurementWidget
+from mcr_analyser.ui.welcome import WelcomeWidget
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -23,11 +24,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.create_menus()
         self.create_status_bar()
 
+        self.welcome_widget = WelcomeWidget()
         self.import_widget = ImportWidget()
         self.measurement_widget = MeasurementWidget()
-        self.tab_widget.addTab(self.import_widget, _("Import measurements"))
-        self.tab_widget.addTab(self.measurement_widget, _("Measurement && Data Entry"))
 
+        self.tab_widget.addTab(self.welcome_widget, _("&Welcome"))
+        self.tab_widget.addTab(self.import_widget, _("&Import measurements"))
+        self.tab_widget.addTab(self.measurement_widget, _("&Measurement && Data Entry"))
+
+        self.welcome_widget.changedDatabase.connect(
+            self.measurement_widget.switchDatabase
+        )
         self.import_widget.importDone.connect(self.measurement_widget.refreshDatabase)
 
         self.tab_widget.setCurrentWidget(self.measurement_widget)
