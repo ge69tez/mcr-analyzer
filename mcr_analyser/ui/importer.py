@@ -192,6 +192,7 @@ class ImportWidget(QtWidgets.QWidget):
 
 class ResultWorker(QtCore.QObject):
     """Worker thread for calculating hashes of result images."""
+
     def __init__(self, results=list, parent=None):
         super().__init__(parent)
         self.results = results

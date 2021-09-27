@@ -20,13 +20,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle(_("MCR-Analyzer"))
         self.tab_widget = QtWidgets.QTabWidget(self)
         self.setCentralWidget(self.tab_widget)
-        self.create_actions()
-        self.create_menus()
-        self.create_status_bar()
 
         self.welcome_widget = WelcomeWidget()
         self.import_widget = ImportWidget()
         self.measurement_widget = MeasurementWidget()
+
+        self.create_actions()
+        self.create_menus()
+        self.create_status_bar()
 
         self.tab_widget.addTab(self.welcome_widget, _("&Welcome"))
         self.tab_widget.addTab(self.import_widget, _("&Import measurements"))
@@ -43,6 +44,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.about_action = QtWidgets.QAction(_("&About"), self)
         self.about_action.triggered.connect(self.show_about_dialog)
 
+        self.new_action = QtWidgets.QAction(_("Create &new database..."), self)
+        self.new_action.setShortcut(QtGui.QKeySequence.New)
+        self.new_action.setStatusTip(_("Create a new MCR-Analyser database."))
+        self.new_action.triggered.connect(self.welcome_widget.clicked_new_button)
+
+        self.open_action = QtWidgets.QAction(_("&Open existing database..."), self)
+        self.open_action.setShortcut(QtGui.QKeySequence.Open)
+        self.open_action.setStatusTip(_("Open an existing MCR-Analyser database."))
+        self.open_action.triggered.connect(self.welcome_widget.clicked_open_button)
+
         self.quit_action = QtWidgets.QAction(_("&Quit"), self)
         self.quit_action.setShortcut(QtGui.QKeySequence.Quit)
         self.quit_action.setStatusTip(_("Terminate the application."))
@@ -50,6 +61,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def create_menus(self):
         file_menu = self.menuBar().addMenu(_("&File"))
+        file_menu.addAction(self.new_action)
+        file_menu.addAction(self.open_action)
+        file_menu.addSeparator()
         file_menu.addAction(self.quit_action)
 
         self.menuBar().addSeparator()
