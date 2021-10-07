@@ -12,6 +12,7 @@ import numpy as np
 
 from mcr_analyser.database.database import Database
 from mcr_analyser.database.models import Measurement
+from mcr_analyser.processing.spot import Spot
 from mcr_analyser.ui.models import MeasurementModel
 
 
@@ -136,14 +137,13 @@ class MeasurementWidget(QtWidgets.QWidget):
                     y = measurement.chip.marginTop + r * (
                         measurement.chip.spotSize + measurement.chip.spotMarginVert
                     )
-                    spot = np.frombuffer(measurement.image, dtype=">u2").reshape(
-                        520, 696
-                    )[
-                        y : y + measurement.chip.spotSize,  # noqa: E203
-                        x : x + measurement.chip.spotSize,  # noqa: E203
-                    ]
-                    sorted_vals = np.sort(spot, axis=None)
-                    result = QtGui.QStandardItem(f"{np.mean(sorted_vals[-10:]):5.0f}")
+                    spot = Spot(
+                        np.frombuffer(measurement.image, dtype=">u2").reshape(520, 696)[
+                            y : y + measurement.chip.spotSize,
+                            x : x + measurement.chip.spotSize,
+                        ]
+                    )
+                    result = QtGui.QStandardItem(f"{spot.ten_px():5.0f}")
                     result.setTextAlignment(
                         QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
                     )
