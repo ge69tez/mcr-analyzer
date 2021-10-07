@@ -10,6 +10,7 @@
 from pathlib import Path
 from qtpy import QtCore, QtWidgets
 
+import mcr_analyser.utils as util
 from mcr_analyser.database.database import Database
 
 
@@ -58,6 +59,20 @@ class WelcomeWidget(QtWidgets.QWidget):
             db = Database()
             db.connect_database(f"sqlite:///{file_name}")
             db.empty_and_init_db()
+
+            # Update recent files
+            settings = QtCore.QSettings()
+            recent_files = util.ensure_list(settings.value("Session/Files"))
+            recent_files.insert(0, str(file_name))
+            recent_files = util.ensure_list(util.remove_duplicates(recent_files))
+
+            settings.setValue(
+                "Session/Files",
+                util.simplify_list(
+                    recent_files[0 : settings.value("Preferences/MaxRecentFiles", 5)]
+                ),
+            )
+
             self.changedDatabase.emit()
 
     def clicked_open_button(self):
@@ -67,4 +82,18 @@ class WelcomeWidget(QtWidgets.QWidget):
         if file_name and filter_name:
             db = Database()
             db.connect_database(f"sqlite:///{file_name}")
+
+            # Update recent files
+            settings = QtCore.QSettings()
+            recent_files = util.ensure_list(settings.value("Session/Files"))
+            recent_files.insert(0, str(file_name))
+            recent_files = util.ensure_list(util.remove_duplicates(recent_files))
+
+            settings.setValue(
+                "Session/Files",
+                util.simplify_list(
+                    recent_files[0 : settings.value("Preferences/MaxRecentFiles", 5)]
+                ),
+            )
+
             self.changedDatabase.emit()

@@ -7,8 +7,11 @@
 # This program is free software, see the LICENSE file in the root of this
 # repository for details
 
+from pathlib import Path
 from qtpy import QtCore, QtGui, QtWidgets
 
+import mcr_analyser.utils as util
+from mcr_analyser.database.database import Database
 from mcr_analyser.ui.importer import ImportWidget
 from mcr_analyser.ui.measurement import MeasurementWidget
 from mcr_analyser.ui.welcome import WelcomeWidget
@@ -28,6 +31,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.create_actions()
         self.create_menus()
         self.create_status_bar()
+        self.update_recent_files()
 
         self.tab_widget.addTab(self.welcome_widget, _("&Welcome"))
         self.tab_widget.addTab(self.import_widget, _("&Import measurements"))
@@ -36,6 +40,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.welcome_widget.changedDatabase.connect(
             self.measurement_widget.switchDatabase
         )
+        self.welcome_widget.changedDatabase.connect(self.update_recent_files)
         self.import_widget.importDone.connect(self.measurement_widget.refreshDatabase)
 
         self.tab_widget.setCurrentWidget(self.measurement_widget)
@@ -63,7 +68,11 @@ class MainWindow(QtWidgets.QMainWindow):
         file_menu = self.menuBar().addMenu(_("&File"))
         file_menu.addAction(self.new_action)
         file_menu.addAction(self.open_action)
+
         file_menu.addSeparator()
+        self.recent_menu = file_menu.addMenu(_("Recently used databases"))
+        file_menu.addSeparator()
+
         file_menu.addAction(self.quit_action)
 
         self.menuBar().addSeparator()
@@ -113,6 +122,66 @@ class MainWindow(QtWidgets.QMainWindow):
             ),
         )
 
-    def show_import_dialog(self):
-        import_dialog = ImportWidget(self)
-        import_dialog.show()
+    def update_recent_files(self):
+        self.recent_menu.clear()
+        settings = QtCore.QSettings()
+        recent_files = util.ensure_list(settings.value("Session/Files"))
+
+        for item in recent_files:
+            path = Path(item)
+            try:
+                menu_entry = f"~/{path.relative_to(Path.home())}"
+            except (KeyError, RuntimeError, ValueError):
+                menu_entry = str(path)
+
+            action = QtWidgets.QAction(menu_entry, self.recent_menu)
+            action.setData(str(path))
+            action.triggered.connect(self.open_recent_file)
+            self.recent_menu.addAction(action)
+
+        if self.recent_menu.isEmpty():
+            self.recent_menu.setEnabled(False)
+        else:
+            self.recent_menu.setEnabled(True)
+
+    def open_recent_file(self):
+        file_name = Path(self.sender().data())
+        if file_name.exists():
+            db = Database()
+            db.connect_database(f"sqlite:///{file_name}")
+
+            # Update recent files
+            settings = QtCore.QSettings()
+            recent_files = util.ensure_list(settings.value("Session/Files"))
+            recent_files.insert(0, str(file_name))
+            recent_files = util.ensure_list(util.remove_duplicates(recent_files))
+
+            settings.setValue(
+                "Session/Files",
+                util.simplify_list(
+                    recent_files[0 : settings.value("Preferences/MaxRecentFiles", 5)]
+                ),
+            )
+            self.measurement_widget.switchDatabase()
+
+        else:
+            # Update recent files
+            settings = QtCore.QSettings()
+            recent_files = util.ensure_list(settings.value("Session/Files"))
+
+            try:
+                recent_files.remove(str(file_name))
+            except ValueError:
+                pass
+            settings.setValue("Session/Files", util.simplify_list(recent_files))
+
+            QtWidgets.QMessageBox.warning(
+                self,
+                _("File not found"),
+                _(
+                    "'{}' could not be found. "
+                    "It might have been deleted or the drive or network path is currently not accessible.".format(
+                        file_name
+                    )
+                ),
+            )

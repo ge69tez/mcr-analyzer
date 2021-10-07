@@ -19,6 +19,10 @@ class Analyser(QtWidgets.QApplication):
     def __init__(self, localedir):
         super().__init__(sys.argv)
 
+        self.setOrganizationName("TranslaTUM")
+        self.setOrganizationDomain("www.translatum.tum.de")
+        self.setApplicationName("MCR-Analyzer")
+
         setup_getext(localedir)
 
         self.window = MainWindow()
