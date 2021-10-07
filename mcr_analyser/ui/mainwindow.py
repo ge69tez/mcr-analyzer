@@ -46,13 +46,16 @@ class MainWindow(QtWidgets.QMainWindow):
         # Open last active database
         settings = QtCore.QSettings()
         recent_files = util.ensure_list(settings.value("Session/Files"))
-        path = Path(recent_files[0])
-        if path.exists():
-            db = Database()
-            db.connect_database(f"sqlite:///{path}")
-            self.measurement_widget.switchDatabase()
+        try:
+            path = Path(recent_files[0])
+            if path.exists():
+                db = Database()
+                db.connect_database(f"sqlite:///{path}")
+                self.measurement_widget.switchDatabase()
+        except IndexError:
+            pass
 
-        self.tab_widget.setCurrentIndex(int(settings.value("Session/ActiveTab"), 0))
+        self.tab_widget.setCurrentIndex(settings.value("Session/ActiveTab", 0, int))
 
     def closeEvent(self, event: QtGui.QCloseEvent):
         settings = QtCore.QSettings()
@@ -141,17 +144,18 @@ class MainWindow(QtWidgets.QMainWindow):
         settings = QtCore.QSettings()
         recent_files = util.ensure_list(settings.value("Session/Files"))
 
-        for item in recent_files:
-            path = Path(item)
-            try:
-                menu_entry = f"~/{path.relative_to(Path.home())}"
-            except (KeyError, RuntimeError, ValueError):
-                menu_entry = str(path)
+        if recent_files:
+            for item in recent_files:
+                path = Path(item)
+                try:
+                    menu_entry = f"~/{path.relative_to(Path.home())}"
+                except (KeyError, RuntimeError, ValueError):
+                    menu_entry = str(path)
 
-            action = QtWidgets.QAction(menu_entry, self.recent_menu)
-            action.setData(str(path))
-            action.triggered.connect(self.open_recent_file)
-            self.recent_menu.addAction(action)
+                action = QtWidgets.QAction(menu_entry, self.recent_menu)
+                action.setData(str(path))
+                action.triggered.connect(self.open_recent_file)
+                self.recent_menu.addAction(action)
 
         if self.recent_menu.isEmpty():
             self.recent_menu.setEnabled(False)

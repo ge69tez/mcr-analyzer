@@ -10,11 +10,13 @@
 
 
 def ensure_list(var):
-    """Ensure var is list, tuple, or None.
+    """Ensure var is list or tuple.
 
     Especially useful to avoid character iteration over strings.
     """
-    return var if not var or type(var) in [list, tuple] else [var]
+    if not var:
+        return []
+    return var if type(var) in [list, tuple] else [var]
 
 
 def remove_duplicates(list: list):
