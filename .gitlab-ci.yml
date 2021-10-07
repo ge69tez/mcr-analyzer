@@ -12,7 +12,14 @@ flake8:
   stage: test
   script:
     - pip install .[tests]
-    - flake8 --max-line-length=120 --builtins=_ mcr_analyser
+    - flake8
+      --count
+      --show-source
+      --statistics
+      --max-line-length=120
+      --builtins=_
+      --ignore=E121,E123,E126,E203,E226,E24,E704,W503,W504
+      mcr_analyser
   tags:
     - docker
 

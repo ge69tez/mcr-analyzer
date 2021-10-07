@@ -27,6 +27,7 @@ jobs:
           --statistics \
           --max-line-length=120 \
           --builtins=_ \
+          --ignore=E121,E123,E126,E203,E226,E24,E704,W503,W504 \
           mcr_analyser
     - name: Check coding errors (pylint)
       run: |
