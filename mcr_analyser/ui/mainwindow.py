@@ -43,7 +43,21 @@ class MainWindow(QtWidgets.QMainWindow):
         self.welcome_widget.changedDatabase.connect(self.update_recent_files)
         self.import_widget.importDone.connect(self.measurement_widget.refreshDatabase)
 
-        self.tab_widget.setCurrentWidget(self.measurement_widget)
+        # Open last active database
+        settings = QtCore.QSettings()
+        recent_files = util.ensure_list(settings.value("Session/Files"))
+        path = Path(recent_files[0])
+        if path.exists():
+            db = Database()
+            db.connect_database(f"sqlite:///{path}")
+            self.measurement_widget.switchDatabase()
+
+        self.tab_widget.setCurrentIndex(int(settings.value("Session/ActiveTab"), 0))
+
+    def closeEvent(self, event: QtGui.QCloseEvent):
+        settings = QtCore.QSettings()
+        settings.setValue("Session/ActiveTab", self.tab_widget.currentIndex())
+        event.accept()
 
     def create_actions(self):
         self.about_action = QtWidgets.QAction(_("&About"), self)
