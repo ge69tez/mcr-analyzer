@@ -19,12 +19,12 @@ def ensure_list(var):
     return var if type(var) in [list, tuple] else [var]
 
 
-def remove_duplicates(list: list):
+def remove_duplicates(lst: list):
     """Remove duplicates from list while preserving order."""
     vals = set()
-    return [i for i in list if i not in vals and (vals.add(i) or True)]
+    return [i for i in lst if i not in vals and (vals.add(i) or True)]
 
 
-def simplify_list(list: list):
+def simplify_list(lst: list):
     """Return single string if list contains only one string."""
-    return list if type(list) in [list, tuple] and len(list) > 1 else list[0]
+    return lst if type(lst) in [list, tuple] and len(lst) > 1 else lst[0]
