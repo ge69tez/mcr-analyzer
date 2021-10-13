@@ -7,12 +7,15 @@
 # This program is free software, see the LICENSE file in the root of this
 # repository for details
 
-from qtpy import QtCore
-import sqlalchemy
 import datetime
+import string
+
+import numpy as np
+import sqlalchemy
+from qtpy import QtCore, QtGui
 
 from mcr_analyser.database.database import Database
-from mcr_analyser.database.models import Measurement
+from mcr_analyser.database.models import Measurement, Result
 
 
 class MeasurementItem:
@@ -182,3 +185,84 @@ class MeasurementModel(QtCore.QAbstractItemModel):
                     )
                 )
         self.endResetModel()
+
+
+class ResultModel(QtCore.QAbstractTableModel):
+    def __init__(self, measurement: bytes, parent: QtCore.QObject = None):
+        super().__init__(parent)
+        self.db = Database()
+        self.session = self.db.Session()
+        self.measurement = (
+            self.session.query(Measurement)
+            .filter(Measurement.id == measurement)
+            .one_or_none()
+        )
+
+    def rowCount(self, parent: QtCore.QModelIndex) -> int:
+        if not self.measurement:
+            return 0
+        return self.measurement.chip.rowCount + 2
+
+    def columnCount(self, parent: QtCore.QModelIndex) -> int:
+        if not self.measurement:
+            return 0
+        return self.measurement.chip.columnCount
+
+    def headerData(self, section: int, orientation: QtCore.Qt.Orientation, role: int):
+        if role == QtCore.Qt.FontRole:
+            if (
+                orientation == QtCore.Qt.Vertical
+                and section >= self.measurement.chip.rowCount
+            ):
+                boldFont = QtGui.QFont()
+                boldFont.setBold(True)
+                return boldFont
+        if role != QtCore.Qt.DisplayRole:
+            return None
+        if orientation == QtCore.Qt.Horizontal:
+            return section + 1
+        if section < self.measurement.chip.rowCount:
+            return string.ascii_uppercase[section]
+        if section == self.measurement.chip.rowCount:
+            return _("Mean")
+        if section == self.measurement.chip.rowCount + 1:
+            return _("Std.")
+        return None
+
+    def data(self, index: QtCore.QModelIndex, role: int):
+        if not index.isValid():
+            return None
+        if role == QtCore.Qt.TextAlignmentRole:
+            return QtCore.Qt.AlignRight + QtCore.Qt.AlignVCenter
+        if role == QtCore.Qt.FontRole:
+            if index.row() >= self.measurement.chip.rowCount:
+                boldFont = QtGui.QFont()
+                boldFont.setBold(True)
+                return boldFont
+        if role != QtCore.Qt.DisplayRole:
+            return None
+
+        result = (
+            self.session.query(Result)
+            .filter_by(
+                measurement=self.measurement, column=index.column(), row=index.row()
+            )
+            .one_or_none()
+        )
+        if not result:
+            if index.row() == self.measurement.chip.rowCount:
+                values = list(
+                    self.session.query(Result)
+                    .filter_by(measurement=self.measurement, column=index.column())
+                    .values(Result.value)
+                )
+                return f"{np.mean(values):5.0f}"
+            if index.row() == self.measurement.chip.rowCount + 1:
+                values = list(
+                    self.session.query(Result)
+                    .filter_by(measurement=self.measurement, column=index.column())
+                    .values(Result.value)
+                )
+                return f"{np.std(values):5.0f}"
+            return None
+        return f"{result.value:5.0f}"

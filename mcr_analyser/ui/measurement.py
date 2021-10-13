@@ -11,9 +11,9 @@ from qtpy import QtCore, QtGui, QtWidgets
 import numpy as np
 
 from mcr_analyser.database.database import Database
-from mcr_analyser.database.models import Measurement
+from mcr_analyser.database.models import Measurement, Result
 from mcr_analyser.processing.spot import Spot
-from mcr_analyser.ui.models import MeasurementModel
+from mcr_analyser.ui.models import MeasurementModel, ResultModel
 
 
 class MeasurementWidget(QtWidgets.QWidget):
@@ -126,9 +126,10 @@ class MeasurementWidget(QtWidgets.QWidget):
                     qimg.setPixel(c, r, rgb)
             painter = QtGui.QPainter(qimg)
             painter.setPen(QtGui.QColor("red"))
-            self.result_model = QtGui.QStandardItemModel(
-                measurement.chip.rowCount, measurement.chip.columnCount
-            )
+            self.result_model = ResultModel(meas_hash)
+            self.results.setModel(self.result_model)
+            self.results.resizeColumnsToContents()
+
             for r in range(measurement.chip.rowCount):
                 for c in range(measurement.chip.columnCount):
                     x = measurement.chip.marginLeft + c * (
@@ -137,22 +138,47 @@ class MeasurementWidget(QtWidgets.QWidget):
                     y = measurement.chip.marginTop + r * (
                         measurement.chip.spotSize + measurement.chip.spotMarginVert
                     )
-                    spot = Spot(
-                        np.frombuffer(measurement.image, dtype=">u2").reshape(520, 696)[
-                            y : y + measurement.chip.spotSize,
-                            x : x + measurement.chip.spotSize,
-                        ]
-                    )
-                    result = QtGui.QStandardItem(f"{spot.ten_px():5.0f}")
-                    result.setTextAlignment(
-                        QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
-                    )
-                    self.result_model.setItem(r, c, result)
                     painter.drawRect(
                         x, y, measurement.chip.spotSize, measurement.chip.spotSize
                     )
-                self.results.setModel(self.result_model)
-                self.results.resizeColumnsToContents()
+
             painter.end()
             qimg = qimg.copy(10, 150, qimg.width() - 20, qimg.height() - 300)
             self.image.setPixmap(QtGui.QPixmap.fromImage(qimg))
+
+            self.updateResults(meas_hash)
+
+    def updateResults(self, measurement_hash: bytes):
+        db = Database()
+        session = db.Session()
+        measurement = (
+            session.query(Measurement)
+            .filter(Measurement.id == measurement_hash)
+            .one_or_none()
+        )
+
+        for row in range(measurement.chip.rowCount):
+            for col in range(measurement.chip.columnCount):
+                x = measurement.chip.marginLeft + col * (
+                    measurement.chip.spotSize + measurement.chip.spotMarginHoriz
+                )
+                y = measurement.chip.marginTop + row * (
+                    measurement.chip.spotSize + measurement.chip.spotMarginVert
+                )
+                spot = Spot(
+                    np.frombuffer(measurement.image, dtype=">u2").reshape(520, 696)[
+                        y : y + measurement.chip.spotSize,
+                        x : x + measurement.chip.spotSize,
+                    ]
+                )
+                result = db.get_or_create(
+                    session,
+                    Result,
+                    measurement=measurement,
+                    row=row,
+                    column=col,
+                )
+                result.value = spot.ten_px()
+                session.add(result)
+
+        session.commit()
