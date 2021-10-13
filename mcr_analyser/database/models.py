@@ -160,6 +160,10 @@ class Result(Base):
     concentration: float = Column(Float)
     """Additional concentration information to specify the :attr:`reagent` more
     precisely."""
+    valid: bool = Column(Boolean)
+    """Is this a valid result which can be used in calculations? Invalid results
+    can be caused by the process (bleeding of nearby results, air bubbles, or
+    dirt) or determination as an outlier (mathematical postprocessing)."""
 
 
 class Sample(Base):

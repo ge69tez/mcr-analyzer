@@ -7,7 +7,7 @@
 # This program is free software, see the LICENSE file in the root of this
 # repository for details
 
-from qtpy import QtCore, QtGui, QtWidgets
+from qtpy import QtGui, QtWidgets
 import numpy as np
 
 from mcr_analyser.database.database import Database
