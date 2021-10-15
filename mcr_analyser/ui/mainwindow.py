@@ -12,6 +12,7 @@ from qtpy import QtCore, QtGui, QtWidgets
 
 import mcr_analyser.utils as util
 from mcr_analyser.database.database import Database
+from mcr_analyser.ui.exporter import ExportWidget
 from mcr_analyser.ui.importer import ImportWidget
 from mcr_analyser.ui.measurement import MeasurementWidget
 from mcr_analyser.ui.welcome import WelcomeWidget
@@ -27,6 +28,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.welcome_widget = WelcomeWidget()
         self.import_widget = ImportWidget()
         self.measurement_widget = MeasurementWidget()
+        self.export_widget = ExportWidget()
 
         self.create_actions()
         self.create_menus()
@@ -36,6 +38,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tab_widget.addTab(self.welcome_widget, _("&Welcome"))
         self.tab_widget.addTab(self.import_widget, _("&Import measurements"))
         self.tab_widget.addTab(self.measurement_widget, _("&Measurement && Data Entry"))
+        self.tab_widget.addTab(self.export_widget, _("&Export"))
 
         self.welcome_widget.changedDatabase.connect(
             self.measurement_widget.switchDatabase
