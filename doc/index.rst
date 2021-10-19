@@ -13,6 +13,7 @@ for developers.
 
    modules/database
    modules/io
+   modules/processing
 
 Indices and tables
 ==================

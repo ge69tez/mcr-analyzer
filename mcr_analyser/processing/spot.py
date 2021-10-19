@@ -9,11 +9,27 @@
 
 import numpy as np
 
+"""Spot analysis modules"""
+
 
 class Spot:
-    def __init__(self, data: np.ndarray = None):
+    """Base class defining spot analysis interface"""
+
+    def __init__(self, data: np.ndarray):
+        """Initialize spot object.
+
+        :param data: (np.ndarray) Pixel data of the spot in question.
+        """
         self.img = data
 
-    def ten_px(self):
+    def value(self) -> float:
+        """Returns chemiluminescence value of the spot."""
+        pass
+
+
+class DeviceBuiltin(Spot):
+    """Spot analysis class replicating MCR-Rs internal behaviour."""
+
+    def value(self) -> float:
         vals = np.sort(self.img, axis=None)
         return np.mean(vals[-10:])

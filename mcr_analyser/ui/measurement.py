@@ -12,7 +12,7 @@ import numpy as np
 
 from mcr_analyser.database.database import Database
 from mcr_analyser.database.models import Measurement, Result
-from mcr_analyser.processing.spot import Spot
+from mcr_analyser.processing.spot import Spot, DeviceBuiltin
 from mcr_analyser.ui.models import MeasurementModel, ResultModel
 
 
@@ -165,7 +165,7 @@ class MeasurementWidget(QtWidgets.QWidget):
                 y = measurement.chip.marginTop + row * (
                     measurement.chip.spotSize + measurement.chip.spotMarginVert
                 )
-                spot = Spot(
+                spot = DeviceBuiltin(
                     np.frombuffer(measurement.image, dtype=">u2").reshape(520, 696)[
                         y : y + measurement.chip.spotSize,
                         x : x + measurement.chip.spotSize,
@@ -178,7 +178,7 @@ class MeasurementWidget(QtWidgets.QWidget):
                     row=row,
                     column=col,
                 )
-                result.value = spot.ten_px()
+                result.value = spot.value()
                 session.add(result)
 
         session.commit()
