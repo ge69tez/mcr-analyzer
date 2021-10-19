@@ -94,6 +94,8 @@ class MeasurementWidget(QtWidgets.QWidget):
                 .filter(Measurement.id == meas_hash)
                 .one_or_none()
             )
+            # Update result early to make it available later
+            self.updateResults(meas_hash)
             if measurement.user:
                 self.measurer.setText(measurement.user.name)
             else:
@@ -145,8 +147,6 @@ class MeasurementWidget(QtWidgets.QWidget):
             painter.end()
             qimg = qimg.copy(10, 150, qimg.width() - 20, qimg.height() - 300)
             self.image.setPixmap(QtGui.QPixmap.fromImage(qimg))
-
-            self.updateResults(meas_hash)
 
     def updateResults(self, measurement_hash: bytes):
         db = Database()
