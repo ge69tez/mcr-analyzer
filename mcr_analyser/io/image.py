@@ -118,7 +118,13 @@ class Image:
             dtype = ">" + dtype
         self.data = np.fromfile(self.file, dtype=dtype, sep=sep).reshape(height, width)
 
-    def _write_pnm_ascii(self, path):
+    def write_pnm_ascii(self, path):
+        """Save image as ASCII PGM.
+
+        Writes a portable gray map in ASCII format (human readable).
+
+        :param path: filename/path to be written
+        """
         header = (
             f"P2\n{self.width} {self.height}\n{2**(self.data.dtype.itemsize * 8) - 1}"
         )
@@ -126,7 +132,15 @@ class Image:
             path, self.data, fmt="%d", delimiter="\t", header=header, comments=""
         )
 
-    def _write_pgm_binary(self, path):
+    def write_pgm_binary(self, path):
+        """Save image as binary PGM.
+
+        Writes a portable gray map in binary format. This is the smallest and most
+        portable file format this libray can create. Use this for exchange and
+        storage if you don't have other requirements.
+
+        :param path: filename/path to be written
+        """
         if self.data.dtype.itemsize > 2:
             raise RuntimeError(
                 f"Unsupported data type '{self.data.dtype.name}', PGM only supports uint8 and uint16."
@@ -149,7 +163,14 @@ class Image:
             height, width
         )
 
-    def _write_txt(self, path):
+    def write_txt(self, path):
+        """Save image as MCR text format.
+
+        This saves the format in the original MCR format. Use only if required by
+        your toolchain, this format is the least portable.
+
+        :param path: filename/path to be written
+        """
         with open(path, "w") as f:
             # Write header (width, height and newline)
             f.write(f"{self.width}\n{self.height}\n\n")
