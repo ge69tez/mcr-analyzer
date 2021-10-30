@@ -80,6 +80,8 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.model = MeasurementModel()
         self.tree.setModel(self.model)
 
+        # Work around https://bugreports.qt.io/browse/QTBUG-52307:
+        # resize all columns except the last one individually
         for i in range(self.model.columnCount()):
             self.tree.resizeColumnToContents(i)
         self.tree.selectionModel().selectionChanged.connect(self.selChanged)
@@ -119,13 +121,10 @@ class MeasurementWidget(QtWidgets.QWidget):
             img = img ** 0.5
             # Map to 8 bit range
             img = img * 255
-            qimg = QtGui.QImage(696, 520, QtGui.QImage.Format_RGB888)
 
-            for r in range(img.shape[0]):
-                for c in range(img.shape[1]):
-                    val = int(img[r, c])
-                    rgb = QtGui.qRgb(val, val, val)
-                    qimg.setPixel(c, r, rgb)
+            qimg = QtGui.QImage(
+                img.astype("uint8"), 696, 520, QtGui.QImage.Format_Grayscale8
+            ).convertToFormat(QtGui.QImage.Format_RGB32)
             painter = QtGui.QPainter(qimg)
             painter.setPen(QtGui.QColor("red"))
             self.result_model = ResultModel(meas_hash)
