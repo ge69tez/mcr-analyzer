@@ -230,18 +230,11 @@ class ResultModel(QtCore.QAbstractTableModel):
         return None
 
     def data(self, index: QtCore.QModelIndex, role: int):
+        # Validate index
         if not index.isValid():
             return None
-        if role == QtCore.Qt.TextAlignmentRole:
-            return QtCore.Qt.AlignRight + QtCore.Qt.AlignVCenter
-        if role == QtCore.Qt.FontRole:
-            if index.row() >= self.measurement.chip.rowCount:
-                boldFont = QtGui.QFont()
-                boldFont.setBold(True)
-                return boldFont
-        if role != QtCore.Qt.DisplayRole:
-            return None
 
+        # Query database - returns None for statistic table entries
         result = (
             self.session.query(Result)
             .filter_by(
@@ -249,6 +242,27 @@ class ResultModel(QtCore.QAbstractTableModel):
             )
             .one_or_none()
         )
+
+        # Adjust to the right
+        if role == QtCore.Qt.TextAlignmentRole:
+            return QtCore.Qt.AlignRight + QtCore.Qt.AlignVCenter
+
+        # Font modifications for statistics and values
+        if role == QtCore.Qt.FontRole:
+            if index.row() >= self.measurement.chip.rowCount:
+                boldFont = QtGui.QFont()
+                boldFont.setBold(True)
+                return boldFont
+        if role == QtCore.Qt.ForegroundRole:
+            if result and result.valid:
+                brush = QtGui.QBrush(QtGui.QColorConstants.DarkGreen)
+                return brush
+            if result and result.valid is False:
+                brush = QtGui.QBrush(QtGui.QColorConstants.DarkRed)
+                return brush
+        if role != QtCore.Qt.DisplayRole:
+            return None
+
         if not result:
             if index.row() == self.measurement.chip.rowCount:
                 values = list(
