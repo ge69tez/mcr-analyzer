@@ -267,16 +267,20 @@ class ResultModel(QtCore.QAbstractTableModel):
             if index.row() == self.measurement.chip.rowCount:
                 values = list(
                     self.session.query(Result)
-                    .filter_by(measurement=self.measurement, column=index.column())
+                    .filter_by(
+                        measurement=self.measurement, column=index.column(), valid=True
+                    )
                     .values(Result.value)
                 )
                 return f"{np.mean(values):5.0f}"
             if index.row() == self.measurement.chip.rowCount + 1:
                 values = list(
                     self.session.query(Result)
-                    .filter_by(measurement=self.measurement, column=index.column())
+                    .filter_by(
+                        measurement=self.measurement, column=index.column(), valid=True
+                    )
                     .values(Result.value)
                 )
-                return f"{np.std(values):5.0f}"
+                return f"{np.std(values, ddof=1):5.0f}"
             return None
         return f"{result.value:5.0f}"

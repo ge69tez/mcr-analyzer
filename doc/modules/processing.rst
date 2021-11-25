@@ -6,3 +6,7 @@ processing Module
 Spot
 ----
 .. automodule:: mcr_analyser.processing.spot
+
+Validator
+---------
+.. automodule:: mcr_analyser.processing.validator

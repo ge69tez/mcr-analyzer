@@ -13,6 +13,7 @@ import numpy as np
 from mcr_analyser.database.database import Database
 from mcr_analyser.database.models import Measurement, Result
 from mcr_analyser.processing.spot import DeviceBuiltin
+from mcr_analyser.processing.validator import SpotReaderValidator
 from mcr_analyser.ui.models import MeasurementModel, ResultModel
 
 
@@ -156,8 +157,9 @@ class MeasurementWidget(QtWidgets.QWidget):
             .one_or_none()
         )
 
-        for row in range(measurement.chip.rowCount):
-            for col in range(measurement.chip.columnCount):
+        for col in range(measurement.chip.columnCount):
+            col_results = []
+            for row in range(measurement.chip.rowCount):
                 x = measurement.chip.marginLeft + col * (
                     measurement.chip.spotSize + measurement.chip.spotMarginHoriz
                 )
@@ -179,5 +181,18 @@ class MeasurementWidget(QtWidgets.QWidget):
                 )
                 result.value = spot.value()
                 session.add(result)
+                col_results.append(result.value)
+            validator = SpotReaderValidator(col_results)
+            validation = validator.validate()
 
+            for row in range(measurement.chip.rowCount):
+                result = db.get_or_create(
+                    session,
+                    Result,
+                    measurement=measurement,
+                    row=row,
+                    column=col,
+                )
+                result.valid = validation[row]
+                session.add(result)
         session.commit()
