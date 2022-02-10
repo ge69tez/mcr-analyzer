@@ -49,7 +49,7 @@ class Chip(Base):
     """Size (in pixels) of a single spot. Side length of the square used for
     processing."""
     spotMarginHoriz: int = Column(Integer, nullable=False)
-    """"Horizontal margin between two adjacent spots: skip N pixels before
+    """Horizontal margin between two adjacent spots: skip N pixels before
     processing the next spot."""
     spotMarginVert: int = Column(Integer, nullable=False)
     """Vertical margin between two adjacent spots: skip N pixels before

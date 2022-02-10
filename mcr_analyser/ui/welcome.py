@@ -53,9 +53,11 @@ class WelcomeWidget(QtWidgets.QWidget):
             self, _("Store database as"), None, _("SQLite Database (*.sqlite)")
         )
         if file_name and filter_name:
+            # Ensure file has an extension
             file_name = Path(file_name)
             if not file_name.exists() and not file_name.suffix:
                 file_name = file_name.with_suffix(".sqlite")
+
             db = Database()
             db.connect_database(f"sqlite:///{file_name}")
             db.empty_and_init_db()
