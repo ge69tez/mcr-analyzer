@@ -7,7 +7,7 @@
 # This program is free software, see the LICENSE file in the root of this
 # repository for details
 
-import datetime
+import operator
 from pathlib import Path
 
 import numpy as np
@@ -19,27 +19,21 @@ from mcr_analyser.database.models import Measurement, Result
 class ExportWidget(QtWidgets.QWidget):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
+        self.filters = []
         layout = QtWidgets.QVBoxLayout()
 
         filter_group = QtWidgets.QGroupBox(_("Filter selection"))
-        filter_layout = QtWidgets.QGridLayout()
-        criterion = QtWidgets.QComboBox()
-        criterion.addItem(_("Date"))
-        operator = QtWidgets.QComboBox()
-        operator.addItem(_("<"))
-        operator.addItem(_("<="))
-        operator.addItem(_("=="))
-        operator.addItem(_(">="))
-        operator.addItem(_(">"))
-        operator.addItem(_("!="))
-        operator.setCurrentIndex(3)
-        value = QtWidgets.QLineEdit("2021-03-17")
+        filter_layout = QtWidgets.QVBoxLayout()
+        self.filters.append(FilterWidget())
 
+        add_layout = QtWidgets.QHBoxLayout()
         add_button = QtWidgets.QPushButton("+")
-        filter_layout.addWidget(criterion, 0, 0)
-        filter_layout.addWidget(operator, 0, 1)
-        filter_layout.addWidget(value, 0, 2)
-        filter_layout.addWidget(add_button, 1, 0)
+        add_layout.addWidget(add_button)
+        add_layout.addStretch()
+
+        for widget in self.filters:
+            filter_layout.addWidget(widget)
+        filter_layout.addLayout(add_layout)
 
         filter_group.setLayout(filter_layout)
         layout.addWidget(filter_group)
@@ -94,13 +88,24 @@ class ExportWidget(QtWidgets.QWidget):
             with file_name.open(mode="w", encoding="utf-8") as output:
                 output.write(self.preview_edit.toPlainText())
 
+    def add_filter(self, cmp, comparator, value):
+        self.filters.append((comparator, cmp, value))
+
     def update_preview(self):
+        self.preview_edit.clear()
+
+        # Initialize query object
         db = Database()
         session = db.Session()
-        self.preview_edit.clear()
-        for measurement in session.query(Measurement).filter(
-            Measurement.timestamp >= datetime.date(2021, 3, 17)
-        ):
+        query = session.query(Measurement)
+
+        # Apply user filters to query
+        for flt in self.filters:
+            obj, oper, value = flt.filter()
+            query = query.filter(oper(obj, value))
+
+        # Fill preview with results
+        for measurement in query:
             measurement_line = f'"{measurement.timestamp}"\t'
             measurement_line += f'"{measurement.chip.name}"\t'
             measurement_line += f'"{measurement.sample.name}"\t'
@@ -125,3 +130,51 @@ class ExportWidget(QtWidgets.QWidget):
                     measurement_line += f"\t{np.mean(values):.0f}"
             if valid_data:
                 self.preview_edit.appendPlainText(measurement_line)
+
+
+class FilterWidget(QtWidgets.QWidget):
+    """Widget grouping object, comparator operation and value entry"""
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        layout = QtWidgets.QHBoxLayout()
+        self.target = QtWidgets.QComboBox()
+        self.target.addItem(_("Date"), Measurement.timestamp)
+        layout.addWidget(self.target)
+
+        self.comparator = QtWidgets.QComboBox()
+        self.comparator.addItem(_("<"), "lt")
+        self.comparator.addItem(_("<="), "le")
+        self.comparator.addItem(_("=="), "eq")
+        self.comparator.addItem(_(">="), "ge")
+        self.comparator.addItem(_(">"), "gt")
+        self.comparator.addItem(_("!="), "ne")
+        self.comparator.setCurrentIndex(3)
+        layout.addWidget(self.comparator)
+
+        self.value = QtWidgets.QLineEdit("2021-03-17")
+        layout.addWidget(self.value)
+
+        self.setLayout(layout)
+
+    def __str__(self):
+        return f"{self.target.currentData()}, {self.comparator.currentData()}, {self.value.text()}"
+
+    def filter(self):
+        cmp = self.comparator.currentData()
+        if cmp == "lt":
+            cmp = operator.lt
+        elif cmp == "le":
+            cmp = operator.le
+        elif cmp == "eq":
+            cmp = operator.eq
+        elif cmp == "ge":
+            cmp = operator.ge
+        elif cmp == "gt":
+            cmp = operator.gt
+        elif cmp == "ne":
+            cmp = operator.ne
+        else:
+            cmp = None
+
+        return self.target.currentData(), cmp, self.value.text()
