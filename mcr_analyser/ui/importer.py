@@ -17,6 +17,7 @@ from mcr_analyser.database.database import Database
 from mcr_analyser.database.models import Chip, Device, Measurement, Sample
 from mcr_analyser.io.image import Image
 from mcr_analyser.io.importer import FileImporter
+from mcr_analyser.processing.measurement import Measurement as MeasurementProcessor
 
 
 class ImportWidget(QtWidgets.QWidget):
@@ -32,9 +33,10 @@ class ImportWidget(QtWidgets.QWidget):
         super().__init__(parent)
         self.dirs = []
         self.file_model = None
-        self.thread = None
+        self.import_thread = None
         self.results = None
-        self.result_worker = None
+        self.checksum_worker = None
+        self.thread_pool = QtCore.QThreadPool.globalInstance()
         self.setWindowTitle(_("Import measurements"))
 
         layout = QtWidgets.QVBoxLayout()
@@ -87,16 +89,17 @@ class ImportWidget(QtWidgets.QWidget):
         self.progress_bar.setMaximum(len(self.results))
         self.progress_bar.show()
         # Calculate image checksums in separate thread
-        self.thread = QtCore.QThread()
-        self.result_worker = ResultWorker(self.results)
-        self.result_worker.moveToThread(self.thread)
-        self.thread.started.connect(self.result_worker.run)
-        self.result_worker.progress.connect(self.update_status)
-        self.result_worker.finished.connect(self.thread.quit)
-        self.result_worker.finished.connect(self.result_worker.deleteLater)
-        self.result_worker.finished.connect(self.thread.deleteLater)
-        self.result_worker.finished.connect(self.finishImport)
-        self.thread.start()
+        self.import_thread = QtCore.QThread()
+        self.checksum_worker = ChecksumWorker(self.results)
+        self.checksum_worker.moveToThread(self.import_thread)
+        self.import_thread.started.connect(self.checksum_worker.run)
+        self.checksum_worker.progress.connect(self.update_status)
+        self.checksum_worker.finished.connect(self.import_thread.quit)
+        self.checksum_worker.finished.connect(self.checksum_worker.deleteLater)
+        self.checksum_worker.finished.connect(self.import_thread.deleteLater)
+        self.checksum_worker.finished.connect(self.finishImport)
+        self.thread_pool.reserveThread()
+        self.import_thread.start()
 
     def update_filelist(self):
         """Populate result table."""
@@ -136,61 +139,80 @@ class ImportWidget(QtWidgets.QWidget):
         db = Database()
         session = db.Session()
         self.progress_bar.setValue(step + 1)
-        try:
-            session.query(Measurement).filter_by(id=checksum).one()
-            self.file_model.item(step, 4).setText(_("Imported previously"))
-            self.file_model.item(step, 4).setIcon(
-                self.style().standardIcon(QtWidgets.QStyle.SP_DialogNoButton)
-            )
+        # Will be set if we need to calculate results
+        measurement_id = None
 
-        except sqlalchemy.orm.exc.NoResultFound:
-            rslt = self.results[step]
-            img = Image(rslt.dir.joinpath(rslt.meta["Result image PGM"]))
+        with db.Session() as session:
 
-            chip = db.get_or_create(
-                session,
-                Chip,
-                name=rslt.meta["Chip ID"],
-                rowCount=rslt.meta["Y"],
-                columnCount=rslt.meta["X"],
-                marginLeft=rslt.meta["Margin left"],
-                marginTop=rslt.meta["Margin top"],
-                spotSize=rslt.meta["Spot size"],
-                spotMarginHoriz=rslt.meta["Spot margin horizontal"],
-                spotMarginVert=rslt.meta["Spot margin vertical"],
-            )
+            try:
+                session.query(Measurement).filter_by(checksum=checksum).one()
+                self.file_model.item(step, 4).setText(_("Imported previously"))
+                self.file_model.item(step, 4).setIcon(
+                    self.style().standardIcon(QtWidgets.QStyle.SP_DialogNoButton)
+                )
 
-            dev = db.get_or_create(
-                session,
-                Device,
-                serial=rslt.meta["Device ID"],
-            )
+            except sqlalchemy.orm.exc.NoResultFound:
+                rslt = self.results[step]
+                img = Image(rslt.dir.joinpath(rslt.meta["Result image PGM"]))
 
-            samp = db.get_or_create(session, Sample, name=rslt.meta["Probe ID"])
+                chip = db.get_or_create(
+                    session,
+                    Chip,
+                    name=rslt.meta["Chip ID"],
+                    rowCount=rslt.meta["Y"],
+                    columnCount=rslt.meta["X"],
+                    marginLeft=rslt.meta["Margin left"],
+                    marginTop=rslt.meta["Margin top"],
+                    spotSize=rslt.meta["Spot size"],
+                    spotMarginHoriz=rslt.meta["Spot margin horizontal"],
+                    spotMarginVert=rslt.meta["Spot margin vertical"],
+                )
 
-            mess = db.get_or_create(
-                session,
-                Measurement,
-                id=checksum,
-                chipID=chip.id,
-                deviceID=dev.id,
-                sampleID=samp.id,
-                image=np.ascontiguousarray(img.data, ">u2"),
-                timestamp=rslt.meta["Date/time"],
-            )
+                dev = db.get_or_create(
+                    session,
+                    Device,
+                    serial=rslt.meta["Device ID"],
+                )
 
-            session.add(mess)
-            session.commit()
-            self.file_model.item(step, 4).setText(_("Import successful"))
-            self.file_model.item(step, 4).setIcon(
-                self.style().standardIcon(QtWidgets.QStyle.SP_DialogYesButton)
-            )
+                samp = db.get_or_create(session, Sample, name=rslt.meta["Probe ID"])
+
+                meas = db.get_or_create(
+                    session,
+                    Measurement,
+                    checksum=checksum,
+                    chipID=chip.id,
+                    deviceID=dev.id,
+                    sampleID=samp.id,
+                    image=np.ascontiguousarray(img.data, ">u2"),
+                    timestamp=rslt.meta["Date/time"],
+                )
+
+                session.add(meas)
+                session.commit()
+
+                # Store (new) primary key, needs result calculation afterwards
+                measurement_id = meas.id
+
+                # Update UI
+                self.file_model.item(step, 4).setText(_("Import successful"))
+                self.file_model.item(step, 4).setIcon(
+                    self.style().standardIcon(QtWidgets.QStyle.SP_DialogYesButton)
+                )
+
+        if measurement_id:
+            print(f"Main: Signal addedResult: {meas.id}")
+            result_worker = ResultWorker(meas.id)
+            self.thread_pool.start(result_worker)
 
     def finishImport(self):
+        self.thread_pool.releaseThread()
         self.importDone.emit()
 
+    def debugProcessor(self, queueLength: int):
+        print(f"Importer: Reported Queue Length: {queueLength}")
 
-class ResultWorker(QtCore.QObject):
+
+class ChecksumWorker(QtCore.QObject):
     """Worker thread for calculating hashes of result images."""
 
     def __init__(self, results=list, parent=None):
@@ -207,3 +229,16 @@ class ResultWorker(QtCore.QObject):
             sha = hashlib.sha256(np.ascontiguousarray(img.data, ">u2"))
             self.progress.emit(i, sha.digest())
         self.finished.emit()
+
+
+class ResultWorker(QtCore.QRunnable):
+    """Worker thread for calculating spot results of measurements."""
+
+    def __init__(self, measurement_id: int):
+        super().__init__()
+        self.measurement_id = measurement_id
+
+    def run(self):
+        processor = MeasurementProcessor()
+        processor.updateResults(self.measurement_id)
+        print(f"ResultWorker: Processing Measurement '{self.measurement_id}'.")

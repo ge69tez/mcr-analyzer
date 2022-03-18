@@ -88,17 +88,15 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.tree.selectionModel().selectionChanged.connect(self.selChanged)
 
     def selChanged(self, selected, deselected):  # pylint: disable=unused-argument
-        meas_hash = selected.indexes()[0].internalPointer().data(3)
-        if meas_hash:
+        meas_id = selected.indexes()[0].internalPointer().data(3)
+        if meas_id:
             db = Database()
             session = db.Session()
             measurement = (
                 session.query(Measurement)
-                .filter(Measurement.id == meas_hash)
+                .filter(Measurement.id == meas_id)
                 .one_or_none()
             )
-            # Update result early to make it available later
-            self.updateResults(meas_hash)
             if measurement.user:
                 self.measurer.setText(measurement.user.name)
             else:
@@ -117,9 +115,9 @@ class MeasurementWidget(QtWidgets.QWidget):
             img = np.frombuffer(measurement.image, dtype=">u2").reshape(520, 696)
             # Gamma correction for better visualization
             # Convert to float (0<=x<=1)
-            img = img / (2 ** 16 - 1)
+            img = img / (2**16 - 1)
             # Gamma correction
-            img = img ** 0.5
+            img = img**0.5
             # Map to 8 bit range
             img = img * 255
 
@@ -128,7 +126,7 @@ class MeasurementWidget(QtWidgets.QWidget):
             ).convertToFormat(QtGui.QImage.Format_RGB32)
             painter = QtGui.QPainter(qimg)
             painter.setPen(QtGui.QColor("red"))
-            self.result_model = ResultModel(meas_hash)
+            self.result_model = ResultModel(meas_id)
             self.results.setModel(self.result_model)
             self.results.resizeColumnsToContents()
 
@@ -147,52 +145,3 @@ class MeasurementWidget(QtWidgets.QWidget):
             painter.end()
             qimg = qimg.copy(10, 150, qimg.width() - 20, qimg.height() - 300)
             self.image.setPixmap(QtGui.QPixmap.fromImage(qimg))
-
-    def updateResults(self, measurement_hash: bytes):
-        db = Database()
-        session = db.Session()
-        measurement = (
-            session.query(Measurement)
-            .filter(Measurement.id == measurement_hash)
-            .one_or_none()
-        )
-
-        for col in range(measurement.chip.columnCount):
-            col_results = []
-            for row in range(measurement.chip.rowCount):
-                x = measurement.chip.marginLeft + col * (
-                    measurement.chip.spotSize + measurement.chip.spotMarginHoriz
-                )
-                y = measurement.chip.marginTop + row * (
-                    measurement.chip.spotSize + measurement.chip.spotMarginVert
-                )
-                spot = DeviceBuiltin(
-                    np.frombuffer(measurement.image, dtype=">u2").reshape(520, 696)[
-                        y : y + measurement.chip.spotSize,
-                        x : x + measurement.chip.spotSize,
-                    ]
-                )
-                result = db.get_or_create(
-                    session,
-                    Result,
-                    measurement=measurement,
-                    row=row,
-                    column=col,
-                )
-                result.value = spot.value()
-                session.add(result)
-                col_results.append(result.value)
-            validator = SpotReaderValidator(col_results)
-            validation = validator.validate()
-
-            for row in range(measurement.chip.rowCount):
-                result = db.get_or_create(
-                    session,
-                    Result,
-                    measurement=measurement,
-                    row=row,
-                    column=col,
-                )
-                result.valid = validation[row]
-                session.add(result)
-        session.commit()

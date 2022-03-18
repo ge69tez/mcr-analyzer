@@ -96,18 +96,18 @@ class Image:
         self.file.seek(2)
         pnm_type = self._pnm_kind(pnm_kind)
         encoding = pnm_type[0]
-        width = int(self._parse_header(br"^\s*(\d+)\D+"))
-        height = int(self._parse_header(br"^\s*(\d+)\D+"))
+        width = int(self._parse_header(rb"^\s*(\d+)\D+"))
+        height = int(self._parse_header(rb"^\s*(\d+)\D+"))
         self._size = (width, height)
         if pnm_type[1] != "bitmap":
-            maxval = int(self._parse_header(br"^\s*(\d+)\D"))
+            maxval = int(self._parse_header(rb"^\s*(\d+)\D"))
         else:
             maxval = 1
         if pnm_type[1] != "gray":
             raise NotImplementedError("Only grayscale is supported at the moment.")
         if maxval <= 255:
             dtype = "B"
-        elif maxval < 2 ** 16:
+        elif maxval < 2**16:
             dtype = "u2"
         else:
             raise TypeError(f"PNM only supports values up to {2**16}.")

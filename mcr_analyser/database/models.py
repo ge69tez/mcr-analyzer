@@ -7,7 +7,7 @@
 # This program is free software, see the LICENSE file in the root of this
 # repository for details
 
-""" Object Relational Models defining the database. """
+"""Object Relational Models defining the database."""
 
 import datetime
 
@@ -80,18 +80,17 @@ class Measurement(Base):
     """A single measurement. This is the central table everything is about."""
 
     __tablename__ = "measurement"
-    id: bytes = Column(BINARY(32), primary_key=True)
-    """SHA256 hash of the raw 16-bit image data. Used for duplicate detection
-    and potential future database merges."""
-    chipID: int = Column(Integer, ForeignKey("chip.id"))
+    id: int = Column(Integer, primary_key=True)
+    """Internal ID, used for cross-references."""
+    chipID: int = Column(Integer, ForeignKey("chip.id"), index=True)
     """Refers to the used :class:`Chip`."""
     chip: relationship = relationship("Chip", back_populates="measurements")
     """One-to-Many relationship referencing the used chip."""
-    deviceID: int = Column(Integer, ForeignKey("device.id"))
+    deviceID: int = Column(Integer, ForeignKey("device.id"), index=True)
     """Refers to the used :class:`Device`."""
     device: relationship = relationship("Device", back_populates="measurements")
     """One-to-Many relationship referencing the used device."""
-    sampleID: int = Column(Integer, ForeignKey("sample.id"))
+    sampleID: int = Column(Integer, ForeignKey("sample.id"), index=True)
     """Refers to the measured :class:`Sample`."""
     sample: relationship = relationship("Sample", back_populates="measurements")
     """One-to-Many relationship referencing the analysed sample."""
@@ -99,9 +98,11 @@ class Measurement(Base):
     """Raw 16-bit image data, big endian. (Numpy's ``>u2`` datatype, for
     compatibility with `netpbm <http://netpbm.sourceforge.net/doc/pgm.html>`_).
     """
+    checksum: bytes = Column(BINARY(32), nullable=False)
+    """SHA256 hash of the raw 16-bit image data. Used for duplicate detection."""
     timestamp: datetime.datetime = Column(DateTime, index=True)
     """Date and time of the measurement."""
-    userID: int = Column(Integer, ForeignKey("user.id"))
+    userID: int = Column(Integer, ForeignKey("user.id"), index=True)
     """Refers to the :class:`User` who did the measurement."""
     user: relationship = relationship("User", back_populates="measurements")
     """One-to-Many releationship referencing the user who did the
@@ -142,7 +143,7 @@ class Result(Base):
     __tablename__ = "result"
     id: int = Column(Integer, primary_key=True)
     """Internal ID, used for cross-references."""
-    measurementID: int = Column(Integer, ForeignKey("measurement.id"))
+    measurementID: int = Column(Integer, ForeignKey("measurement.id"), index=True)
     """Reference to the :class:`Measurement` to which the result belongs."""
     measurement: relationship = relationship("Measurement", back_populates="results")
     """One-to-Many relationship referencing the measurement which yielded this
@@ -153,7 +154,7 @@ class Result(Base):
     """Column index, counted from 0."""
     value: float = Column(Float)
     """Calculated brightness of the spot."""
-    reagentID: int = Column(Integer, ForeignKey("reagent.id"))
+    reagentID: int = Column(Integer, ForeignKey("reagent.id"), index=True)
     """Reference to :class:`Reagent`."""
     reagent: relationship = relationship("Reagent", back_populates="results")
     """One-to-Many relationship referencing the substance of this spot."""
@@ -178,11 +179,11 @@ class Sample(Base):
     knownPositive: bool = Column(Boolean)
     """Is this a know positive sample? Makes use of the tri-state SQL bool
     `None`, `True`, or `False`."""
-    typeID: int = Column(Integer, ForeignKey("sampleType.id"))
+    typeID: int = Column(Integer, ForeignKey("sampleType.id"), index=True)
     """Refers to :class:`SampleType`."""
     type: relationship = relationship("SampleType", back_populates="samples")
     """One-to-Many relationship referencing the type of this sample."""
-    takenByID: int = Column(Integer, ForeignKey("user.id"))
+    takenByID: int = Column(Integer, ForeignKey("user.id"), index=True)
     """Refers to the :class:`User` who took the sample."""
     takenBy: relationship = relationship("User", back_populates="samples")
     """One-to-Many relationship referencing the user who took this sample."""
@@ -213,7 +214,7 @@ class User(Base):
     """Researcher who did the measurement or took the sample."""
 
     __tablename__ = "user"
-    id: str = Column(Integer, primary_key=True)
+    id: int = Column(Integer, primary_key=True)
     """Internal ID, used for cross-references."""
     name: str = Column(String, nullable=False)
     """Name of the researcher."""

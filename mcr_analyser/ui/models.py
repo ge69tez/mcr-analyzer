@@ -188,14 +188,12 @@ class MeasurementModel(QtCore.QAbstractItemModel):
 
 
 class ResultModel(QtCore.QAbstractTableModel):
-    def __init__(self, measurement: bytes, parent: QtCore.QObject = None):
+    def __init__(self, id_: int, parent: QtCore.QObject = None):
         super().__init__(parent)
         self.db = Database()
         self.session = self.db.Session()
         self.measurement = (
-            self.session.query(Measurement)
-            .filter(Measurement.id == measurement)
-            .one_or_none()
+            self.session.query(Measurement).filter(Measurement.id == id_).one_or_none()
         )
 
     def rowCount(self, parent: QtCore.QModelIndex) -> int:
@@ -236,7 +234,7 @@ class ResultModel(QtCore.QAbstractTableModel):
 
         # Query database - returns None for statistic table entries
         result = (
-            self.session.query(Result)
+            self.session.query(Result.valid, Result.value)
             .filter_by(
                 measurement=self.measurement, column=index.column(), row=index.row()
             )
