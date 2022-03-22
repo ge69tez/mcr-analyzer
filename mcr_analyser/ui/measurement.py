@@ -11,9 +11,7 @@ from qtpy import QtGui, QtWidgets
 import numpy as np
 
 from mcr_analyser.database.database import Database
-from mcr_analyser.database.models import Measurement, Result
-from mcr_analyser.processing.spot import DeviceBuiltin
-from mcr_analyser.processing.validator import SpotReaderValidator
+from mcr_analyser.database.models import Measurement
 from mcr_analyser.ui.models import MeasurementModel, ResultModel
 
 

@@ -33,7 +33,7 @@ class Database:
             self.base = Base
             self.Session = sessionmaker()
             if engine:
-                self._engine = create_engine(engine)
+                self._engine = create_engine(engine, connect_args={"timeout": 30})
                 self.Session.configure(bind=self._engine)
             else:
                 self._engine = None
@@ -43,7 +43,7 @@ class Database:
     def connect_database(self, engine: str):
         if self._engine:
             self._engine.dispose()
-        self._engine = create_engine(engine)
+        self._engine = create_engine(engine, connect_args={"timeout": 30})
         self.Session.configure(bind=self._engine)
 
     def empty_and_init_db(self):

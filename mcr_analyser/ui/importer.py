@@ -137,13 +137,11 @@ class ImportWidget(QtWidgets.QWidget):
     def update_status(self, step, checksum):
         """Slot to be called whenever our thread has calculated a SHA256 sum."""
         db = Database()
-        session = db.Session()
         self.progress_bar.setValue(step + 1)
         # Will be set if we need to calculate results
         measurement_id = None
 
         with db.Session() as session:
-
             try:
                 session.query(Measurement).filter_by(checksum=checksum).one()
                 self.file_model.item(step, 4).setText(_("Imported previously"))
@@ -200,7 +198,6 @@ class ImportWidget(QtWidgets.QWidget):
                 )
 
         if measurement_id:
-            print(f"Main: Signal addedResult: {meas.id}")
             result_worker = ResultWorker(meas.id)
             self.thread_pool.start(result_worker)
 
@@ -241,4 +238,3 @@ class ResultWorker(QtCore.QRunnable):
     def run(self):
         processor = MeasurementProcessor()
         processor.updateResults(self.measurement_id)
-        print(f"ResultWorker: Processing Measurement '{self.measurement_id}'.")
