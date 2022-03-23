@@ -243,7 +243,8 @@ class ResultModel(QtCore.QAbstractTableModel):
 
         # Adjust to the right
         if role == QtCore.Qt.TextAlignmentRole:
-            return QtCore.Qt.AlignRight + QtCore.Qt.AlignVCenter
+            # Cast to int because of https://bugreports.qt.io/browse/PYSIDE-20
+            return int(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
         # Font modifications for statistics and values
         if role == QtCore.Qt.FontRole:
@@ -253,10 +254,10 @@ class ResultModel(QtCore.QAbstractTableModel):
                 return boldFont
         if role == QtCore.Qt.ForegroundRole:
             if result and result.valid:
-                brush = QtGui.QBrush(QtGui.QColorConstants.DarkGreen)
+                brush = QtGui.QBrush(QtCore.Qt.GlobalColor.darkGreen)
                 return brush
             if result and result.valid is False:
-                brush = QtGui.QBrush(QtGui.QColorConstants.DarkRed)
+                brush = QtGui.QBrush(QtCore.Qt.GlobalColor.darkRed)
                 return brush
         if role != QtCore.Qt.DisplayRole:
             return None
