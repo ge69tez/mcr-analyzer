@@ -44,6 +44,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.measurement_widget.switchDatabase
         )
         self.welcome_widget.changedDatabase.connect(self.update_recent_files)
+        self.welcome_widget.createdDatabase.connect(self.switch_to_import)
+        self.welcome_widget.openedDatabase.connect(self.switch_to_measurement)
         self.import_widget.importDone.connect(self.measurement_widget.refreshDatabase)
 
         # Open last active database
@@ -55,10 +57,12 @@ class MainWindow(QtWidgets.QMainWindow):
                 db = Database()
                 db.connect_database(f"sqlite:///{path}")
                 self.measurement_widget.switchDatabase()
+                # Only restore the last tab if we can open the database
+                self.tab_widget.setCurrentIndex(
+                    settings.value("Session/ActiveTab", 0, int)
+                )
         except IndexError:
             pass
-
-        self.tab_widget.setCurrentIndex(settings.value("Session/ActiveTab", 0, int))
 
     def closeEvent(self, event: QtGui.QCloseEvent):
         settings = QtCore.QSettings()
@@ -184,7 +188,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 ),
             )
             self.measurement_widget.switchDatabase()
-
+            self.switch_to_measurement()
         else:
             # Update recent files
             settings = QtCore.QSettings()
@@ -206,3 +210,11 @@ class MainWindow(QtWidgets.QMainWindow):
                     )
                 ),
             )
+
+    def switch_to_import(self):
+        """Slot to show the import widget."""
+        self.tab_widget.setCurrentWidget(self.import_widget)
+
+    def switch_to_measurement(self):
+        """Slot to show the measurement widget."""
+        self.tab_widget.setCurrentWidget(self.measurement_widget)

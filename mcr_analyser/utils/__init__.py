@@ -27,4 +27,4 @@ def remove_duplicates(lst: list):
 
 def simplify_list(lst: list):
     """Return single string if list contains only one string."""
-    return lst if type(lst) in [list, tuple] and len(lst) > 1 else lst[0]
+    return lst if type(lst) in [list, tuple] else lst[0]
