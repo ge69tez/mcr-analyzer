@@ -28,7 +28,7 @@ class Database:
 
     def __init__(self, engine: str = None):
         super().__init__()
-        if not self._initialized:
+        if not self._initialized:  # pylint: disable=access-member-before-definition
             self._initialized = True
             self.base = Base
             self.Session = sessionmaker()
