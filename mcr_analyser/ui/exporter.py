@@ -12,6 +12,8 @@ from pathlib import Path
 
 import numpy as np
 from qtpy import QtCore, QtGui, QtWidgets
+import sqlalchemy.exc
+
 from mcr_analyser.database.database import Database
 from mcr_analyser.database.models import Measurement, Result
 
@@ -33,6 +35,7 @@ class ExportWidget(QtWidgets.QWidget):
 
         for widget in self.filters:
             filter_layout.addWidget(widget)
+            widget.filter_updated.connect(self.update_preview)
         filter_layout.addLayout(add_layout)
 
         filter_group.setLayout(filter_layout)
@@ -105,31 +108,34 @@ class ExportWidget(QtWidgets.QWidget):
             query = query.filter(oper(obj, value))
 
         # Fill preview with results
-        for measurement in query:
-            measurement_line = f'"{measurement.timestamp}"\t'
-            measurement_line += f'"{measurement.chip.name}"\t'
-            measurement_line += f'"{measurement.sample.name}"\t'
-            if measurement.notes is None:
-                measurement_line += '""'
-            else:
-                measurement_line += f'"{measurement.notes}"'
-            valid_data = False
-            for col in range(measurement.chip.columnCount):
-                if (
-                    session.query(Result)
-                    .filter_by(measurement=measurement, column=col, valid=True)
-                    .count()
-                    > 0
-                ):
-                    valid_data = True
-                    values = list(
+        try:
+            for measurement in query:
+                measurement_line = f'"{measurement.timestamp}"\t'
+                measurement_line += f'"{measurement.chip.name}"\t'
+                measurement_line += f'"{measurement.sample.name}"\t'
+                if measurement.notes is None:
+                    measurement_line += '""'
+                else:
+                    measurement_line += f'"{measurement.notes}"'
+                valid_data = False
+                for col in range(measurement.chip.columnCount):
+                    if (
                         session.query(Result)
                         .filter_by(measurement=measurement, column=col, valid=True)
-                        .values(Result.value)
-                    )
-                    measurement_line += f"\t{np.mean(values):.0f}"
-            if valid_data:
-                self.preview_edit.appendPlainText(measurement_line)
+                        .count()
+                        > 0
+                    ):
+                        valid_data = True
+                        values = list(
+                            session.query(Result)
+                            .filter_by(measurement=measurement, column=col, valid=True)
+                            .values(Result.value)
+                        )
+                        measurement_line += f"\t{np.mean(values):.0f}"
+                if valid_data:
+                    self.preview_edit.appendPlainText(measurement_line)
+        except sqlalchemy.exc.UnboundExecutionError:
+            pass
 
 
 class FilterWidget(QtWidgets.QWidget):
@@ -141,6 +147,7 @@ class FilterWidget(QtWidgets.QWidget):
         self.target = QtWidgets.QComboBox()
         self.target.addItem(_("Date"), Measurement.timestamp)
         layout.addWidget(self.target)
+        self.target.currentIndexChanged.connect(self._user_changed_settings)
 
         self.comparator = QtWidgets.QComboBox()
         self.comparator.addItem(_("<"), "lt")
@@ -151,14 +158,22 @@ class FilterWidget(QtWidgets.QWidget):
         self.comparator.addItem(_("!="), "ne")
         self.comparator.setCurrentIndex(3)
         layout.addWidget(self.comparator)
+        self.comparator.currentIndexChanged.connect(self._user_changed_settings)
 
         self.value = QtWidgets.QLineEdit("2021-03-17")
         layout.addWidget(self.value)
+        self.value.editingFinished.connect(self._user_changed_settings)
 
         self.setLayout(layout)
 
+    filter_updated = QtCore.Signal()
+
     def __str__(self):
         return f"{self.target.currentData()}, {self.comparator.currentData()}, {self.value.text()}"
+
+    def _user_changed_settings(self):
+        """Slot whenever the user interaced with the filter settings."""
+        self.filter_updated.emit()
 
     def filter(self):
         cmp = self.comparator.currentData()
