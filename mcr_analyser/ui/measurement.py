@@ -50,11 +50,19 @@ class MeasurementWidget(QtWidgets.QWidget):
         gbox = QtWidgets.QGroupBox(_("Visualisation"))
         v_layout = QtWidgets.QVBoxLayout()
         gbox.setLayout(v_layout)
-        self.image = QtWidgets.QLabel()
-        # self.image.setMinimumHeight(520)
-        # self.image.setMinimumWidth(696)
-        v_layout.addWidget(self.image)
-        # form_layout = QtWidgets.QFormLayout()
+        # Visualisation via multi-layered GraphicsScene
+        # Size to MCR image; might need to become non-static in future devices
+        meas_width = 696
+        meas_height = 520
+        self.scene = QtWidgets.QGraphicsScene(0, 0, meas_width, meas_height)
+        # Container for measurement image
+        self.image = QtWidgets.QGraphicsPixmapItem()
+        self.scene.addItem(self.image)
+        self.view = QtWidgets.QGraphicsView(self.scene)
+        self.view.centerOn(meas_width / 2, meas_height / 2)
+        self.spots = []
+        # Scale result table twice as much as image
+        v_layout.addWidget(self.view, 1)
         self.spot_size = QtWidgets.QLineEdit()
         form_layout.addRow(_("Spot size"), self.spot_size)
         self.margin_left = QtWidgets.QLineEdit()
@@ -65,9 +73,8 @@ class MeasurementWidget(QtWidgets.QWidget):
         form_layout.addRow(_("Horizontal Spot Margin"), self.spot_margin_horiz)
         self.spot_margin_vert = QtWidgets.QLineEdit()
         form_layout.addRow(_("Vertical Spot Margin"), self.spot_margin_vert)
-        # v_layout.addLayout(form_layout)
         self.results = QtWidgets.QTableView()
-        v_layout.addWidget(self.results)
+        v_layout.addWidget(self.results, 2)
 
         layout.addWidget(gbox)
 
@@ -122,11 +129,15 @@ class MeasurementWidget(QtWidgets.QWidget):
             qimg = QtGui.QImage(
                 img.astype("uint8"), 696, 520, QtGui.QImage.Format_Grayscale8
             ).convertToFormat(QtGui.QImage.Format_RGB32)
-            painter = QtGui.QPainter(qimg)
-            painter.setPen(QtGui.QColor("red"))
+
             self.result_model = ResultModel(meas_id)
             self.results.setModel(self.result_model)
             self.results.resizeColumnsToContents()
+
+            # Remove previous spot markers
+            for spot in self.spots:
+                self.scene.removeItem(spot)
+            self.spots.clear()
 
             for r in range(measurement.chip.rowCount):
                 for c in range(measurement.chip.columnCount):
@@ -136,10 +147,13 @@ class MeasurementWidget(QtWidgets.QWidget):
                     y = measurement.chip.marginTop + r * (
                         measurement.chip.spotSize + measurement.chip.spotMarginVert
                     )
-                    painter.drawRect(
-                        x, y, measurement.chip.spotSize, measurement.chip.spotSize
+                    self.spots.append(
+                        self.scene.addRect(
+                            x, y, measurement.chip.spotSize, measurement.chip.spotSize
+                        )
                     )
 
-            painter.end()
-            qimg = qimg.copy(10, 150, qimg.width() - 20, qimg.height() - 300)
+            for rect in self.spots:
+                rect.setPen(QtGui.QColor("red"))
+
             self.image.setPixmap(QtGui.QPixmap.fromImage(qimg))
