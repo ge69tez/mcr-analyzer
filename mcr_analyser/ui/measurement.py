@@ -7,11 +7,12 @@
 # This program is free software, see the LICENSE file in the root of this
 # repository for details
 
-from qtpy import QtGui, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
 import numpy as np
 
+import mcr_analyser.utils as utils
 from mcr_analyser.database.database import Database
-from mcr_analyser.database.models import Measurement
+from mcr_analyser.database.models import Measurement, Result
 from mcr_analyser.ui.models import MeasurementModel, ResultModel
 
 
@@ -141,6 +142,15 @@ class MeasurementWidget(QtWidgets.QWidget):
 
             for r in range(measurement.chip.rowCount):
                 for c in range(measurement.chip.columnCount):
+                    valid = utils.simplify_list(
+                        session.query(Result.valid)
+                        .filter_by(measurement=measurement, column=c, row=r)
+                        .one_or_none()
+                    )
+                    pen = QtGui.QPen(QtCore.Qt.GlobalColor.red)
+                    if not valid:
+                        pen.setStyle(QtCore.Qt.DotLine)
+
                     x = measurement.chip.marginLeft + c * (
                         measurement.chip.spotSize + measurement.chip.spotMarginHoriz
                     )
@@ -149,11 +159,12 @@ class MeasurementWidget(QtWidgets.QWidget):
                     )
                     self.spots.append(
                         self.scene.addRect(
-                            x, y, measurement.chip.spotSize, measurement.chip.spotSize
+                            x,
+                            y,
+                            measurement.chip.spotSize,
+                            measurement.chip.spotSize,
+                            pen,
                         )
                     )
-
-            for rect in self.spots:
-                rect.setPen(QtGui.QColor("red"))
 
             self.image.setPixmap(QtGui.QPixmap.fromImage(qimg))
