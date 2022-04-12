@@ -87,7 +87,7 @@ class ExportWidget(QtWidgets.QWidget):
             if not file_name.exists() and not file_name.suffix:
                 file_name = file_name.with_suffix(".csv")
 
-            settings.setValue("Session/LastExport", file_name)
+            settings.setValue("Session/LastExport", str(file_name))
             with file_name.open(mode="w", encoding="utf-8") as output:
                 output.write(self.preview_edit.toPlainText())
 
