@@ -7,6 +7,7 @@
 # This program is free software, see the LICENSE file in the root of this
 # repository for details
 
+import datetime
 import operator
 from pathlib import Path
 
@@ -105,7 +106,30 @@ class ExportWidget(QtWidgets.QWidget):
         # Apply user filters to query
         for flt in self.filters:
             obj, oper, value = flt.filter()
-            query = query.filter(oper(obj, value))
+            # DateTime comparisions are hard to get right: eq/ne on a date does
+            # not work as expected, time is always compared as well. Therefore,
+            # always check intervals
+            if obj == Measurement.timestamp:
+                if oper is operator.eq:
+                    query = query.filter(
+                        obj >= value,
+                        obj
+                        < datetime.datetime.strptime(value, "%Y-%m-%d")
+                        + datetime.timedelta(days=1),
+                    )
+                if oper is operator.ne:
+                    query = query.filter(
+                        (obj < value)
+                        | (
+                            obj
+                            >= datetime.datetime.strptime(value, "%Y-%m-%d")
+                            + datetime.timedelta(days=1)
+                        )
+                    )
+                else:
+                    query = query.filter(oper(obj, value))
+            else:
+                query = query.filter(oper(obj, value))
 
         # Fill preview with results
         try:
