@@ -189,6 +189,10 @@ class GridItem(QtWidgets.QGraphicsItem):
             -self.pen_width / 2 - 15, -self.pen_width / 2 - 15, width, height
         )
 
+    def paint(self, painter: QtGui.QPainter, option, widget) -> None:
+        # All painting is done by our children
+        return
+
     def _clear_children(self):
         for head in self.c_headers:
             self.removeItem(head)
@@ -242,26 +246,13 @@ class GridItem(QtWidgets.QGraphicsItem):
 class GraphicsRectTextItem(QtWidgets.QGraphicsRectItem):
     """Draws text on a rectangular background."""
 
-    def __init__(
-        self,
-        x: float,
-        y: float,
-        w: float,
-        h: float,
-        t: str,
-        parent,
-    ) -> None:
+    def __init__(self, x: float, y: float, w: float, h: float, t: str, parent) -> None:
         super().__init__(x, y, w, h, parent)
         self.text = t
-        self.setPen(QtCore.Qt.GlobalColor.white)
-        self.setBrush(QtCore.Qt.GlobalColor.white)
+        self.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.white))
+        self.setBrush(QtGui.QBrush(QtCore.Qt.GlobalColor.white))
 
-    def paint(
-        self,
-        painter: QtGui.QPainter,
-        option,
-        widget,
-    ) -> None:
+    def paint(self, painter: QtGui.QPainter, option, widget) -> None:
         super().paint(painter, option, widget)
         painter.setPen(QtCore.Qt.GlobalColor.black)
         painter.drawText(
