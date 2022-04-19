@@ -189,7 +189,7 @@ class GridItem(QtWidgets.QGraphicsItem):
             -self.pen_width / 2 - 15, -self.pen_width / 2 - 15, width, height
         )
 
-    def paint(self, painter: QtGui.QPainter, option, widget) -> None:
+    def paint(self, painter, option, widget):  # pylint: disable=unused-argument
         # All painting is done by our children
         return
 
@@ -232,15 +232,53 @@ class GridItem(QtWidgets.QGraphicsItem):
                     .filter_by(measurement=self.measurement, column=col, row=row)
                     .one_or_none()
                 )
-                pen = QtGui.QPen(QtCore.Qt.GlobalColor.red)
-                if not valid:
-                    pen.setStyle(QtCore.Qt.DotLine)
 
                 x = col * (self.size + self.vspace)
                 y = row * (self.size + self.hspace)
-                spot = QtWidgets.QGraphicsRectItem(x, y, self.size, self.size, self)
-                spot.setPen(pen)
+                spot = GraphicsSpotItem(
+                    x, y, self.size, self.size, col, row, valid, self
+                )
                 self.spots.append(spot)
+
+
+class GraphicsSpotItem(QtWidgets.QGraphicsRectItem):
+    """Draws spot marker and stores associated information."""
+
+    def __init__(
+        self,
+        x: float,
+        y: float,
+        w: float,
+        h: float,
+        col: int,
+        row: int,
+        valid: bool,
+        parent,
+    ) -> None:
+        super().__init__(x, y, w, h, parent)
+        self.col = col
+        self.row = row
+        self.valid = valid
+        self.pen = QtGui.QPen(QtCore.Qt.GlobalColor.red)
+        if not self.valid:
+            self.pen.setStyle(QtCore.Qt.DotLine)
+        self.setPen(self.pen)
+
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.RightButton:
+            self.valid = not self.valid
+            scene = self.scene()
+            if scene is not None:
+                # Needs derived class for handling events like this:
+                # scene.changed_validity(self.col, self.row, self.valid)
+                pass
+            if self.valid:
+                self.pen.setStyle(QtCore.Qt.SolidLine)
+                self.setPen(self.pen)
+            else:
+                self.pen.setStyle(QtCore.Qt.DotLine)
+                self.setPen(self.pen)
+        super().mousePressEvent(event)
 
 
 class GraphicsRectTextItem(QtWidgets.QGraphicsRectItem):
