@@ -20,6 +20,7 @@ class GraphicsMeasurementScene(QtWidgets.QGraphicsScene):
     """Adds event handlers to QGraphicsScene."""
 
     changed_validity = QtCore.Signal(int, int, bool)
+    moved_grid = QtCore.Signal()
 
 
 class GraphicsRectTextItem(QtWidgets.QGraphicsRectItem):
@@ -103,6 +104,7 @@ class GridItem(QtWidgets.QGraphicsItem):
         self.c_headers = []
         self.r_headers = []
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
         self.pen_width = 1.0
 
         self._add_children()
@@ -118,6 +120,11 @@ class GridItem(QtWidgets.QGraphicsItem):
         return QtCore.QRectF(
             -self.pen_width / 2 - 15, -self.pen_width / 2 - 15, width, height
         )
+
+    def itemChange(self, change, value):
+        if change == QtWidgets.QGraphicsItem.ItemPositionChange and self.scene():
+            self.scene().moved_grid.emit()
+        return super().itemChange(change, value)
 
     def paint(self, painter, option, widget):  # pylint: disable=unused-argument
         # All painting is done by our children

@@ -58,6 +58,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         meas_height = 520
         self.scene = GraphicsMeasurementScene(0, 0, meas_width, meas_height)
         self.scene.changed_validity.connect(self.updateValidity)
+        self.scene.moved_grid.connect(self.processMeasurement)
         # Container for measurement image
         self.image = QtWidgets.QGraphicsPixmapItem()
         self.scene.addItem(self.image)
@@ -145,6 +146,13 @@ class MeasurementWidget(QtWidgets.QWidget):
             self.grid.setPos(measurement.chip.marginLeft, measurement.chip.marginTop)
 
             self.image.setPixmap(QtGui.QPixmap.fromImage(qimg))
+
+    def processMeasurement(self):
+        x = int(self.grid.scenePos().x())
+        y = int(self.grid.scenePos().y())
+        if x != 0 and y != 0:
+            self.margin_left.setText(str(x))
+            self.margin_top.setText(str(y))
 
     def updateValidity(self, row, col, valid):
         if self.meas_id:
