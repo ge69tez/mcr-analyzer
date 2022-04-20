@@ -7,20 +7,19 @@
 # This program is free software, see the LICENSE file in the root of this
 # repository for details
 
-import string
-
-from qtpy import QtCore, QtGui, QtWidgets
+from qtpy import QtGui, QtWidgets
 import numpy as np
 
-import mcr_analyser.utils as utils
 from mcr_analyser.database.database import Database
 from mcr_analyser.database.models import Measurement, Result
+from mcr_analyser.ui.graphics_scene import GraphicsMeasurementScene, GridItem
 from mcr_analyser.ui.models import MeasurementModel, ResultModel
 
 
 class MeasurementWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.meas_id = None
         self.model = None
         self.result_model = None
 
@@ -57,7 +56,8 @@ class MeasurementWidget(QtWidgets.QWidget):
         # Size to MCR image; might need to become non-static in future devices
         meas_width = 696
         meas_height = 520
-        self.scene = QtWidgets.QGraphicsScene(0, 0, meas_width, meas_height)
+        self.scene = GraphicsMeasurementScene(0, 0, meas_width, meas_height)
+        self.scene.changed_validity.connect(self.updateValidity)
         # Container for measurement image
         self.image = QtWidgets.QGraphicsPixmapItem()
         self.scene.addItem(self.image)
@@ -97,13 +97,13 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.tree.selectionModel().selectionChanged.connect(self.selChanged)
 
     def selChanged(self, selected, deselected):  # pylint: disable=unused-argument
-        meas_id = selected.indexes()[0].internalPointer().data(3)
-        if meas_id:
+        self.meas_id = selected.indexes()[0].internalPointer().data(3)
+        if self.meas_id:
             db = Database()
             session = db.Session()
             measurement = (
                 session.query(Measurement)
-                .filter(Measurement.id == meas_id)
+                .filter(Measurement.id == self.meas_id)
                 .one_or_none()
             )
             if measurement.user:
@@ -134,165 +134,31 @@ class MeasurementWidget(QtWidgets.QWidget):
                 img.astype("uint8"), 696, 520, QtGui.QImage.Format_Grayscale8
             ).convertToFormat(QtGui.QImage.Format_RGB32)
 
-            self.result_model = ResultModel(meas_id)
+            self.result_model = ResultModel(self.meas_id)
             self.results.setModel(self.result_model)
             self.results.resizeColumnsToContents()
 
             if self.grid:
                 self.scene.removeItem(self.grid)
-            self.grid = GridItem(meas_id)
+            self.grid = GridItem(self.meas_id)
             self.scene.addItem(self.grid)
             self.grid.setPos(measurement.chip.marginLeft, measurement.chip.marginTop)
 
             self.image.setPixmap(QtGui.QPixmap.fromImage(qimg))
 
-
-class GridItem(QtWidgets.QGraphicsItem):
-    """Container class for drawing the measurement grid."""
-
-    def __init__(
-        self,
-        meas_id: int,
-        parent=None,
-    ):
-        super().__init__(parent)
-        db = Database()
-        self.session = db.Session()
-        self.measurement = (
-            self.session.query(Measurement)
-            .filter(Measurement.id == meas_id)
-            .one_or_none()
-        )
-        self.cols = self.measurement.chip.columnCount
-        self.rows = self.measurement.chip.rowCount
-        self.vspace = self.measurement.chip.spotMarginVert
-        self.hspace = self.measurement.chip.spotMarginHoriz
-        self.size = self.measurement.chip.spotSize
-
-        self.spots = []
-        self.c_headers = []
-        self.r_headers = []
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
-        self.pen_width = 1.0
-
-        self._add_children()
-
-    def boundingRect(self):
-        width = (
-            self.cols * self.size + (self.cols - 1) * self.vspace + self.pen_width / 2
-        )
-        height = (
-            self.rows * self.size + (self.rows - 1) * self.hspace + self.pen_width / 2
-        )
-        # Labels are drawn on the "negative" side of the origin
-        return QtCore.QRectF(
-            -self.pen_width / 2 - 15, -self.pen_width / 2 - 15, width, height
-        )
-
-    def paint(self, painter, option, widget):  # pylint: disable=unused-argument
-        # All painting is done by our children
-        return
-
-    def _clear_children(self):
-        for head in self.c_headers:
-            self.removeItem(head)
-        self.c_headers.clear()
-
-        for head in self.r_headers:
-            self.removeItem(head)
-        self.r_headers.clear()
-
-        for spot in self.spots:
-            self.removeItem(spot)
-        self.spots.clear()
-
-    def _add_children(self):
-        # Row lables: letters
-        for row in range(self.rows):
-            head = GraphicsRectTextItem(
-                -15,
-                row * (self.size + self.hspace),
-                12,
-                self.size,
-                string.ascii_uppercase[row],
-                self,
+    def updateValidity(self, row, col, valid):
+        if self.meas_id:
+            db = Database()
+            session = db.Session()
+            result = (
+                session.query(Result)
+                .filter_by(measurementID=self.meas_id, column=col, row=row)
+                .one_or_none()
             )
-            self.r_headers.append(head)
-
-        for col in range(self.cols):
-            # Column labels
-            head = GraphicsRectTextItem(
-                col * (self.size + self.vspace), -15, self.size, 12, str(col + 1), self
-            )
-            self.c_headers.append(head)
-
-            for row in range(self.rows):
-                valid = utils.simplify_list(
-                    self.session.query(Result.valid)
-                    .filter_by(measurement=self.measurement, column=col, row=row)
-                    .one_or_none()
-                )
-
-                x = col * (self.size + self.vspace)
-                y = row * (self.size + self.hspace)
-                spot = GraphicsSpotItem(
-                    x, y, self.size, self.size, col, row, valid, self
-                )
-                self.spots.append(spot)
-
-
-class GraphicsSpotItem(QtWidgets.QGraphicsRectItem):
-    """Draws spot marker and stores associated information."""
-
-    def __init__(
-        self,
-        x: float,
-        y: float,
-        w: float,
-        h: float,
-        col: int,
-        row: int,
-        valid: bool,
-        parent,
-    ) -> None:
-        super().__init__(x, y, w, h, parent)
-        self.col = col
-        self.row = row
-        self.valid = valid
-        self.pen = QtGui.QPen(QtCore.Qt.GlobalColor.red)
-        if not self.valid:
-            self.pen.setStyle(QtCore.Qt.DotLine)
-        self.setPen(self.pen)
-
-    def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.RightButton:
-            self.valid = not self.valid
-            scene = self.scene()
-            if scene is not None:
-                # Needs derived class for handling events like this:
-                # scene.changed_validity(self.col, self.row, self.valid)
-                pass
-            if self.valid:
-                self.pen.setStyle(QtCore.Qt.SolidLine)
-                self.setPen(self.pen)
-            else:
-                self.pen.setStyle(QtCore.Qt.DotLine)
-                self.setPen(self.pen)
-        super().mousePressEvent(event)
-
-
-class GraphicsRectTextItem(QtWidgets.QGraphicsRectItem):
-    """Draws text on a rectangular background."""
-
-    def __init__(self, x: float, y: float, w: float, h: float, t: str, parent) -> None:
-        super().__init__(x, y, w, h, parent)
-        self.text = t
-        self.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.white))
-        self.setBrush(QtGui.QBrush(QtCore.Qt.GlobalColor.white))
-
-    def paint(self, painter: QtGui.QPainter, option, widget) -> None:
-        super().paint(painter, option, widget)
-        painter.setPen(QtCore.Qt.GlobalColor.black)
-        painter.drawText(
-            option.rect, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter, self.text
-        )
+            result.valid = valid
+            session.add(result)
+            session.commit()
+            # Tell views about change
+            start = self.result_model.index(row, col)
+            end = self.result_model.index(self.result_model.rowCount(None), col)
+            self.result_model.dataChanged.emit(start, end)
