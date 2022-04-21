@@ -7,7 +7,7 @@
 # This program is free software, see the LICENSE file in the root of this
 # repository for details
 
-from qtpy import QtGui, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
 import numpy as np
 
 from mcr_analyser.database.database import Database
@@ -47,6 +47,18 @@ class MeasurementWidget(QtWidgets.QWidget):
         form_layout.addRow(_("Chip ID:"), self.chip)
         self.sample = QtWidgets.QLineEdit()
         form_layout.addRow(_("Sample ID:"), self.sample)
+        self.spot_size = QtWidgets.QLineEdit()
+        form_layout.addRow(_("Spot size:"), self.spot_size)
+        self.spot_margin_horiz = QtWidgets.QLineEdit()
+        form_layout.addRow(_("Horizontal Spot Margin:"), self.spot_margin_horiz)
+        self.spot_margin_vert = QtWidgets.QLineEdit()
+        form_layout.addRow(_("Vertical Spot Margin:"), self.spot_margin_vert)
+        self.notes = StatefulPlainTextEdit()
+        self.notes.setPlaceholderText(_("Please enter additional notes here."))
+        self.notes.setMinimumWidth(250)
+        self.notes.editingFinished.connect(self.updateNotes)
+        form_layout.addRow(_("Notes:"), self.notes)
+        form_layout.setRowWrapPolicy(QtWidgets.QFormLayout.WrapLongRows)
         layout.addWidget(gbox)
 
         gbox = QtWidgets.QGroupBox(_("Visualisation"))
@@ -68,16 +80,6 @@ class MeasurementWidget(QtWidgets.QWidget):
 
         # Scale result table twice as much as image
         v_layout.addWidget(self.view, 1)
-        self.spot_size = QtWidgets.QLineEdit()
-        form_layout.addRow(_("Spot size"), self.spot_size)
-        self.margin_left = QtWidgets.QLineEdit()
-        form_layout.addRow(_("Margin left"), self.margin_left)
-        self.margin_top = QtWidgets.QLineEdit()
-        form_layout.addRow(_("Margin top"), self.margin_top)
-        self.spot_margin_horiz = QtWidgets.QLineEdit()
-        form_layout.addRow(_("Horizontal Spot Margin"), self.spot_margin_horiz)
-        self.spot_margin_vert = QtWidgets.QLineEdit()
-        form_layout.addRow(_("Vertical Spot Margin"), self.spot_margin_vert)
         self.results = QtWidgets.QTableView()
         v_layout.addWidget(self.results, 2)
 
@@ -118,10 +120,13 @@ class MeasurementWidget(QtWidgets.QWidget):
             self.chip.setText(measurement.chip.name)
             self.sample.setText(measurement.sample.name)
             self.spot_size.setText(str(measurement.chip.spotSize))
-            self.margin_left.setText(str(measurement.chip.marginLeft))
-            self.margin_top.setText(str(measurement.chip.marginTop))
             self.spot_margin_horiz.setText(str(measurement.chip.spotMarginHoriz))
             self.spot_margin_vert.setText(str(measurement.chip.spotMarginVert))
+            if measurement.notes:
+                self.notes.setPlainText(measurement.notes)
+            else:
+                self.notes.clear()
+
             img = np.frombuffer(measurement.image, dtype=">u2").reshape(520, 696)
             # Gamma correction for better visualization
             # Convert to float (0<=x<=1)
@@ -150,23 +155,55 @@ class MeasurementWidget(QtWidgets.QWidget):
     def processMeasurement(self):
         x = int(self.grid.scenePos().x())
         y = int(self.grid.scenePos().y())
+        # Initial position is (0,0) and triggers an event which needs to be ignored
         if x != 0 and y != 0:
-            self.margin_left.setText(str(x))
-            self.margin_top.setText(str(y))
+            pass
+
+    def updateNotes(self):
+        if self.meas_id:
+            db = Database()
+            session = db.Session()
+            note = self.notes.toPlainText()
+            # Set column to NULL if text is empty
+            if not note:
+                note = None
+            session.query(Measurement).filter_by(id=self.meas_id).update(
+                {Measurement.notes: note}
+            )
+            session.commit()
 
     def updateValidity(self, row, col, valid):
         if self.meas_id:
             db = Database()
             session = db.Session()
-            result = (
-                session.query(Result)
-                .filter_by(measurementID=self.meas_id, column=col, row=row)
-                .one_or_none()
-            )
-            result.valid = valid
-            session.add(result)
+            session.query(Result).filter_by(
+                measurementID=self.meas_id, column=col, row=row
+            ).update({Result.valid: valid})
             session.commit()
             # Tell views about change
             start = self.result_model.index(row, col)
             end = self.result_model.index(self.result_model.rowCount(None), col)
             self.result_model.dataChanged.emit(start, end)
+
+
+class StatefulPlainTextEdit(QtWidgets.QPlainTextEdit):
+    def __init__(self):
+        super().__init__()
+        self._content = None
+
+    def checkChanges(self):
+        if self._content != self.toPlainText():
+            self._content = self.toPlainText()
+            self.editingFinished.emit()
+
+    editingFinished = QtCore.Signal()
+
+    def focusInEvent(self, event):
+        if event.reason() != QtCore.Qt.PopupFocusReason:
+            self._content = self.toPlainText()
+        super().focusInEvent(event)
+
+    def focusOutEvent(self, event):
+        if event.reason() != QtCore.Qt.PopupFocusReason:
+            self.checkChanges()
+        super().focusOutEvent(event)
