@@ -8,7 +8,9 @@
 # repository for details
 
 import datetime
+import numbers
 import operator
+import re
 from pathlib import Path
 
 import numpy as np
@@ -134,13 +136,13 @@ class ExportWidget(QtWidgets.QWidget):
         # Fill preview with results
         try:
             for measurement in query:
-                measurement_line = f'"{measurement.timestamp}"\t'
-                measurement_line += f'"{measurement.chip.name}"\t'
-                measurement_line += f'"{measurement.sample.name}"\t'
+                measurement_line = f"{escape_csv(measurement.timestamp)}\t"
+                measurement_line += f"{escape_csv(measurement.chip.name)}\t"
+                measurement_line += f"{escape_csv(measurement.sample.name)}\t"
                 if measurement.notes is None:
                     measurement_line += '""'
                 else:
-                    measurement_line += f'"{measurement.notes}"'
+                    measurement_line += f"{escape_csv(measurement.notes)}"
                 valid_data = False
                 for col in range(measurement.chip.columnCount):
                     if (
@@ -217,3 +219,25 @@ class FilterWidget(QtWidgets.QWidget):
             cmp = None
 
         return self.target.currentData(), cmp, self.value.text()
+
+
+def escape_csv(val):
+    """Escapes `val` to a valid cell for CSV.
+
+    Quotations and dangerous chars (@, +, -, =, |, %) are considered.
+    """
+    if val is None:
+        return '""'
+    if isinstance(val, numbers.Number):
+        return val
+
+    val = str(val)
+
+    if val and not re.match(r"^[-+]?[0-9\.,]+$", val):
+        symbols = ("@", "+", "-", "=", "|", "%")
+        val.replace('"', '""')
+        val = f'"{val}"'
+        if val[1] in symbols or val[2] in symbols:
+            val = f"'{val}"
+
+    return val
