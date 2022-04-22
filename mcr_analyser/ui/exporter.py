@@ -235,9 +235,11 @@ def escape_csv(val):
 
     if val and not re.match(r"^[-+]?[0-9\.,]+$", val):
         symbols = ("@", "+", "-", "=", "|", "%")
-        val.replace('"', '""')
+        val = val.replace('"', '""')
         val = f'"{val}"'
         if val[1] in symbols or val[2] in symbols:
+            # Adding a single quote breaks multiline, so we replace linebreaks to allow recovery
+            val = val.replace("\n", "\\n").replace("\r", "\\r")
             val = f"'{val}"
 
     return val
