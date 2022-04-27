@@ -49,14 +49,14 @@ class GraphicsSpotItem(QtWidgets.QGraphicsRectItem):
         y: float,
         w: float,
         h: float,
-        row: int,
         col: int,
+        row: int,
         valid: bool,
         parent,
     ) -> None:
         super().__init__(x, y, w, h, parent)
-        self.row = row
         self.col = col
+        self.row = row
         self.valid = valid
         self.pen = QtGui.QPen(QtCore.Qt.GlobalColor.red)
         if not self.valid:
@@ -148,7 +148,7 @@ class GridItem(QtWidgets.QGraphicsItem):
         for row in range(self.rows):
             head = GraphicsRectTextItem(
                 -15,
-                row * (self.size + self.hspace),
+                row * (self.size + self.vspace),
                 12,
                 self.size,
                 string.ascii_uppercase[row],
@@ -159,7 +159,7 @@ class GridItem(QtWidgets.QGraphicsItem):
         for col in range(self.cols):
             # Column labels
             head = GraphicsRectTextItem(
-                col * (self.size + self.vspace), -15, self.size, 12, str(col + 1), self
+                col * (self.size + self.hspace), -15, self.size, 12, str(col + 1), self
             )
             self.c_headers.append(head)
 
@@ -170,9 +170,9 @@ class GridItem(QtWidgets.QGraphicsItem):
                     .one_or_none()
                 )
 
-                x = col * (self.size + self.vspace)
-                y = row * (self.size + self.hspace)
+                x = col * (self.size + self.hspace)
+                y = row * (self.size + self.vspace)
                 spot = GraphicsSpotItem(
-                    x, y, self.size, self.size, row, col, valid, self
+                    x, y, self.size, self.size, col, row, valid, self
                 )
                 self.spots.append(spot)
