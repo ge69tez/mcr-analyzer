@@ -118,7 +118,7 @@ class GridItem(QtWidgets.QGraphicsItem):
         )
         # Labels are drawn on the "negative" side of the origin
         return QtCore.QRectF(
-            -self.pen_width / 2 - 15, -self.pen_width / 2 - 15, width, height
+            -self.pen_width / 2 - 15, -self.pen_width / 2 - 15, width + 15, height + 15
         )
 
     def itemChange(self, change, value):
