@@ -171,7 +171,7 @@ class Image:
 
         :param path: filename/path to be written
         """
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             # Write header (width, height and newline)
             f.write(f"{self.width}\n{self.height}\n\n")
             # Write image data

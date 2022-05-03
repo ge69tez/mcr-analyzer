@@ -100,7 +100,7 @@ class RsltParser:
         self.dir = self.path.parent
         if not self.path.exists():
             raise FileNotFoundError(ENOENT, "File does not exist", str(path))
-        with open(self.path) as file:
+        with open(self.path, encoding="utf-8") as file:
             identifier_pattern = re.compile(r"^([^:]+): (.*)$")
 
             # Read in first meta block
