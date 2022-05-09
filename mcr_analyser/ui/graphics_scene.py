@@ -87,17 +87,18 @@ class GridItem(QtWidgets.QGraphicsItem):
         parent=None,
     ):
         super().__init__(parent)
+        self.meas_id = meas_id
         db = Database()
         self.session = db.Session()
         self.measurement = (
             self.session.query(Measurement)
-            .filter(Measurement.id == meas_id)
+            .filter(Measurement.id == self.meas_id)
             .one_or_none()
         )
         self.cols = self.measurement.chip.columnCount
         self.rows = self.measurement.chip.rowCount
-        self.vspace = self.measurement.chip.spotMarginVert
         self.hspace = self.measurement.chip.spotMarginHoriz
+        self.vspace = self.measurement.chip.spotMarginVert
         self.size = self.measurement.chip.spotSize
 
         self.spots = []
@@ -106,6 +107,8 @@ class GridItem(QtWidgets.QGraphicsItem):
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
         self.pen_width = 1.0
+
+        self.preview_mode = False
 
         self._add_children()
 
@@ -131,16 +134,20 @@ class GridItem(QtWidgets.QGraphicsItem):
         return
 
     def _clear_children(self):
+        scene = self.scene()
         for head in self.c_headers:
-            self.removeItem(head)
+            if scene:
+                scene.removeItem(head)
         self.c_headers.clear()
 
         for head in self.r_headers:
-            self.removeItem(head)
+            if scene:
+                scene.removeItem(head)
         self.r_headers.clear()
 
         for spot in self.spots:
-            self.removeItem(spot)
+            if scene:
+                scene.removeItem(spot)
         self.spots.clear()
 
     def _add_children(self):
@@ -164,15 +171,47 @@ class GridItem(QtWidgets.QGraphicsItem):
             self.c_headers.append(head)
 
             for row in range(self.rows):
-                valid = utils.simplify_list(
-                    self.session.query(Result.valid)
-                    .filter_by(measurement=self.measurement, column=col, row=row)
-                    .one_or_none()
-                )
-
+                if self.preview_mode:
+                    valid = False
+                else:
+                    res = (
+                        self.session.query(Result.valid)
+                        .filter_by(measurement=self.measurement, column=col, row=row)
+                        .one_or_none()
+                    )
+                    valid = utils.simplify_list(res) if res else False
                 x = col * (self.size + self.hspace)
                 y = row * (self.size + self.vspace)
                 spot = GraphicsSpotItem(
                     x, y, self.size, self.size, col, row, valid, self
                 )
                 self.spots.append(spot)
+
+    def preview_settings(self, cols, rows, hspace, vspace, size):
+        self._clear_children()
+        self.preview_mode = True
+        self.cols = cols
+        self.rows = rows
+        self.hspace = hspace
+        self.vspace = vspace
+        self.size = size
+        self._add_children()
+
+    def database_view(self):
+        self._clear_children()
+
+        # Ensure latest database information
+        self.session.commit()
+        self.measurement = (
+            self.session.query(Measurement)
+            .filter(Measurement.id == self.meas_id)
+            .one_or_none()
+        )
+        self.cols = self.measurement.chip.columnCount
+        self.rows = self.measurement.chip.rowCount
+        self.hspace = self.measurement.chip.spotMarginHoriz
+        self.vspace = self.measurement.chip.spotMarginVert
+        self.size = self.measurement.chip.spotSize
+
+        self.preview_mode = False
+        self._add_children()
