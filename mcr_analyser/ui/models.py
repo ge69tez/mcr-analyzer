@@ -200,6 +200,7 @@ class ResultModel(QtCore.QAbstractTableModel):
         self.results = None
         self.means = None
         self.stds = None
+        self.cache_valid = True
         self.last_update = 0
 
     def rowCount(self, parent: QtCore.QModelIndex) -> int:
@@ -274,10 +275,20 @@ class ResultModel(QtCore.QAbstractTableModel):
             return None
         return f"{result.value if result.value else np.nan:5.0f}"
 
+    def invalidate_cache(self):
+        self.beginResetModel()
+        self.cache_valid = False
+        self.update()
+        self.endResetModel()
+
     def update(self):
         # Limit DB queries to 500ms
-        if time.monotonic() * 1000 - self.last_update <= 500:
+        if (time.monotonic() * 1000 - self.last_update <= 500) and self.cache_valid:
             return
+
+        if not self.cache_valid:
+            self.session.expire(self.measurement.chip)
+            self.cache_valid = True
 
         rows = self.chip.rowCount
         cols = self.chip.columnCount
