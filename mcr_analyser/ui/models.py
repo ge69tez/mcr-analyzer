@@ -9,6 +9,7 @@
 
 import datetime
 import string
+import time
 
 import numpy as np
 import sqlalchemy
@@ -195,23 +196,25 @@ class ResultModel(QtCore.QAbstractTableModel):
         self.measurement = (
             self.session.query(Measurement).filter(Measurement.id == id_).one_or_none()
         )
+        self.chip = self.measurement.chip
+        self.results = None
+        self.means = None
+        self.stds = None
+        self.last_update = 0
 
     def rowCount(self, parent: QtCore.QModelIndex) -> int:
         if not self.measurement:
             return 0
-        return self.measurement.chip.rowCount + 2
+        return self.chip.rowCount + 2
 
     def columnCount(self, parent: QtCore.QModelIndex) -> int:
         if not self.measurement:
             return 0
-        return self.measurement.chip.columnCount
+        return self.chip.columnCount
 
     def headerData(self, section: int, orientation: QtCore.Qt.Orientation, role: int):
         if role == QtCore.Qt.FontRole:
-            if (
-                orientation == QtCore.Qt.Vertical
-                and section >= self.measurement.chip.rowCount
-            ):
+            if orientation == QtCore.Qt.Vertical and section >= self.chip.rowCount:
                 boldFont = QtGui.QFont()
                 boldFont.setBold(True)
                 return boldFont
@@ -219,11 +222,11 @@ class ResultModel(QtCore.QAbstractTableModel):
             return None
         if orientation == QtCore.Qt.Horizontal:
             return section + 1
-        if section < self.measurement.chip.rowCount:
+        if section < self.chip.rowCount:
             return string.ascii_uppercase[section]
-        if section == self.measurement.chip.rowCount:
+        if section == self.chip.rowCount:
             return _("Mean")
-        if section == self.measurement.chip.rowCount + 1:
+        if section == self.chip.rowCount + 1:
             return _("Std.")
         return None
 
@@ -232,14 +235,15 @@ class ResultModel(QtCore.QAbstractTableModel):
         if not index.isValid():
             return None
 
-        # Query database - returns None for statistic table entries
-        result = (
-            self.session.query(Result.valid, Result.value)
-            .filter_by(
-                measurement=self.measurement, column=index.column(), row=index.row()
-            )
-            .one_or_none()
-        )
+        # Refresh results
+        self.update()
+        if (
+            index.row() < self.results.shape[0]
+            and index.column() < self.results.shape[1]
+        ):
+            result = self.results[index.row()][index.column()]
+        else:
+            result = None
 
         # Adjust to the right
         if role == QtCore.Qt.TextAlignmentRole:
@@ -248,7 +252,7 @@ class ResultModel(QtCore.QAbstractTableModel):
 
         # Font modifications for statistics and values
         if role == QtCore.Qt.FontRole:
-            if index.row() >= self.measurement.chip.rowCount:
+            if index.row() >= self.chip.rowCount:
                 boldFont = QtGui.QFont()
                 boldFont.setBold(True)
                 return boldFont
@@ -263,23 +267,39 @@ class ResultModel(QtCore.QAbstractTableModel):
             return None
 
         if not result:
-            if index.row() == self.measurement.chip.rowCount:
-                values = list(
-                    self.session.query(Result)
-                    .filter_by(
-                        measurement=self.measurement, column=index.column(), valid=True
-                    )
-                    .values(Result.value)
-                )
-                return f"{np.mean(values):5.0f}"
-            if index.row() == self.measurement.chip.rowCount + 1:
-                values = list(
-                    self.session.query(Result)
-                    .filter_by(
-                        measurement=self.measurement, column=index.column(), valid=True
-                    )
-                    .values(Result.value)
-                )
-                return f"{np.std(values, ddof=1):5.0f}"
+            if index.row() == self.chip.rowCount:
+                return f"{self.means[index.column()]:5.0f}"
+            if index.row() == self.chip.rowCount + 1:
+                return f"{self.stds[index.column()]:5.0f}"
             return None
         return f"{result.value:5.0f}"
+
+    def update(self):
+        # Limit DB queries to 500ms
+        if time.monotonic() * 1000 - self.last_update <= 500:
+            return
+
+        rows = self.chip.rowCount
+        cols = self.chip.columnCount
+        self.results = np.empty([rows, cols], dtype=object)
+        self.means = np.empty([cols])
+        self.stds = np.empty([cols])
+
+        for row in range(rows):
+            for col in range(cols):
+                self.results[row][col] = (
+                    self.session.query(Result)
+                    .filter_by(measurement=self.measurement, column=col, row=row)
+                    .one_or_none()
+                )
+
+        for col in range(cols):
+            values = list(
+                self.session.query(Result)
+                .filter_by(measurement=self.measurement, column=col, valid=True)
+                .values(Result.value)
+            )
+            self.means[col] = np.mean(values) if values else np.nan
+            self.stds[col] = np.std(values, ddof=1) if values else np.nan
+
+        self.last_update = time.monotonic() * 1000
