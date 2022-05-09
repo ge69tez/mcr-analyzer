@@ -142,7 +142,8 @@ class MeasurementWidget(QtWidgets.QWidget):
             self.spot_size.valueChanged.disconnect()
             self.spot_margin_horiz.valueChanged.disconnect()
             self.spot_margin_vert.valueChanged.disconnect()
-        except TypeError:
+        except (RuntimeError, TypeError):
+            # Don't fail if they are not connected
             pass
         self.cols.setValue(measurement.chip.columnCount)
         self.rows.setValue(measurement.chip.rowCount)
