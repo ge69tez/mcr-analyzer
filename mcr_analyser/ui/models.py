@@ -272,7 +272,7 @@ class ResultModel(QtCore.QAbstractTableModel):
             if index.row() == self.chip.rowCount + 1:
                 return f"{self.stds[index.column()]:5.0f}"
             return None
-        return f"{result.value:5.0f}"
+        return f"{result.value if result.value else np.nan:5.0f}"
 
     def update(self):
         # Limit DB queries to 500ms
@@ -296,7 +296,12 @@ class ResultModel(QtCore.QAbstractTableModel):
         for col in range(cols):
             values = list(
                 self.session.query(Result)
-                .filter_by(measurement=self.measurement, column=col, valid=True)
+                .filter(
+                    Result.measurement == self.measurement,
+                    Result.column == col,
+                    Result.valid == True,
+                    Result.value != None,
+                )
                 .values(Result.value)
             )
             self.means[col] = np.mean(values) if values else np.nan
