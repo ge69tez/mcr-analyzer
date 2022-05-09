@@ -310,8 +310,8 @@ class ResultModel(QtCore.QAbstractTableModel):
                 .filter(
                     Result.measurement == self.measurement,
                     Result.column == col,
-                    Result.valid == True,
-                    Result.value != None,
+                    Result.valid.is_(True),
+                    Result.value.isnot(None),
                 )
                 .values(Result.value)
             )
