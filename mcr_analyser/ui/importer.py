@@ -35,6 +35,7 @@ class ImportWidget(QtWidgets.QWidget):
         self.file_model = None
         self.import_thread = None
         self.results = None
+        self.failed = None
         self.checksum_worker = None
         self.thread_pool = QtCore.QThreadPool.globalInstance()
         self.setWindowTitle(_("Import measurements"))
@@ -111,7 +112,22 @@ class ImportWidget(QtWidgets.QWidget):
         )
 
         for path in self.dirs:
-            self.results = imp.gather_measurements(path)
+            self.results, self.failed = imp.gather_measurements(path)
+            for res in self.failed:
+                errorItem = QtGui.QStandardItem(
+                    _("Failed to load '{}', might be a corrupted file.").format(res)
+                )
+                errorItem.setIcon(
+                    self.style().standardIcon(QtWidgets.QStyle.SP_DialogNoButton)
+                )
+                measurement = [
+                    QtGui.QStandardItem(_("n. a.")),
+                    QtGui.QStandardItem(_("n. a.")),
+                    QtGui.QStandardItem(_("n. a.")),
+                    QtGui.QStandardItem(_("n. a.")),
+                    errorItem,
+                ]
+                self.file_model.appendRow(measurement)
             for res in self.results:
                 measurement = [
                     QtGui.QStandardItem(
@@ -144,8 +160,10 @@ class ImportWidget(QtWidgets.QWidget):
         with db.Session() as session:
             try:
                 session.query(Measurement).filter_by(checksum=checksum).one()
-                self.file_model.item(step, 4).setText(_("Imported previously"))
-                self.file_model.item(step, 4).setIcon(
+                self.file_model.item(step + len(self.failed), 4).setText(
+                    _("Imported previously")
+                )
+                self.file_model.item(step + len(self.failed), 4).setIcon(
                     self.style().standardIcon(QtWidgets.QStyle.SP_DialogNoButton)
                 )
 
@@ -192,8 +210,10 @@ class ImportWidget(QtWidgets.QWidget):
                 measurement_id = meas.id
 
                 # Update UI
-                self.file_model.item(step, 4).setText(_("Import successful"))
-                self.file_model.item(step, 4).setIcon(
+                self.file_model.item(step + len(self.failed), 4).setText(
+                    _("Import successful")
+                )
+                self.file_model.item(step + len(self.failed), 4).setIcon(
                     self.style().standardIcon(QtWidgets.QStyle.SP_DialogYesButton)
                 )
 

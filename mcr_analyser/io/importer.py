@@ -26,10 +26,15 @@ class FileImporter:
 
     def gather_measurements(self, path):
         measurements = []
+        failed = []
         results = Path(path).glob("**/*.rslt")
 
         for res in results:
-            rslt = RsltParser(res)
+            try:
+                rslt = RsltParser(res)
+            except KeyError:
+                failed.append(res.name)
+                continue
 
             img = rslt.dir.joinpath(rslt.meta["Result image PGM"])
             if img.exists():
@@ -44,7 +49,7 @@ class FileImporter:
                         "Date/time"
                     ] + dt.timedelta(seconds=i)
                     measurements.append(temp_result)
-        return measurements
+        return measurements, failed
 
 
 class RsltParser:
@@ -92,6 +97,7 @@ class RsltParser:
         """Parse file `path` and populate class attributes.
 
         :raises FileNotFoundError: `path` does not exist.
+        :raises KeyError: An expected RSLT entry was not found.
         """
         self._meta = {}
         self._results = None
