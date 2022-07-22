@@ -21,7 +21,7 @@ class Analyser(QtWidgets.QApplication):
 
         self.setOrganizationName("TranslaTUM")
         self.setOrganizationDomain("www.translatum.tum.de")
-        self.setApplicationName("MCR-Analyzer")
+        self.setApplicationName("MCR-Analyser")
 
         setup_getext(localedir)
 

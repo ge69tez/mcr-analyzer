@@ -21,7 +21,7 @@ from mcr_analyser.ui.welcome import WelcomeWidget
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(_("MCR-Analyzer"))
+        self.setWindowTitle(_("MCR-Analyser"))
         self.tab_widget = QtWidgets.QTabWidget(self)
         self.setCentralWidget(self.tab_widget)
 
