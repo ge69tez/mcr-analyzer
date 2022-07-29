@@ -31,7 +31,6 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.tree.setUniformRowHeights(True)
 
         layout.addWidget(self.tree)
-        self.tree.expandAll()
 
         gbox = QtWidgets.QGroupBox(_("Record data"))
         form_layout = QtWidgets.QFormLayout()
@@ -102,11 +101,24 @@ class MeasurementWidget(QtWidgets.QWidget):
 
     def refreshDatabase(self):
         self.model.refreshModel()
-        self.tree.expandAll()
+        settings = QtCore.QSettings()
+        current_date = settings.value("Session/SelectedDate", None)
+        if current_date:
+            root = self.model.index(0, 0, QtCore.QModelIndex())
+            matches = self.model.match(root, QtCore.Qt.DisplayRole, current_date)
+            for idx in matches:
+                self.tree.expand(idx)
 
     def switchDatabase(self):
         self.model = MeasurementModel()
         self.tree.setModel(self.model)
+        settings = QtCore.QSettings()
+        current_date = settings.value("Session/SelectedDate", None)
+        if current_date:
+            root = self.model.index(0, 0, QtCore.QModelIndex())
+            matches = self.model.match(root, QtCore.Qt.DisplayRole, current_date)
+            for idx in matches:
+                self.tree.expand(idx)
 
         # Work around https://bugreports.qt.io/browse/QTBUG-52307:
         # resize all columns except the last one individually
@@ -183,6 +195,12 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.grid.setPos(measurement.chip.marginLeft, measurement.chip.marginTop)
 
         self.image.setPixmap(QtGui.QPixmap.fromImage(qimg))
+
+        # Store date of last used measurement for expanding tree on next launch
+        settings = QtCore.QSettings()
+        parent_index = selected.indexes()[0].parent()
+        if parent_index.isValid:
+            settings.setValue("Session/SelectedDate", parent_index.data())
 
     def previewGrid(self):
         self.results.setDisabled(True)
