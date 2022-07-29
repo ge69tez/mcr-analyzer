@@ -28,6 +28,7 @@ class ImportWidget(QtWidgets.QWidget):
     """
 
     importDone = QtCore.Signal()
+    database_missing = QtCore.Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -76,6 +77,16 @@ class ImportWidget(QtWidgets.QWidget):
 
     def path_dialog(self):
         """Show folder selection dialog."""
+        db = Database()
+        if not db.valid:
+            if QtWidgets.QMessageBox.warning(
+                self,
+                _("No database selected"),
+                _("You need to open or create a database first."),
+            ):
+                self.database_missing.emit()
+            return
+
         dialog = QtWidgets.QFileDialog(self)
         dialog.setFileMode(QtWidgets.QFileDialog.Directory)
         if dialog.exec():

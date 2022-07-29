@@ -7,7 +7,7 @@
 # This program is free software, see the LICENSE file in the root of this
 # repository for details
 
-""" Database routines for setup and usage """
+"""Database routines for setup and usage."""
 
 
 from sqlalchemy import create_engine
@@ -59,3 +59,10 @@ class Database:
             session.add(instance)
             session.commit()
         return instance
+
+    @property
+    def valid(self):
+        """Is the database setup correctly?"""
+        if self._engine:
+            return True
+        return False

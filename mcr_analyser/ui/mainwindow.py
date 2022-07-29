@@ -46,6 +46,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.welcome_widget.changedDatabase.connect(self.update_recent_files)
         self.welcome_widget.createdDatabase.connect(self.switch_to_import)
         self.welcome_widget.openedDatabase.connect(self.switch_to_measurement)
+        self.import_widget.database_missing.connect(self.switch_to_welcome)
         self.import_widget.importDone.connect(self.measurement_widget.refreshDatabase)
 
         # Open last active database
@@ -218,3 +219,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def switch_to_measurement(self):
         """Slot to show the measurement widget."""
         self.tab_widget.setCurrentWidget(self.measurement_widget)
+
+    def switch_to_welcome(self):
+        """Slot to show the welcome widget."""
+        self.tab_widget.setCurrentWidget(self.welcome_widget)
