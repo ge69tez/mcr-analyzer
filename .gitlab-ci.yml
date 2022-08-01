@@ -1,14 +1,28 @@
-image: "python:3.7"
-
-before_script:
-  - apt-get update
-  - apt-get dist-upgrade -y
+include:
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
 
 stages:
   - test
   - deploy
+  - release
+
+variables:
+  UPX_VERSION: "3.96"
+
+.job_template:
+  image: "python:latest"
+  cache:
+    paths:
+      - venv/
+  before_script:
+    - apt-get update || true
+    - apt-get dist-upgrade -y || true
+    - python -m venv venv || true
+    - source venv/bin/activate || true
 
 flake8:
+  extends: .job_template
   stage: test
   script:
     - pip install .[tests]
@@ -24,6 +38,7 @@ flake8:
     - docker
 
 pylint:
+  extends: .job_template
   stage: test
   script:
     - pip install .[tests]
@@ -46,6 +61,7 @@ pylint:
     - docker
 
 pytest:
+  extends: .job_template
   stage: test
   script:
     - pip install .[tests]
@@ -62,7 +78,10 @@ pytest:
     - docker
 
 pages:
+  extends: .job_template
   stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
   script:
     - pip install .[doc]
     - sphinx-build -b html doc public
@@ -71,5 +90,47 @@ pages:
       - public
   tags:
     - docker
-  only:
-    - main
+
+build-windows:
+  extends: .job_template
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_TAG
+  cache:
+    paths:
+      - build/
+      - upx-$env:UPX_VERSION-win64.zip
+      - venv/
+  before_script:
+    - if (!(Test-Path "upx-${env:UPX_VERSION}-win64.zip")) { Write-Host "Downloading UPX ${env:UPX_VERSION}..." ; Invoke-WebRequest -Method Get -Uri "https://github.com/upx/upx/releases/download/v${env:UPX_VERSION}/upx-${env:UPX_VERSION}-win64.zip" -OutFile "upx-${env:UPX_VERSION}-win64.zip" } else { Write-Host "Found cached UPX ${env:UPX_VERSION}." }
+    - Expand-Archive -Path "upx-${env:UPX_VERSION}-win64.zip" -DestinationPath .
+    - Copy-Item "${env:CI_PROJECT_DIR}/upx-${env:UPX_VERSION}-win64/upx.exe" "${env:SystemRoot}/system32"
+    - python -m venv venv
+    - venv/Scripts/activate
+  script:
+    - pip install
+      pyinstaller
+      PySide6
+      .
+    - pyinstaller -F -w analyser.py
+    - $RELEASE_VERSION = (${env:CI_COMMIT_TAG}).Trim("v", " ")
+    - Write-Host "Uploading binary as version ${RELEASE_VERSION}..."
+    - Invoke-RestMethod -Headers @{"JOB-TOKEN" = "${env:CI_JOB_TOKEN}"} -Method Put -Uri "${env:CI_API_V4_URL}/projects/${env:CI_PROJECT_ID}/packages/generic/${env:CI_PROJECT_NAME}/${RELEASE_VERSION}/analyser-${RELEASE_VERSION}.exe" -InFile "dist/analyser.exe"
+  artifacts:
+    name: "mcr-analyser-win64"
+    paths:
+      - dist/
+  tags:
+    - windows
+
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - release-cli create
+      --name "MCR-Analyser ${CI_COMMIT_TAG#v}"
+      --description "${CI_COMMIT_DESCRIPTION}"
+      --tag-name ${CI_COMMIT_TAG}
+      --assets-link "{\"name\":\"analyser-${CI_COMMIT_TAG#v}.exe\",\"url\":\"${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${CI_PROJECT_NAME}/${CI_COMMIT_TAG#v}/analyser-${CI_COMMIT_TAG#v}.exe\",\"link_type\":\"package\"}"
