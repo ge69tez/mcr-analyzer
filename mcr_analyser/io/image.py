@@ -125,12 +125,8 @@ class Image:
 
         :param path: filename/path to be written
         """
-        header = (
-            f"P2\n{self.width} {self.height}\n{2**(self.data.dtype.itemsize * 8) - 1}"
-        )
-        np.savetxt(
-            path, self.data, fmt="%d", delimiter="\t", header=header, comments=""
-        )
+        header = f"P2\n{self.width} {self.height}\n{2**(self.data.dtype.itemsize * 8) - 1}"
+        np.savetxt(path, self.data, fmt="%d", delimiter="\t", header=header, comments="")
 
     def write_pgm_binary(self, path):
         """Save image as binary PGM.
@@ -145,9 +141,7 @@ class Image:
             raise RuntimeError(
                 f"Unsupported data type '{self.data.dtype.name}', PGM only supports uint8 and uint16."
             )
-        header = (
-            f"P5\n{self.width} {self.height}\n{2**(self.data.dtype.itemsize * 8) - 1}\n"
-        )
+        header = f"P5\n{self.width} {self.height}\n{2**(self.data.dtype.itemsize * 8) - 1}\n"
         with open(path, "wb") as f:
             f.write(header.encode("ascii"))
             if self.data.dtype.itemsize == 2:
@@ -159,9 +153,7 @@ class Image:
         width = int(self.file.readline())
         height = int(self.file.readline())
         self._size = (width, height)
-        self.data = np.flip(np.fromfile(self.file, dtype="u2", sep=" ")).reshape(
-            height, width
-        )
+        self.data = np.flip(np.fromfile(self.file, dtype="u2", sep=" ")).reshape(height, width)
 
     def write_txt(self, path):
         """Save image as MCR text format.

@@ -45,9 +45,7 @@ class FileImporter:
                 for i, name in enumerate(sorted(rslt.dir.glob(f"{base}-*.pgm"))):
                     temp_result = copy.deepcopy(rslt)
                     temp_result.meta["Result image PGM"] = name.name
-                    temp_result.meta["Date/time"] = rslt.meta[
-                        "Date/time"
-                    ] + dt.timedelta(seconds=i)
+                    temp_result.meta["Date/time"] = rslt.meta["Date/time"] + dt.timedelta(seconds=i)
                     measurements.append(temp_result)
         return measurements, failed
 
@@ -141,9 +139,7 @@ class RsltParser:
             results = []
             for _ in rows:
                 results.append(file.readline())
-            self._results = np.genfromtxt(
-                results, dtype=np.uint16, skip_header=1, usecols=columns
-            )
+            self._results = np.genfromtxt(results, dtype=np.uint16, skip_header=1, usecols=columns)
 
             # Read in spots
             # Comment and header (look for this comment explicitly?)
@@ -161,9 +157,7 @@ class RsltParser:
 
             # Store as (x,y) tuple in a table like results
             coord_type = np.dtype([("x", np.int64), ("y", np.int64)])
-            spots = np.fromiter(
-                [self._parse_spot_coordinates(x) for x in results.flat], coord_type
-            )
+            spots = np.fromiter([self._parse_spot_coordinates(x) for x in results.flat], coord_type)
             self._spots = spots.reshape(self.results.shape)
 
             # Compute grid settings from spots

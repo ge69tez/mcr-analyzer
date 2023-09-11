@@ -65,9 +65,7 @@ class MeasurementModel(QtCore.QAbstractItemModel):
         for day in self.session.query(Measurement).group_by(
             sqlalchemy.func.strftime("%Y-%m-%d", Measurement.timestamp)
         ):
-            child = MeasurementItem(
-                [str(day.timestamp.date()), None, None], self.root_item
-            )
+            child = MeasurementItem([str(day.timestamp.date()), None, None], self.root_item)
             self.root_item.appendChild(child)
             for result in (
                 self.session.query(Measurement)
@@ -162,9 +160,7 @@ class MeasurementModel(QtCore.QAbstractItemModel):
         for day in self.session.query(Measurement).group_by(
             sqlalchemy.func.strftime("%Y-%m-%d", Measurement.timestamp)
         ):
-            child = MeasurementItem(
-                [str(day.timestamp.date()), None, None], self.root_item
-            )
+            child = MeasurementItem([str(day.timestamp.date()), None, None], self.root_item)
             self.root_item.appendChild(child)
             for result in (
                 self.session.query(Measurement)
@@ -238,10 +234,7 @@ class ResultModel(QtCore.QAbstractTableModel):
 
         # Refresh results
         self.update()
-        if (
-            index.row() < self.results.shape[0]
-            and index.column() < self.results.shape[1]
-        ):
+        if index.row() < self.results.shape[0] and index.column() < self.results.shape[1]:
             result = self.results[index.row()][index.column()]
         else:
             result = None

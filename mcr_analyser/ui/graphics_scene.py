@@ -35,9 +35,7 @@ class GraphicsRectTextItem(QtWidgets.QGraphicsRectItem):
     def paint(self, painter: QtGui.QPainter, option, widget) -> None:
         super().paint(painter, option, widget)
         painter.setPen(QtCore.Qt.GlobalColor.black)
-        painter.drawText(
-            option.rect, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter, self.text
-        )
+        painter.drawText(option.rect, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter, self.text)
 
 
 class GraphicsSpotItem(QtWidgets.QGraphicsRectItem):
@@ -91,9 +89,7 @@ class GridItem(QtWidgets.QGraphicsItem):
         db = Database()
         self.session = db.Session()
         self.measurement = (
-            self.session.query(Measurement)
-            .filter(Measurement.id == self.meas_id)
-            .one_or_none()
+            self.session.query(Measurement).filter(Measurement.id == self.meas_id).one_or_none()
         )
         self.cols = self.measurement.chip.columnCount
         self.rows = self.measurement.chip.rowCount
@@ -113,12 +109,8 @@ class GridItem(QtWidgets.QGraphicsItem):
         self._add_children()
 
     def boundingRect(self):
-        width = (
-            self.cols * self.size + (self.cols - 1) * self.vspace + self.pen_width / 2
-        )
-        height = (
-            self.rows * self.size + (self.rows - 1) * self.hspace + self.pen_width / 2
-        )
+        width = self.cols * self.size + (self.cols - 1) * self.vspace + self.pen_width / 2
+        height = self.rows * self.size + (self.rows - 1) * self.hspace + self.pen_width / 2
         # Labels are drawn on the "negative" side of the origin
         return QtCore.QRectF(
             -self.pen_width / 2 - 15, -self.pen_width / 2 - 15, width + 15, height + 15
@@ -182,9 +174,7 @@ class GridItem(QtWidgets.QGraphicsItem):
                     valid = utils.simplify_list(res) if res else False
                 x = col * (self.size + self.hspace)
                 y = row * (self.size + self.vspace)
-                spot = GraphicsSpotItem(
-                    x, y, self.size, self.size, col, row, valid, self
-                )
+                spot = GraphicsSpotItem(x, y, self.size, self.size, col, row, valid, self)
                 self.spots.append(spot)
 
     def preview_settings(self, cols, rows, hspace, vspace, size):
@@ -203,9 +193,7 @@ class GridItem(QtWidgets.QGraphicsItem):
         # Ensure latest database information
         self.session.commit()
         self.measurement = (
-            self.session.query(Measurement)
-            .filter(Measurement.id == self.meas_id)
-            .one_or_none()
+            self.session.query(Measurement).filter(Measurement.id == self.meas_id).one_or_none()
         )
         self.cols = self.measurement.chip.columnCount
         self.rows = self.measurement.chip.rowCount
