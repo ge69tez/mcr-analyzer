@@ -63,9 +63,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         form_layout.addRow(_("Horiz. Spot Distance:"), self.spot_margin_horiz)
         self.spot_margin_vert = QtWidgets.QSpinBox()
         form_layout.addRow(_("Vert. Spot Distance:"), self.spot_margin_vert)
-        self.saveGridButton = QtWidgets.QPushButton(
-            _("Save grid and calculate results")
-        )
+        self.saveGridButton = QtWidgets.QPushButton(_("Save grid and calculate results"))
         self.saveGridButton.setDisabled(True)
         self.saveGridButton.clicked.connect(self.saveGrid)
         form_layout.addRow(self.saveGridButton)
@@ -133,9 +131,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         db = Database()
         session = db.Session()
         measurement = (
-            session.query(Measurement)
-            .filter(Measurement.id == self.meas_id)
-            .one_or_none()
+            session.query(Measurement).filter(Measurement.id == self.meas_id).one_or_none()
         )
         if measurement.user:
             self.measurer.setText(measurement.user.name)
@@ -246,9 +242,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         db = Database()
         session = db.Session()
         measurement = (
-            session.query(Measurement)
-            .filter(Measurement.id == self.meas_id)
-            .one_or_none()
+            session.query(Measurement).filter(Measurement.id == self.meas_id).one_or_none()
         )
         # Disconnect all signals
         try:
@@ -295,18 +289,16 @@ class MeasurementWidget(QtWidgets.QWidget):
             # Set column to NULL if text is empty
             if not note:
                 note = None
-            session.query(Measurement).filter_by(id=self.meas_id).update(
-                {Measurement.notes: note}
-            )
+            session.query(Measurement).filter_by(id=self.meas_id).update({Measurement.notes: note})
             session.commit()
 
     def updateValidity(self, row, col, valid):
         if self.meas_id:
             db = Database()
             session = db.Session()
-            session.query(Result).filter_by(
-                measurementID=self.meas_id, column=col, row=row
-            ).update({Result.valid: valid})
+            session.query(Result).filter_by(measurementID=self.meas_id, column=col, row=row).update(
+                {Result.valid: valid}
+            )
             session.commit()
             # Tell views about change
             start = self.result_model.index(row, col)
