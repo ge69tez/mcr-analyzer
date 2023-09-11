@@ -7,7 +7,7 @@ env:
 on:
   push:
     tags:
-      - '*'
+      - "*"
 
 jobs:
   build-windows:
@@ -71,12 +71,13 @@ jobs:
         id: create-version
         run: echo "::set-output name=RELEASE_VERSION::${GITHUB_REF_NAME#v}"
       - name: Extract tag annotation
-        run: git tag -l --format='%(contents)' "${GITHUB_REF_NAME}" > changes-${{ steps.create-version.outputs.RELEASE_VERSION }}.txt
+        run:
+          git tag -l --format='%(contents)' "${GITHUB_REF_NAME}" > changes-${{
+          steps.create-version.outputs.RELEASE_VERSION }}.txt
       - uses: softprops/action-gh-release@v1
         with:
           name: MCR-Analyser ${{ steps.create-version.outputs.RELEASE_VERSION }}
           draft: true
           prerelease: true
           body_path: changes-${{ steps.create-version.outputs.RELEASE_VERSION }}.txt
-          files:
-            artifacts/*
+          files: artifacts/*
