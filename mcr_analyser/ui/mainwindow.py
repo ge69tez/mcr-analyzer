@@ -40,9 +40,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tab_widget.addTab(self.measurement_widget, _("&Measurement && Data Entry"))
         self.tab_widget.addTab(self.export_widget, _("&Export"))
 
-        self.welcome_widget.changedDatabase.connect(
-            self.measurement_widget.switchDatabase
-        )
+        self.welcome_widget.changedDatabase.connect(self.measurement_widget.switchDatabase)
         self.welcome_widget.changedDatabase.connect(self.update_recent_files)
         self.welcome_widget.createdDatabase.connect(self.switch_to_import)
         self.welcome_widget.openedDatabase.connect(self.switch_to_measurement)
@@ -59,9 +57,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 db.connect_database(f"sqlite:///{path}")
                 self.measurement_widget.switchDatabase()
                 # Only restore the last tab if we can open the database
-                self.tab_widget.setCurrentIndex(
-                    settings.value("Session/ActiveTab", 0, int)
-                )
+                self.tab_widget.setCurrentIndex(settings.value("Session/ActiveTab", 0, int))
         except IndexError:
             pass
 

@@ -131,9 +131,7 @@ class Reagent(Base):
     """Internal ID, used for cross-references."""
     name: str = Column(String)
     """Name of the substance."""
-    results: relationship = relationship(
-        "Result", back_populates="reagent", order_by="Result.id"
-    )
+    results: relationship = relationship("Result", back_populates="reagent", order_by="Result.id")
     """Many-to-One relationship referencing the Spots of this substance."""
 
 
@@ -204,9 +202,7 @@ class SampleType(Base):
     """Internal ID, used for cross-references."""
     name: str = Column(String, nullable=False)
     """Name of the kind. For example full blood, serum, water, etc."""
-    samples: relationship = relationship(
-        "Sample", back_populates="type", order_by="Sample.id"
-    )
+    samples: relationship = relationship("Sample", back_populates="type", order_by="Sample.id")
     """Many-to-One relationship referencing all samples of this type."""
 
 
@@ -220,9 +216,7 @@ class User(Base):
     """Name of the researcher."""
     loginID: str = Column(String)
     """User ID of the researcher, to be used for automatic association."""
-    samples: relationship = relationship(
-        "Sample", back_populates="takenBy", order_by="Sample.id"
-    )
+    samples: relationship = relationship("Sample", back_populates="takenBy", order_by="Sample.id")
     """Many-to-One relationship referencing all samples taken by a user."""
     measurements: relationship = relationship(
         "Measurement", back_populates="user", order_by="Measurement.timestamp"
