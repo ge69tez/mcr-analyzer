@@ -24,3 +24,9 @@ repos:
     rev: 23.7.0
     hooks:
       - id: black
+
+ci:
+  autofix_commit_msg: "ci: fix pre-commit hooks" # cSpell:ignore autofix
+  autoupdate_commit_msg: "ci: update pre-commit hooks" # cSpell:ignore autoupdate
+  skip:
+    - "no-commit-to-branch"
