@@ -1,5 +1,17 @@
+ci:
+  autofix_commit_msg: "ci: fix pre-commit hooks" # cSpell:ignore autofix
+  autoupdate_commit_msg: "ci: update pre-commit hooks" # cSpell:ignore autoupdate
+  skip:
+    - "no-commit-to-branch"
+
 repos:
-  # - https://pre-commit.com/#2-add-a-pre-commit-configuration
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.5
+    hooks:
+      - id: codespell # cSpell:ignore codespell
+        additional_dependencies:
+          - tomli # cSpell:ignore tomli
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
@@ -24,9 +36,3 @@ repos:
     rev: 23.7.0
     hooks:
       - id: black
-
-ci:
-  autofix_commit_msg: "ci: fix pre-commit hooks" # cSpell:ignore autofix
-  autoupdate_commit_msg: "ci: update pre-commit hooks" # cSpell:ignore autoupdate
-  skip:
-    - "no-commit-to-branch"

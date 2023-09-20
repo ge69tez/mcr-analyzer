@@ -35,7 +35,7 @@ class SpotReaderValidator(Validator):
     r"""Validator based on the Java Spot Reader.
 
     It finds the three closest spots (value wise), calculates their mean and
-    checks wether the individual values satisfy
+    checks whether the individual values satisfy
 
     .. math::
 

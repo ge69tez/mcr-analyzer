@@ -108,7 +108,7 @@ class ExportWidget(QtWidgets.QWidget):
         # Apply user filters to query
         for flt in self.filters:
             obj, oper, value = flt.filter()
-            # DateTime comparisions are hard to get right: eq/ne on a date does
+            # DateTime comparisons are hard to get right: eq/ne on a date does
             # not work as expected, time is always compared as well. Therefore,
             # always check intervals
             if obj == Measurement.timestamp:

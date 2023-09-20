@@ -143,7 +143,7 @@ class GridItem(QtWidgets.QGraphicsItem):
         self.spots.clear()
 
     def _add_children(self):
-        # Row lables: letters
+        # Row labels: letters
         for row in range(self.rows):
             head = GraphicsRectTextItem(
                 -15,

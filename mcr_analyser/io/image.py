@@ -132,7 +132,7 @@ class Image:
         """Save image as binary PGM.
 
         Writes a portable gray map in binary format. This is the smallest and most
-        portable file format this libray can create. Use this for exchange and
+        portable file format this library can create. Use this for exchange and
         storage if you don't have other requirements.
 
         :param path: filename/path to be written

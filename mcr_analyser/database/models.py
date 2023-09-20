@@ -105,7 +105,7 @@ class Measurement(Base):
     userID: int = Column(Integer, ForeignKey("user.id"), index=True)
     """Refers to the :class:`User` who did the measurement."""
     user: relationship = relationship("User", back_populates="measurements")
-    """One-to-Many releationship referencing the user who did the
+    """One-to-Many relationship referencing the user who did the
     measurement."""
     chipFailure: bool = Column(Boolean, nullable=False, default=False)
     """Was there a failure during measurement (leaky chip). Defaults to
@@ -115,7 +115,7 @@ class Measurement(Base):
     results: relationship = relationship(
         "Result", back_populates="measurement", order_by="Result.id"
     )
-    """Many-to-One relationship referncing all results of this measurement."""
+    """Many-to-One relationship referencing all results of this measurement."""
 
 
 class Reagent(Base):

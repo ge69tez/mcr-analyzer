@@ -70,7 +70,7 @@ class RsltParser:
               (typically None).
             * Temperature ok (`bool`):  Did the temperature stay within +/-0.5°C
               of the set target temperature.
-            * Clean image (`bool`): Is the result produced by substracting the
+            * Clean image (`bool`): Is the result produced by subtracting the
               dark frame from the raw image (typically True).
             * X (`int`): Number of spot columns.
             * Y (`int`): Number of (redundant) spot rows.
