@@ -1,8 +1,9 @@
-MCR  Analyser
+MCR  Analyzer
 =============
-MCR Analyser is a small Python application for (mass) importing and analysing
-antibody/antigen chemoluminescense images taken with the MCR by `GWK
+MCR Analyzer is a small Python application for (mass) importing and analyzing
+antibody/antigen chemiluminescence images taken with the MCR by `GWK
 Präzisionstechnik GmbH <https://gwk-munich.com/>`_.
+.. cSpell:ignore Präzisionstechnik
 
 This is the documentation generated from its source files and mostly intended
 for developers.

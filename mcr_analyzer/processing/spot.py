@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# MCR-Analyser
+# MCR-Analyzer
 #
 # Copyright (C) 2021 Martin Knopp, Technical University of Munich
 #
@@ -17,7 +17,7 @@ import numpy as np
 class Spot(metaclass=ABCMeta):
     """Base class defining spot analysis interface."""
 
-    def __init__(self, data: np.ndarray):
+    def __init__(self, data: np.ndarray):  # cSpell:ignore ndarray
         """Initialize spot object.
 
         :param data: (np.ndarray) Pixel data of the spot in question.
@@ -31,7 +31,7 @@ class Spot(metaclass=ABCMeta):
 
 
 class DeviceBuiltin(Spot):
-    """Spot analysis class replicating MCR-Rs internal behaviour."""
+    """Spot analysis class replicating MCR-Rs internal behavior."""
 
     def value(self) -> float:
         """Return mean of the 10 brightest pixels."""

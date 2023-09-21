@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# MCR-Analyser
+# MCR-Analyzer
 #
 # Copyright (C) 2021 Martin Knopp, Technical University of Munich
 #
@@ -10,11 +10,11 @@
 from qtpy import QtCore, QtGui, QtWidgets
 import numpy as np
 
-from mcr_analyser.database.database import Database
-from mcr_analyser.database.models import Measurement, Result
-from mcr_analyser.processing.measurement import Measurement as MeasurementProcessor
-from mcr_analyser.ui.graphics_scene import GraphicsMeasurementScene, GridItem
-from mcr_analyser.ui.models import MeasurementModel, ResultModel
+from mcr_analyzer.database.database import Database
+from mcr_analyzer.database.models import Measurement, Result
+from mcr_analyzer.processing.measurement import Measurement as MeasurementProcessor
+from mcr_analyzer.ui.graphics_scene import GraphicsMeasurementScene, GridItem
+from mcr_analyzer.ui.models import MeasurementModel, ResultModel
 
 
 class MeasurementWidget(QtWidgets.QWidget):
@@ -32,9 +32,9 @@ class MeasurementWidget(QtWidgets.QWidget):
 
         layout.addWidget(self.tree)
 
-        gbox = QtWidgets.QGroupBox(_("Record data"))
+        group_box = QtWidgets.QGroupBox(_("Record data"))
         form_layout = QtWidgets.QFormLayout()
-        gbox.setLayout(form_layout)
+        group_box.setLayout(form_layout)
         self.measurer = QtWidgets.QLineEdit()
         form_layout.addRow(_("Measured by:"), self.measurer)
         self.device = QtWidgets.QLineEdit()
@@ -59,10 +59,10 @@ class MeasurementWidget(QtWidgets.QWidget):
         form_layout.addRow(_("Number of Rows:"), self.rows)
         self.spot_size = QtWidgets.QSpinBox()
         form_layout.addRow(_("Spot size:"), self.spot_size)
-        self.spot_margin_horiz = QtWidgets.QSpinBox()
-        form_layout.addRow(_("Horiz. Spot Distance:"), self.spot_margin_horiz)
-        self.spot_margin_vert = QtWidgets.QSpinBox()
-        form_layout.addRow(_("Vert. Spot Distance:"), self.spot_margin_vert)
+        self.spot_margin_horizontal = QtWidgets.QSpinBox()
+        form_layout.addRow(_("Horizontal Spot Distance:"), self.spot_margin_horizontal)
+        self.spot_margin_vertical = QtWidgets.QSpinBox()
+        form_layout.addRow(_("Vert. Spot Distance:"), self.spot_margin_vertical)
         self.saveGridButton = QtWidgets.QPushButton(_("Save grid and calculate results"))
         self.saveGridButton.setDisabled(True)
         self.saveGridButton.clicked.connect(self.saveGrid)
@@ -71,12 +71,12 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.resetGridButton.setDisabled(True)
         self.resetGridButton.clicked.connect(self.resetGrid)
         form_layout.addRow(self.resetGridButton)
-        layout.addWidget(gbox)
+        layout.addWidget(group_box)
 
-        gbox = QtWidgets.QGroupBox(_("Visualisation"))
+        group_box = QtWidgets.QGroupBox(_("Visualization"))
         v_layout = QtWidgets.QVBoxLayout()
-        gbox.setLayout(v_layout)
-        # Visualisation via multi-layered GraphicsScene
+        group_box.setLayout(v_layout)
+        # Visualization via multi-layered GraphicsScene
         # Size to MCR image; might need to become non-static in future devices
         meas_width = 696
         meas_height = 520
@@ -84,7 +84,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.scene.changed_validity.connect(self.updateValidity)
         self.scene.moved_grid.connect(self.updateGridPosition)
         # Container for measurement image
-        self.image = QtWidgets.QGraphicsPixmapItem()
+        self.image = QtWidgets.QGraphicsPixmapItem()  # cSpell:ignore Pixmap
         self.scene.addItem(self.image)
         self.view = QtWidgets.QGraphicsView(self.scene)
         self.view.centerOn(meas_width / 2, meas_height / 2)
@@ -95,7 +95,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.results = QtWidgets.QTableView()
         v_layout.addWidget(self.results, 2)
 
-        layout.addWidget(gbox)
+        layout.addWidget(group_box)
 
     def refreshDatabase(self):
         self.model.refreshModel()
@@ -146,28 +146,29 @@ class MeasurementWidget(QtWidgets.QWidget):
             self.cols.valueChanged.disconnect()
             self.rows.valueChanged.disconnect()
             self.spot_size.valueChanged.disconnect()
-            self.spot_margin_horiz.valueChanged.disconnect()
-            self.spot_margin_vert.valueChanged.disconnect()
+            self.spot_margin_horizontal.valueChanged.disconnect()
+            self.spot_margin_vertical.valueChanged.disconnect()
         except (RuntimeError, TypeError):
             # Don't fail if they are not connected
             pass
         self.cols.setValue(measurement.chip.columnCount)
         self.rows.setValue(measurement.chip.rowCount)
         self.spot_size.setValue(measurement.chip.spotSize)
-        self.spot_margin_horiz.setValue(measurement.chip.spotMarginHoriz)
-        self.spot_margin_vert.setValue(measurement.chip.spotMarginVert)
+        self.spot_margin_horizontal.setValue(measurement.chip.spotMarginHorizontal)
+        self.spot_margin_vertical.setValue(measurement.chip.spotMarginVertical)
         # Connect grid related fields
         self.cols.valueChanged.connect(self.previewGrid)
         self.rows.valueChanged.connect(self.previewGrid)
         self.spot_size.valueChanged.connect(self.previewGrid)
-        self.spot_margin_horiz.valueChanged.connect(self.previewGrid)
-        self.spot_margin_vert.valueChanged.connect(self.previewGrid)
+        self.spot_margin_horizontal.valueChanged.connect(self.previewGrid)
+        self.spot_margin_vertical.valueChanged.connect(self.previewGrid)
         if measurement.notes:
             self.notes.setPlainText(measurement.notes)
         else:
             self.notes.clear()
 
         img = np.frombuffer(measurement.image, dtype=">u2").reshape(520, 696)
+        # cSpell:ignore frombuffer dtype
         # Gamma correction for better visualization
         # Convert to float (0<=x<=1)
         img = img / (2**16 - 1)
@@ -176,8 +177,12 @@ class MeasurementWidget(QtWidgets.QWidget):
         # Map to 8 bit range
         img = img * 255
 
-        qimg = QtGui.QImage(
-            img.astype("uint8"), 696, 520, QtGui.QImage.Format_Grayscale8
+        q_image = QtGui.QImage(
+            img.astype("uint8"),
+            696,
+            520,
+            QtGui.QImage.Format_Grayscale8
+            # cSpell:ignore astype
         ).convertToFormat(QtGui.QImage.Format_RGB32)
 
         self.result_model = ResultModel(self.meas_id)
@@ -190,7 +195,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.scene.addItem(self.grid)
         self.grid.setPos(measurement.chip.marginLeft, measurement.chip.marginTop)
 
-        self.image.setPixmap(QtGui.QPixmap.fromImage(qimg))
+        self.image.setPixmap(QtGui.QPixmap.fromImage(q_image))
 
         # Store date of last used measurement for expanding tree on next launch
         settings = QtCore.QSettings()
@@ -205,8 +210,8 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.grid.preview_settings(
             self.cols.value(),
             self.rows.value(),
-            self.spot_margin_horiz.value(),
-            self.spot_margin_vert.value(),
+            self.spot_margin_horizontal.value(),
+            self.spot_margin_vertical.value(),
             self.spot_size.value(),
         )
 
@@ -224,8 +229,8 @@ class MeasurementWidget(QtWidgets.QWidget):
         chip.marginLeft = int(self.grid.scenePos().x())
         chip.marginTop = int(self.grid.scenePos().y())
         chip.spotSize = self.spot_size.value()
-        chip.spotMarginHoriz = self.spot_margin_horiz.value()
-        chip.spotMarginVert = self.spot_margin_vert.value()
+        chip.spotMarginHorizontal = self.spot_margin_horizontal.value()
+        chip.spotMarginVertical = self.spot_margin_vertical.value()
         session.commit()
         processor = MeasurementProcessor()
         processor.updateResults(self.meas_id)
@@ -249,21 +254,21 @@ class MeasurementWidget(QtWidgets.QWidget):
             self.cols.valueChanged.disconnect()
             self.rows.valueChanged.disconnect()
             self.spot_size.valueChanged.disconnect()
-            self.spot_margin_horiz.valueChanged.disconnect()
-            self.spot_margin_vert.valueChanged.disconnect()
+            self.spot_margin_horizontal.valueChanged.disconnect()
+            self.spot_margin_vertical.valueChanged.disconnect()
         except TypeError:
             pass
         self.cols.setValue(measurement.chip.columnCount)
         self.rows.setValue(measurement.chip.rowCount)
         self.spot_size.setValue(measurement.chip.spotSize)
-        self.spot_margin_horiz.setValue(measurement.chip.spotMarginHoriz)
-        self.spot_margin_vert.setValue(measurement.chip.spotMarginVert)
+        self.spot_margin_horizontal.setValue(measurement.chip.spotMarginHorizontal)
+        self.spot_margin_vertical.setValue(measurement.chip.spotMarginVertical)
         # Connect grid related fields
         self.cols.valueChanged.connect(self.previewGrid)
         self.rows.valueChanged.connect(self.previewGrid)
         self.spot_size.valueChanged.connect(self.previewGrid)
-        self.spot_margin_horiz.valueChanged.connect(self.previewGrid)
-        self.spot_margin_vert.valueChanged.connect(self.previewGrid)
+        self.spot_margin_horizontal.valueChanged.connect(self.previewGrid)
+        self.spot_margin_vertical.valueChanged.connect(self.previewGrid)
         self.grid.setPos(measurement.chip.marginLeft, measurement.chip.marginTop)
         self.grid.database_view()
         self.saveGridButton.setDisabled(True)

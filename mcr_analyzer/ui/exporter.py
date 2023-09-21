@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# MCR-Analyser
+# MCR-Analyzer
 #
 # Copyright (C) 2021 Martin Knopp, Technical University of Munich
 #
@@ -17,8 +17,8 @@ import numpy as np
 from qtpy import QtCore, QtGui, QtWidgets
 import sqlalchemy.exc
 
-from mcr_analyser.database.database import Database
-from mcr_analyser.database.models import Measurement, Result
+from mcr_analyzer.database.database import Database
+from mcr_analyzer.database.models import Measurement, Result
 
 
 class ExportWidget(QtWidgets.QWidget):
@@ -106,20 +106,20 @@ class ExportWidget(QtWidgets.QWidget):
         query = session.query(Measurement)
 
         # Apply user filters to query
-        for flt in self.filters:
-            obj, oper, value = flt.filter()
+        for filter in self.filters:
+            obj, op, value = filter.filter()
             # DateTime comparisons are hard to get right: eq/ne on a date does
             # not work as expected, time is always compared as well. Therefore,
             # always check intervals
             if obj == Measurement.timestamp:
-                if oper is operator.eq:
+                if op is operator.eq:
                     query = query.filter(
                         obj >= value,
                         obj
                         < datetime.datetime.strptime(value, "%Y-%m-%d")
                         + datetime.timedelta(days=1),
                     )
-                if oper is operator.ne:
+                if op is operator.ne:
                     query = query.filter(
                         (obj < value)
                         | (
@@ -129,9 +129,9 @@ class ExportWidget(QtWidgets.QWidget):
                         )
                     )
                 else:
-                    query = query.filter(oper(obj, value))
+                    query = query.filter(op(obj, value))
             else:
-                query = query.filter(oper(obj, value))
+                query = query.filter(op(obj, value))
 
         # Fill preview with results
         try:
@@ -198,7 +198,7 @@ class FilterWidget(QtWidgets.QWidget):
         return f"{self.target.currentData()}, {self.comparator.currentData()}, {self.value.text()}"
 
     def _user_changed_settings(self):
-        """Slot whenever the user interaced with the filter settings."""
+        """Slot whenever the user interacted with the filter settings."""
         self.filter_updated.emit()
 
     def filter(self):

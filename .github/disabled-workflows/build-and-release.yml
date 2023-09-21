@@ -43,16 +43,16 @@ jobs:
           pip install pyinstaller PySide6 .
       - name: Build application
         run: |
-          pyinstaller -F -w analyser.py
+          pyinstaller -F -w analyzer.py
       - name: Determine version number
         id: create-version
         run: |
           $RELEASE_VERSION = (${env:GITHUB_REF_NAME}).Trim("v", " ")
-          Move-Item ./dist/analyser.exe ./dist/analyser-${RELEASE_VERSION}.exe
+          Move-Item ./dist/analyzer.exe ./dist/analyzer-${RELEASE_VERSION}.exe
       - name: Archive binaries
         uses: actions/upload-artifact@v3
         with:
-          name: analyser-win64
+          name: analyzer-win64
           path: dist/*.exe
 
   release:
@@ -65,18 +65,16 @@ jobs:
           ref: ${{ github.ref }}
       - uses: actions/download-artifact@v3
         with:
-          name: analyser-win64
+          name: analyzer-win64
           path: artifacts/
       - name: Determine version number
         id: create-version
         run: echo "::set-output name=RELEASE_VERSION::${GITHUB_REF_NAME#v}"
       - name: Extract tag annotation
-        run:
-          git tag -l --format='%(contents)' "${GITHUB_REF_NAME}" > changes-${{
-          steps.create-version.outputs.RELEASE_VERSION }}.txt
+        run: git tag -l --format='%(contents)' "${GITHUB_REF_NAME}" > changes-${{ steps.create-version.outputs.RELEASE_VERSION }}.txt
       - uses: softprops/action-gh-release@v1
         with:
-          name: MCR-Analyser ${{ steps.create-version.outputs.RELEASE_VERSION }}
+          name: MCR-Analyzer ${{ steps.create-version.outputs.RELEASE_VERSION }}
           draft: true
           prerelease: true
           body_path: changes-${{ steps.create-version.outputs.RELEASE_VERSION }}.txt

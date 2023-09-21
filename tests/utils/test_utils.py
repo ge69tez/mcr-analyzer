@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# MCR-Analyser
+# MCR-Analyzer
 #
 # Copyright (C) 2021 Martin Knopp, Technical University of Munich
 #
@@ -9,7 +9,7 @@
 
 """Test module for utils"""
 
-import mcr_analyser.utils as utils
+import mcr_analyzer.utils as utils
 
 
 class TestEnsureList:

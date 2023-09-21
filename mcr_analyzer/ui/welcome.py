@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# MCR-Analyser
+# MCR-Analyzer
 #
 # Copyright (C) 2021 Martin Knopp, Technical University of Munich
 #
@@ -10,15 +10,15 @@
 from pathlib import Path
 from qtpy import QtCore, QtWidgets
 
-import mcr_analyser.utils as util
-from mcr_analyser.database.database import Database
+import mcr_analyzer.utils as util
+from mcr_analyzer.database.database import Database
 
 
 class WelcomeWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         welcome_msg = _(
-            """<h1>Welcome to MCR-Analyser</h1>
+            """<h1>Welcome to MCR-Analyzer</h1>
 
             <p>You can create a new database or open an existing one.</p>
             """

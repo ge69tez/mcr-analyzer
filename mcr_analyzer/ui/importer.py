@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# MCR-Analyser
+# MCR-Analyzer
 #
 # Copyright (C) 2021 Martin Knopp, Technical University of Munich
 #
@@ -13,11 +13,11 @@ import sqlalchemy
 
 from qtpy import QtCore, QtGui, QtWidgets
 
-from mcr_analyser.database.database import Database
-from mcr_analyser.database.models import Chip, Device, Measurement, Sample
-from mcr_analyser.io.image import Image
-from mcr_analyser.io.importer import FileImporter
-from mcr_analyser.processing.measurement import Measurement as MeasurementProcessor
+from mcr_analyzer.database.database import Database
+from mcr_analyzer.database.models import Chip, Device, Measurement, Sample
+from mcr_analyzer.io.image import Image
+from mcr_analyzer.io.importer import FileImporter
+from mcr_analyzer.processing.measurement import Measurement as MeasurementProcessor
 
 
 class ImportWidget(QtWidgets.QWidget):
@@ -183,8 +183,8 @@ class ImportWidget(QtWidgets.QWidget):
                     marginLeft=rslt.meta["Margin left"],
                     marginTop=rslt.meta["Margin top"],
                     spotSize=rslt.meta["Spot size"],
-                    spotMarginHoriz=rslt.meta["Spot margin horizontal"],
-                    spotMarginVert=rslt.meta["Spot margin vertical"],
+                    spotMarginHorizontal=rslt.meta["Spot margin horizontal"],
+                    spotMarginVertical=rslt.meta["Spot margin vertical"],
                 )
 
                 dev = db.get_or_create(
@@ -193,7 +193,7 @@ class ImportWidget(QtWidgets.QWidget):
                     serial=rslt.meta["Device ID"],
                 )
 
-                samp = db.get_or_create(session, Sample, name=rslt.meta["Probe ID"])
+                sample = db.get_or_create(session, Sample, name=rslt.meta["Probe ID"])
 
                 meas = db.get_or_create(
                     session,
@@ -201,8 +201,8 @@ class ImportWidget(QtWidgets.QWidget):
                     checksum=checksum,
                     chipID=chip.id,
                     deviceID=dev.id,
-                    sampleID=samp.id,
-                    image=np.ascontiguousarray(img.data, ">u2"),
+                    sampleID=sample.id,
+                    image=np.ascontiguousarray(img.data, ">u2"),  # cSpell:ignore ascontiguousarray
                     timestamp=rslt.meta["Date/time"],
                 )
 

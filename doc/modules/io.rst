@@ -3,12 +3,12 @@ io Module
 
 Classes and helper functions for handling data produced on the MCR.
 
-.. automodule:: mcr_analyser.io
+.. automodule:: mcr_analyzer.io
 
 Image
 -----
-.. automodule:: mcr_analyser.io.image
+.. automodule:: mcr_analyzer.io.image
 
 Importer
 ---------
-.. automodule:: mcr_analyser.io.importer
+.. automodule:: mcr_analyzer.io.importer

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# MCR-Analyser
+# MCR-Analyzer
 #
 # Copyright (C) 2021 Martin Knopp, Technical University of Munich
 #
@@ -12,7 +12,7 @@
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker  # cSpell:ignore sessionmaker
 
 # ORM interface
 Base = declarative_base()
@@ -47,7 +47,7 @@ class Database:
         self.Session.configure(bind=self._engine)
 
     def empty_and_init_db(self):
-        import mcr_analyser.database.models  # noqa: F401
+        import mcr_analyzer.database.models  # noqa: F401
 
         self.base.metadata.drop_all(bind=self._engine)
         self.base.metadata.create_all(bind=self._engine)

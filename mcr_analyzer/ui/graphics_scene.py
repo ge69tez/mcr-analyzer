@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# MCR-Analyser
+# MCR-Analyzer
 #
 # Copyright (C) 2021 Martin Knopp, Technical University of Munich
 #
@@ -11,9 +11,9 @@ import string
 
 from qtpy import QtCore, QtGui, QtWidgets
 
-import mcr_analyser.utils as utils
-from mcr_analyser.database.database import Database
-from mcr_analyser.database.models import Measurement, Result
+import mcr_analyzer.utils as utils
+from mcr_analyzer.database.database import Database
+from mcr_analyzer.database.models import Measurement, Result
 
 
 class GraphicsMeasurementScene(QtWidgets.QGraphicsScene):
@@ -93,8 +93,8 @@ class GridItem(QtWidgets.QGraphicsItem):
         )
         self.cols = self.measurement.chip.columnCount
         self.rows = self.measurement.chip.rowCount
-        self.hspace = self.measurement.chip.spotMarginHoriz
-        self.vspace = self.measurement.chip.spotMarginVert
+        self.horizontal_space = self.measurement.chip.spotMarginHorizontal
+        self.vertical_space = self.measurement.chip.spotMarginVertical
         self.size = self.measurement.chip.spotSize
 
         self.spots = []
@@ -109,8 +109,10 @@ class GridItem(QtWidgets.QGraphicsItem):
         self._add_children()
 
     def boundingRect(self):
-        width = self.cols * self.size + (self.cols - 1) * self.vspace + self.pen_width / 2
-        height = self.rows * self.size + (self.rows - 1) * self.hspace + self.pen_width / 2
+        width = self.cols * self.size + (self.cols - 1) * self.vertical_space + self.pen_width / 2
+        height = (
+            self.rows * self.size + (self.rows - 1) * self.horizontal_space + self.pen_width / 2
+        )
         # Labels are drawn on the "negative" side of the origin
         return QtCore.QRectF(
             -self.pen_width / 2 - 15, -self.pen_width / 2 - 15, width + 15, height + 15
@@ -147,7 +149,7 @@ class GridItem(QtWidgets.QGraphicsItem):
         for row in range(self.rows):
             head = GraphicsRectTextItem(
                 -15,
-                row * (self.size + self.vspace),
+                row * (self.size + self.vertical_space),
                 12,
                 self.size,
                 string.ascii_uppercase[row],
@@ -158,7 +160,7 @@ class GridItem(QtWidgets.QGraphicsItem):
         for col in range(self.cols):
             # Column labels
             head = GraphicsRectTextItem(
-                col * (self.size + self.hspace), -15, self.size, 12, str(col + 1), self
+                col * (self.size + self.horizontal_space), -15, self.size, 12, str(col + 1), self
             )
             self.c_headers.append(head)
 
@@ -172,18 +174,18 @@ class GridItem(QtWidgets.QGraphicsItem):
                         .one_or_none()
                     )
                     valid = utils.simplify_list(res) if res else False
-                x = col * (self.size + self.hspace)
-                y = row * (self.size + self.vspace)
+                x = col * (self.size + self.horizontal_space)
+                y = row * (self.size + self.vertical_space)
                 spot = GraphicsSpotItem(x, y, self.size, self.size, col, row, valid, self)
                 self.spots.append(spot)
 
-    def preview_settings(self, cols, rows, hspace, vspace, size):
+    def preview_settings(self, cols, rows, horizontal_space, vertical_space, size):
         self._clear_children()
         self.preview_mode = True
         self.cols = cols
         self.rows = rows
-        self.hspace = hspace
-        self.vspace = vspace
+        self.horizontal_space = horizontal_space
+        self.vertical_space = vertical_space
         self.size = size
         self._add_children()
 
@@ -197,8 +199,8 @@ class GridItem(QtWidgets.QGraphicsItem):
         )
         self.cols = self.measurement.chip.columnCount
         self.rows = self.measurement.chip.rowCount
-        self.hspace = self.measurement.chip.spotMarginHoriz
-        self.vspace = self.measurement.chip.spotMarginVert
+        self.horizontal_space = self.measurement.chip.spotMarginHorizontal
+        self.vertical_space = self.measurement.chip.spotMarginVertical
         self.size = self.measurement.chip.spotSize
 
         self.preview_mode = False

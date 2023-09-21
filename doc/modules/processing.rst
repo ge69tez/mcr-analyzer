@@ -1,12 +1,12 @@
 processing Module
 =================
 
-.. automodule:: mcr_analyser.processing
+.. automodule:: mcr_analyzer.processing
 
 Spot
 ----
-.. automodule:: mcr_analyser.processing.spot
+.. automodule:: mcr_analyzer.processing.spot
 
 Validator
 ---------
-.. automodule:: mcr_analyser.processing.validator
+.. automodule:: mcr_analyzer.processing.validator

@@ -1,12 +1,12 @@
 database Module
 ===============
 
-.. automodule:: mcr_analyser.database
+.. automodule:: mcr_analyzer.database
 
 Database
 --------
-.. automodule:: mcr_analyser.database.database
+.. automodule:: mcr_analyzer.database.database
 
 Models
 ------
-.. automodule:: mcr_analyser.database.models
+.. automodule:: mcr_analyzer.database.models

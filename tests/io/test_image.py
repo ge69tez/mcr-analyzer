@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# MCR-Analyser
+# MCR-Analyzer
 #
 # Copyright (C) 2021 Martin Knopp, Technical University of Munich
 #
@@ -10,7 +10,7 @@
 """Test module for io.images """
 
 import pytest
-from mcr_analyser.io.image import Image
+from mcr_analyzer.io.image import Image
 
 
 @pytest.fixture(

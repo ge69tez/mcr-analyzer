@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# MCR-Analyser
+# MCR-Analyzer
 #
 # Copyright (C) 2021 Martin Knopp, Technical University of Munich
 #
@@ -25,7 +25,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 
-from mcr_analyser.database.database import Base
+from mcr_analyzer.database.database import Base
 
 
 class Chip(Base):
@@ -48,10 +48,10 @@ class Chip(Base):
     spotSize: int = Column(Integer, nullable=False)
     """Size (in pixels) of a single spot. Side length of the square used for
     processing."""
-    spotMarginHoriz: int = Column(Integer, nullable=False)
+    spotMarginHorizontal: int = Column(Integer, nullable=False)
     """Horizontal margin between two adjacent spots: skip N pixels before
     processing the next spot."""
-    spotMarginVert: int = Column(Integer, nullable=False)
+    spotMarginVertical: int = Column(Integer, nullable=False)
     """Vertical margin between two adjacent spots: skip N pixels before
     processing the next spot."""
     measurements: relationship = relationship(
@@ -93,11 +93,11 @@ class Measurement(Base):
     sampleID: int = Column(Integer, ForeignKey("sample.id"), index=True)
     """Refers to the measured :class:`Sample`."""
     sample: relationship = relationship("Sample", back_populates="measurements")
-    """One-to-Many relationship referencing the analysed sample."""
+    """One-to-Many relationship referencing the analyzed sample."""
     image: bytes = Column(LargeBinary, nullable=False)
     """Raw 16-bit image data, big endian. (Numpy's ``>u2`` datatype, for
     compatibility with `netpbm <http://netpbm.sourceforge.net/doc/pgm.html>`_).
-    """
+    """  # cSpell:ignore netpbm
     checksum: bytes = Column(BINARY(32), nullable=False)
     """SHA256 hash of the raw 16-bit image data. Used for duplicate detection."""
     timestamp: datetime.datetime = Column(DateTime, index=True)

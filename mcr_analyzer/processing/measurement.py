@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# MCR-Analyser
+# MCR-Analyzer
 #
 # Copyright (C) 2021 Martin Knopp, Technical University of Munich
 #
@@ -9,10 +9,10 @@
 
 import numpy as np
 
-from mcr_analyser.database.database import Database
-from mcr_analyser.database.models import Measurement as MeasurementModel, Result
-from mcr_analyser.processing.spot import DeviceBuiltin
-from mcr_analyser.processing.validator import SpotReaderValidator
+from mcr_analyzer.database.database import Database
+from mcr_analyzer.database.models import Measurement as MeasurementModel, Result
+from mcr_analyzer.processing.spot import DeviceBuiltin
+from mcr_analyzer.processing.validator import SpotReaderValidator
 
 
 class Measurement:
@@ -31,16 +31,17 @@ class Measurement:
                 col_results = []
                 for row in range(measurement.chip.rowCount):
                     x = measurement.chip.marginLeft + col * (
-                        measurement.chip.spotSize + measurement.chip.spotMarginHoriz
+                        measurement.chip.spotSize + measurement.chip.spotMarginHorizontal
                     )
                     y = measurement.chip.marginTop + row * (
-                        measurement.chip.spotSize + measurement.chip.spotMarginVert
+                        measurement.chip.spotSize + measurement.chip.spotMarginVertical
                     )
                     spot = DeviceBuiltin(
                         np.frombuffer(measurement.image, dtype=">u2").reshape(520, 696)[
                             y : y + measurement.chip.spotSize,
                             x : x + measurement.chip.spotSize,
                         ]
+                        # cSpell:ignore frombuffer dtype
                     )
                     result = self.db.get_or_create(
                         session,

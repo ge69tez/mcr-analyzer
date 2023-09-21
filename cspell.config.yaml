@@ -1,0 +1,18 @@
+version: "0.2"
+ignorePaths:
+  - .gitignore
+  - .github/disabled-workflows/
+  - doc/
+dictionaryDefinitions: []
+dictionaries: []
+words:
+  - Knopp
+  - numpy
+  - pylint
+  - pytest
+  - qtpy
+  - RSLT
+  - setuptools
+  - sqlalchemy
+ignoreWords: []
+import: []

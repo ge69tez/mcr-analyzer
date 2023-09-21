@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# MCR-Analyser
+# MCR-Analyzer
 #
 # Copyright (C) 2021 Martin Knopp, Technical University of Munich
 #
@@ -82,6 +82,7 @@ class RsltParser:
     @property
     def results(self):
         """Two dimensional `numpy.ndarray` with spot results calculated by the MCR."""
+        # cSpell:ignore ndarray
         return self._results
 
     @property
@@ -104,6 +105,7 @@ class RsltParser:
         self.dir = self.path.parent
         if not self.path.exists():
             raise FileNotFoundError(ENOENT, "File does not exist", str(path))
+            # cSpell:ignore ENOENT
         with open(self.path, encoding="utf-8") as file:
             identifier_pattern = re.compile(r"^([^:]+): (.*)$")
 
@@ -140,6 +142,7 @@ class RsltParser:
             for _ in rows:
                 results.append(file.readline())
             self._results = np.genfromtxt(results, dtype=np.uint16, skip_header=1, usecols=columns)
+            # cSpell:ignore genfromtxt usecols
 
             # Read in spots
             # Comment and header (look for this comment explicitly?)
@@ -156,8 +159,13 @@ class RsltParser:
             results = np.genfromtxt(results, dtype=str, skip_header=1, usecols=columns)
 
             # Store as (x,y) tuple in a table like results
-            coord_type = np.dtype([("x", np.int64), ("y", np.int64)])
-            spots = np.fromiter([self._parse_spot_coordinates(x) for x in results.flat], coord_type)
+            coordinates_data_type = np.dtype([("x", np.int64), ("y", np.int64)])
+            # cSpell:ignore dtype
+            spots = np.fromiter(
+                [self._parse_spot_coordinates(x) for x in results.flat],
+                coordinates_data_type,
+            )
+            # cSpell:ignore fromiter
             self._spots = spots.reshape(self.results.shape)
 
             # Compute grid settings from spots

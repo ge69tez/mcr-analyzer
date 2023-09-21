@@ -28,7 +28,7 @@ jobs:
             --max-line-length=120 \
             --builtins=_ \
             --ignore=E121,E123,E126,E203,E226,E24,E704,W503,W504 \
-            mcr_analyser
+            mcr_analyzer
       - name: Check coding errors (pylint)
         run: |
           pylint \
@@ -45,9 +45,9 @@ jobs:
             -e anomalous-backslash-in-string \
             -e bad-open-mode \
             --ignored-modules=qtpy \
-            mcr_analyser
+            mcr_analyzer
       - name: Run unit tests / coverage analysis (pytest)
         run: |
-          coverage run --source=mcr_analyser,tests -m pytest tests
+          coverage run --source=mcr_analyzer,tests -m pytest tests
           coverage report
           coverage xml

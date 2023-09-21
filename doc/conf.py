@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.abspath(".."))
 
 # -- Project information -----------------------------------------------------
 
-project = "mcr-analyser"
+project = "mcr-analyzer"
 copyright = "2021, Martin Knopp, Technical University of Munich"
 author = "Martin Knopp, Technical University of Munich"
 

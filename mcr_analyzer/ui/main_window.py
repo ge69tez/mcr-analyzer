@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# MCR-Analyser
+# MCR-Analyzer
 #
 # Copyright (C) 2021 Martin Knopp, Technical University of Munich
 #
@@ -10,18 +10,18 @@
 from pathlib import Path
 from qtpy import QtCore, QtGui, QtWidgets
 
-import mcr_analyser.utils as util
-from mcr_analyser.database.database import Database
-from mcr_analyser.ui.exporter import ExportWidget
-from mcr_analyser.ui.importer import ImportWidget
-from mcr_analyser.ui.measurement import MeasurementWidget
-from mcr_analyser.ui.welcome import WelcomeWidget
+import mcr_analyzer.utils as util
+from mcr_analyzer.database.database import Database
+from mcr_analyzer.ui.exporter import ExportWidget
+from mcr_analyzer.ui.importer import ImportWidget
+from mcr_analyzer.ui.measurement import MeasurementWidget
+from mcr_analyzer.ui.welcome import WelcomeWidget
 
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(_("MCR-Analyser"))
+        self.setWindowTitle(_("MCR-Analyzer"))
         self.tab_widget = QtWidgets.QTabWidget(self)
         self.setCentralWidget(self.tab_widget)
 
@@ -72,12 +72,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.new_action = QtWidgets.QAction(_("Create &new database..."), self)
         self.new_action.setShortcut(QtGui.QKeySequence.New)
-        self.new_action.setStatusTip(_("Create a new MCR-Analyser database."))
+        self.new_action.setStatusTip(_("Create a new MCR-Analyzer database."))
         self.new_action.triggered.connect(self.welcome_widget.clicked_new_button)
 
         self.open_action = QtWidgets.QAction(_("&Open existing database..."), self)
         self.open_action.setShortcut(QtGui.QKeySequence.Open)
-        self.open_action.setStatusTip(_("Open an existing MCR-Analyser database."))
+        self.open_action.setStatusTip(_("Open an existing MCR-Analyzer database."))
         self.open_action.triggered.connect(self.welcome_widget.clicked_open_button)
 
         self.quit_action = QtWidgets.QAction(_("&Quit"), self)
@@ -113,7 +113,7 @@ class MainWindow(QtWidgets.QMainWindow):
             f"About {self.windowTitle()}",
             _(
                 """
-                <h1>MCR-Analyser</h1>
+                <h1>MCR-Analyzer</h1>
 
                 <p>Copyright &copy; 2021 Martin Knopp,
                 Technical University of Munich</p>

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# MCR-Analyser
+# MCR-Analyzer
 #
 # Copyright (C) 2021 Martin Knopp, Technical University of Munich
 #
@@ -18,7 +18,7 @@ import numpy as np
 class Image:
     """Class for reading and writing image data of single measurements.
 
-    It supports PNM gray maps as well as MCR's own TXT format (autodetected) and
+    It supports PNM gray maps as well as MCR's own TXT format (auto-detected) and
     has functions for writing all these formats as well.
     """
 
@@ -100,23 +100,24 @@ class Image:
         height = int(self._parse_header(rb"^\s*(\d+)\D+"))
         self._size = (width, height)
         if pnm_type[1] != "bitmap":
-            maxval = int(self._parse_header(rb"^\s*(\d+)\D"))
+            max_value = int(self._parse_header(rb"^\s*(\d+)\D"))
         else:
-            maxval = 1
+            max_value = 1
         if pnm_type[1] != "gray":
             raise NotImplementedError("Only grayscale is supported at the moment.")
-        if maxval <= 255:
-            dtype = "B"
-        elif maxval < 2**16:
-            dtype = "u2"
+        if max_value <= 255:
+            data_type = "B"
+        elif max_value < 2**16:
+            data_type = "u2"
         else:
             raise TypeError(f"PNM only supports values up to {2**16}.")
         if encoding == "ascii":
             sep = " "
         else:
             sep = ""
-            dtype = ">" + dtype
-        self.data = np.fromfile(self.file, dtype=dtype, sep=sep).reshape(height, width)
+            data_type = ">" + data_type
+        self.data = np.fromfile(self.file, dtype=data_type, sep=sep).reshape(height, width)
+        # cSpell:ignore dtype
 
     def write_pnm_ascii(self, path):
         """Save image as ASCII PGM.
@@ -126,7 +127,9 @@ class Image:
         :param path: filename/path to be written
         """
         header = f"P2\n{self.width} {self.height}\n{2**(self.data.dtype.itemsize * 8) - 1}"
+        # cSpell:ignore itemsize
         np.savetxt(path, self.data, fmt="%d", delimiter="\t", header=header, comments="")
+        # cSpell:ignore savetxt
 
     def write_pgm_binary(self, path):
         """Save image as binary PGM.
@@ -145,7 +148,7 @@ class Image:
         with open(path, "wb") as f:
             f.write(header.encode("ascii"))
             if self.data.dtype.itemsize == 2:
-                f.write(self.data.astype(">u2").tobytes())
+                f.write(self.data.astype(">u2").tobytes())  # cSpell:ignore astype tobytes
             else:
                 f.write(self.data.tobytes())
 
@@ -168,7 +171,7 @@ class Image:
             f.write(f"{self.width}\n{self.height}\n\n")
             # Write image data
             img = np.flip(self.data.reshape((self.size[0] * self.size[1],)))
-            img.tofile(f, sep="\n")
+            img.tofile(f, sep="\n")  # cSpell:ignore tofile
 
 
 def is_path(file):

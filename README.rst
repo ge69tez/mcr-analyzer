@@ -1,4 +1,5 @@
-MCR Analyser
+MCR Analyzer
 ============
 
-GUI application to analyse and manage measurements from GWK's MCR analysers.
+GUI application to analyze and manage measurements from GWK's MCR analyzers.
+.. cSpell:ignore GWK's

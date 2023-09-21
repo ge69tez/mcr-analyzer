@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# MCR-Analyser
+# MCR-Analyzer
 #
 # Copyright (C) 2021 Martin Knopp, Technical University of Munich
 #
@@ -15,8 +15,8 @@ import numpy as np
 import sqlalchemy
 from qtpy import QtCore, QtGui
 
-from mcr_analyser.database.database import Database
-from mcr_analyser.database.models import Measurement, Result
+from mcr_analyzer.database.database import Database
+from mcr_analyzer.database.models import Measurement, Result
 
 
 class MeasurementItem:
@@ -195,7 +195,7 @@ class ResultModel(QtCore.QAbstractTableModel):
         self.chip = self.measurement.chip
         self.results = None
         self.means = None
-        self.stds = None
+        self.standard_deviations = None
         self.cache_valid = True
         self.last_update = 0
 
@@ -264,7 +264,7 @@ class ResultModel(QtCore.QAbstractTableModel):
             if index.row() == self.chip.rowCount:
                 return f"{self.means[index.column()]:5.0f}"
             if index.row() == self.chip.rowCount + 1:
-                return f"{self.stds[index.column()]:5.0f}"
+                return f"{self.standard_deviations[index.column()]:5.0f}"
             return None
         return f"{result.value if result.value else np.nan:5.0f}"
 
@@ -285,9 +285,9 @@ class ResultModel(QtCore.QAbstractTableModel):
 
         rows = self.chip.rowCount
         cols = self.chip.columnCount
-        self.results = np.empty([rows, cols], dtype=object)
+        self.results = np.empty([rows, cols], dtype=object)  # cSpell:ignore dtype
         self.means = np.empty([cols])
-        self.stds = np.empty([cols])
+        self.standard_deviations = np.empty([cols])
 
         for row in range(rows):
             for col in range(cols):
@@ -304,11 +304,12 @@ class ResultModel(QtCore.QAbstractTableModel):
                     Result.measurement == self.measurement,
                     Result.column == col,
                     Result.valid.is_(True),
-                    Result.value.isnot(None),
+                    Result.value.isnot(None),  # cSpell:ignore isnot
                 )
                 .values(Result.value)
             )
             self.means[col] = np.mean(values) if values else np.nan
-            self.stds[col] = np.std(values, ddof=1) if values else np.nan
+            self.standard_deviations[col] = np.std(values, ddof=1) if values else np.nan
+            # cSpell:ignore ddof
 
         self.last_update = time.monotonic() * 1000

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# MCR-Analyser
+# MCR-Analyzer
 #
 # Copyright (C) 2021 Martin Knopp, Technical University of Munich
 #
@@ -11,19 +11,19 @@ import sys
 
 from qtpy import QtCore, QtWidgets
 
-from mcr_analyser.i18n import setup_getext
-from mcr_analyser.ui.mainwindow import MainWindow
+from mcr_analyzer.i18n import setup_gettext
+from mcr_analyzer.ui.main_window import MainWindow
 
 
-class Analyser(QtWidgets.QApplication):
+class Analyzer(QtWidgets.QApplication):
     def __init__(self, localedir):
         super().__init__(sys.argv)
 
         self.setOrganizationName("TranslaTUM")
-        self.setOrganizationDomain("www.translatum.tum.de")
-        self.setApplicationName("MCR-Analyser")
+        self.setOrganizationDomain("www.translatum.tum.de")  # cSpell:ignore translatum
+        self.setApplicationName("MCR-Analyzer")
 
-        setup_getext(localedir)
+        setup_gettext(localedir)
 
         self.window = MainWindow()
 
@@ -38,5 +38,5 @@ class Analyser(QtWidgets.QApplication):
 
 
 def main(localedir=None):
-    analyser = Analyser(localedir)
-    sys.exit(analyser.run())
+    analyzer = Analyzer(localedir)
+    sys.exit(analyzer.run())
