@@ -54,3 +54,15 @@ repos:
     rev: 1.1.0
     hooks:
       - id: pyproject-fmt # cSpell:ignore pyproject
+
+  - repo: https://github.com/asottile/setup-cfg-fmt
+    rev: v2.4.0
+    hooks:
+      - id: setup-cfg-fmt
+        additional_dependencies:
+          # - 2023-09-14
+          #   - "ImportError: libstdc++.so.6" # cSpell:ignore libstdc
+          #
+          # - v1.0.1 on Nov 19, 2021
+          #   - 995e596 on Sep 5, 2023
+          - "ukkonen @ git+https://github.com/asottile/ukkonen@995e596" # cSpell:ignore ukkonen
