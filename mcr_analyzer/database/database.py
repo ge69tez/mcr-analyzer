@@ -26,7 +26,7 @@ class Database:
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self, engine: str = None):
+    def __init__(self, engine: str | None = None):
         super().__init__()
         if not self._initialized:  # pylint: disable=access-member-before-definition
             self._initialized = True

@@ -20,7 +20,7 @@ from mcr_analyzer.database.models import Measurement, Result
 
 
 class MeasurementItem:
-    def __init__(self, data: list = None, parent=None):
+    def __init__(self, data: list | None = None, parent=None):
         self.parentItem = parent
         self._data = data
         self.children = []
