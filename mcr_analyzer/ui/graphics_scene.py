@@ -123,7 +123,7 @@ class GridItem(QtWidgets.QGraphicsItem):
             self.scene().moved_grid.emit()
         return super().itemChange(change, value)
 
-    def paint(self, painter, option, widget):  # pylint: disable=unused-argument
+    def paint(self, painter, option, widget):
         # All painting is done by our children
         return
 

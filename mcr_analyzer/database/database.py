@@ -20,7 +20,7 @@ Base = declarative_base()
 
 class Database:
     # Singleton as we want only one database engine throughout the program
-    def __new__(cls, *args, **kwargs):  # pylint: disable=unused-argument
+    def __new__(cls, *args, **kwargs):
         if not hasattr(cls, "_instance"):
             cls._instance = super().__new__(cls)
             cls._instance._initialized = False
@@ -28,7 +28,7 @@ class Database:
 
     def __init__(self, engine: str | None = None):
         super().__init__()
-        if not self._initialized:  # pylint: disable=access-member-before-definition
+        if not self._initialized:
             self._initialized = True
             self.base = Base
             self.Session = sessionmaker()
@@ -47,8 +47,6 @@ class Database:
         self.Session.configure(bind=self._engine)
 
     def empty_and_init_db(self):
-        import mcr_analyzer.database.models  # noqa: F401
-
         self.base.metadata.drop_all(bind=self._engine)
         self.base.metadata.create_all(bind=self._engine)
 

@@ -71,7 +71,7 @@ class ExportWidget(QtWidgets.QWidget):
 
         self.setLayout(layout)
 
-    def showEvent(self, event: QtGui.QShowEvent):  # pylint: disable=invalid-name
+    def showEvent(self, event: QtGui.QShowEvent):
         self.update_preview()
         event.accept()
 
