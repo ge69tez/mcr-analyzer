@@ -14,11 +14,64 @@ target-version = "py310"
 line-length = 100
 preview = true
 select = [
-  "E",   # - pycodestyle - Error # cSpell:ignore pycodestyle
-  "W",   # - pycodestyle - Warning
-  "F",   # - Pyflakes # cSpell:ignore Pyflakes
-  "I",   # - isort # cSpell:ignore isort
-  "RUF", # - Ruff-specific rules
+  "F", # - Pyflakes # cSpell:ignore Pyflakes
+  "W", # - pycodestyle - Warning
+  "E", # - pycodestyle - Error # cSpell:ignore pycodestyle
+  #"C90", # - mccabe # cSpell:ignore mccabe
+  "I", # - isort # cSpell:ignore isort
+  #"N", # - pep8-naming
+  #"D", # - pydocstyle # cSpell:ignore pydocstyle
+  #"UP",  # - pyupgrade # cSpell:ignore pyupgrade
+  "YTT", # - flake8-2020
+  #"ANN", # - flake8-annotations
+  "ASYNC", # - flake8-async
+  #"S",     # - flake8-bandit
+  "BLE", # - flake8-blind-except
+  #"FBT", # - flake8-boolean-trap
+  "B", # - flake8-bugbear
+  #"A", # - flake8-builtins # cSpell:ignore builtins
+  #"COM", # - flake8-commas
+  #"CPY", # - flake8-copyright
+  "C4", # - flake8-comprehensions
+  #"DTZ", # - flake8-datetimez # cSpell:ignore datetimez
+  "T10", # - flake8-debugger
+  "DJ",  # - flake8-django
+  #"EM",  # - flake8-errmsg # cSpell:ignore errmsg
+  "EXE", # - flake8-executable
+  "FA",  # - flake8-future-annotations
+  "ISC", # - flake8-implicit-str-concat # cSpell:ignore concat
+  "ICN", # - flake8-import-conventions
+  "G",   # - flake8-logging-format
+  #"INP", # - flake8-no-pep420
+  #"PIE", # - flake8-pie
+  #"T20", # - flake8-print
+  "PYI", # - flake8-pyi
+  "PT",  # - flake8-pytest-style
+  "Q",   # - flake8-quotes
+  "RSE", # - flake8-raise
+  #"RET", # - flake8-return
+  #"SLF", # - flake8-self
+  "SLOT", # - flake8-slots
+  #"SIM",  # - flake8-simplify
+  "TID", # - flake8-tidy-imports
+  "TCH", # - flake8-type-checking
+  "INT", # - flake8-gettext # cSpell:ignore gettext
+  #"ARG", # - flake8-unused-arguments
+  #"PTH", # - flake8-use-pathlib # cSpell:ignore pathlib
+  "TD",  # - flake8-todos # cSpell:ignore todos
+  "FIX", # - flake8-fixme
+  "ERA", # - eradicate
+  "PD",  # - pandas-vet
+  "PGH", # - pygrep-hooks # cSpell:ignore pygrep
+  #"PL",  # - Pylint
+  #"TRY", # - tryceratops # cSpell:ignore tryceratops
+  "FLY", # - flynt # cSpell:ignore flynt
+  "NPY", # - NumPy-specific rules
+  "AIR", # - Airflow
+  #"PERF", # - Perflint # cSpell:ignore Perflint
+  "FURB", # - refurb # cSpell:ignore FURB refurb
+  "LOG",  # - flake8-logging
+  "RUF",  # - Ruff-specific rules
 ]
 ignore = [
   "E203", # - whitespace-before-punctuation
