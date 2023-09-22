@@ -7,8 +7,8 @@
 # This program is free software, see the LICENSE file in the root of this
 # repository for details
 
-from qtpy import QtCore, QtGui, QtWidgets
 import numpy as np
+from qtpy import QtCore, QtGui, QtWidgets
 
 from mcr_analyzer.database.database import Database
 from mcr_analyzer.database.models import Measurement, Result
@@ -32,48 +32,52 @@ class MeasurementWidget(QtWidgets.QWidget):
 
         layout.addWidget(self.tree)
 
-        group_box = QtWidgets.QGroupBox(_("Record data"))
+        group_box = QtWidgets.QGroupBox(_("Record data"))  # noqa: F821
         form_layout = QtWidgets.QFormLayout()
         group_box.setLayout(form_layout)
         self.measurer = QtWidgets.QLineEdit()
-        form_layout.addRow(_("Measured by:"), self.measurer)
+        form_layout.addRow(_("Measured by:"), self.measurer)  # noqa: F821
         self.device = QtWidgets.QLineEdit()
         self.device.setReadOnly(True)
-        form_layout.addRow(_("Device:"), self.device)
+        form_layout.addRow(_("Device:"), self.device)  # noqa: F821
         self.timestamp = QtWidgets.QLineEdit()
         self.timestamp.setReadOnly(True)
-        form_layout.addRow(_("Date/Time:"), self.timestamp)
+        form_layout.addRow(_("Date/Time:"), self.timestamp)  # noqa: F821
         self.chip = QtWidgets.QLineEdit()
-        form_layout.addRow(_("Chip ID:"), self.chip)
+        form_layout.addRow(_("Chip ID:"), self.chip)  # noqa: F821
         self.sample = QtWidgets.QLineEdit()
-        form_layout.addRow(_("Sample ID:"), self.sample)
+        form_layout.addRow(_("Sample ID:"), self.sample)  # noqa: F821
         self.notes = StatefulPlainTextEdit()
-        self.notes.setPlaceholderText(_("Please enter additional notes here."))
+        self.notes.setPlaceholderText(_("Please enter additional notes here."))  # noqa: F821
         self.notes.setMinimumWidth(250)
         self.notes.editingFinished.connect(self.updateNotes)
-        form_layout.addRow(_("Notes:"), self.notes)
+        form_layout.addRow(_("Notes:"), self.notes)  # noqa: F821
         form_layout.setRowWrapPolicy(QtWidgets.QFormLayout.WrapLongRows)
         self.cols = QtWidgets.QSpinBox()
-        form_layout.addRow(_("Number of Columns:"), self.cols)
+        form_layout.addRow(_("Number of Columns:"), self.cols)  # noqa: F821
         self.rows = QtWidgets.QSpinBox()
-        form_layout.addRow(_("Number of Rows:"), self.rows)
+        form_layout.addRow(_("Number of Rows:"), self.rows)  # noqa: F821
         self.spot_size = QtWidgets.QSpinBox()
-        form_layout.addRow(_("Spot size:"), self.spot_size)
+        form_layout.addRow(_("Spot size:"), self.spot_size)  # noqa: F821
         self.spot_margin_horizontal = QtWidgets.QSpinBox()
-        form_layout.addRow(_("Horizontal Spot Distance:"), self.spot_margin_horizontal)
+        form_layout.addRow(
+            _("Horizontal Spot Distance:"), self.spot_margin_horizontal  # noqa: F821
+        )
         self.spot_margin_vertical = QtWidgets.QSpinBox()
-        form_layout.addRow(_("Vert. Spot Distance:"), self.spot_margin_vertical)
-        self.saveGridButton = QtWidgets.QPushButton(_("Save grid and calculate results"))
+        form_layout.addRow(_("Vert. Spot Distance:"), self.spot_margin_vertical)  # noqa: F821
+        self.saveGridButton = QtWidgets.QPushButton(
+            _("Save grid and calculate results")  # noqa: F821
+        )
         self.saveGridButton.setDisabled(True)
         self.saveGridButton.clicked.connect(self.saveGrid)
         form_layout.addRow(self.saveGridButton)
-        self.resetGridButton = QtWidgets.QPushButton(_("Reset grid"))
+        self.resetGridButton = QtWidgets.QPushButton(_("Reset grid"))  # noqa: F821
         self.resetGridButton.setDisabled(True)
         self.resetGridButton.clicked.connect(self.resetGrid)
         form_layout.addRow(self.resetGridButton)
         layout.addWidget(group_box)
 
-        group_box = QtWidgets.QGroupBox(_("Visualization"))
+        group_box = QtWidgets.QGroupBox(_("Visualization"))  # noqa: F821
         v_layout = QtWidgets.QVBoxLayout()
         group_box.setLayout(v_layout)
         # Visualization via multi-layered GraphicsScene
@@ -138,7 +142,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         else:
             self.measurer.clear()
         self.device.setText(measurement.device.serial)
-        self.timestamp.setText(measurement.timestamp.strftime(_("%Y-%m-%d %H:%M:%S")))
+        self.timestamp.setText(measurement.timestamp.strftime(_("%Y-%m-%d %H:%M:%S")))  # noqa: F821
         self.chip.setText(measurement.chip.name)
         self.sample.setText(measurement.sample.name)
         # Disconnect all signals

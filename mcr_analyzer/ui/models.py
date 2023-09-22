@@ -222,9 +222,9 @@ class ResultModel(QtCore.QAbstractTableModel):
         if section < self.chip.rowCount:
             return string.ascii_uppercase[section]
         if section == self.chip.rowCount:
-            return _("Mean")
+            return _("Mean")  # noqa: F821
         if section == self.chip.rowCount + 1:
-            return _("Std.")
+            return _("Std.")  # noqa: F821
         return None
 
     def data(self, index: QtCore.QModelIndex, role: int):

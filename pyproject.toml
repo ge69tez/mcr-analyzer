@@ -7,3 +7,16 @@ requires = [
 
 [tool.black]
 line-length = 100
+
+[tool.ruff]
+line-length = 100
+preview = true
+select = [
+  "E", # - pycodestyle - Error # cSpell:ignore pycodestyle
+  "W", # - pycodestyle - Warning
+  "F", # - Pyflakes # cSpell:ignore Pyflakes
+  "I", # - isort # cSpell:ignore isort
+]
+ignore = [
+  "E203", # - whitespace-before-punctuation
+]

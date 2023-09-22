@@ -10,6 +10,7 @@
 """Test module for io.images """
 
 import pytest
+
 from mcr_analyzer.io.image import Image
 
 

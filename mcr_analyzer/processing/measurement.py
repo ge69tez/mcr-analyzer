@@ -10,7 +10,8 @@
 import numpy as np
 
 from mcr_analyzer.database.database import Database
-from mcr_analyzer.database.models import Measurement as MeasurementModel, Result
+from mcr_analyzer.database.models import Measurement as MeasurementModel
+from mcr_analyzer.database.models import Result
 from mcr_analyzer.processing.spot import DeviceBuiltin
 from mcr_analyzer.processing.validator import SpotReaderValidator
 

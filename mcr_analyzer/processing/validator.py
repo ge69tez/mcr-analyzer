@@ -10,6 +10,7 @@
 """Validation functions for replicates."""
 
 from abc import ABCMeta, abstractmethod
+
 import numpy as np
 
 

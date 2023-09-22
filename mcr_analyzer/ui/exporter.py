@@ -14,8 +14,8 @@ import re
 from pathlib import Path
 
 import numpy as np
-from qtpy import QtCore, QtGui, QtWidgets
 import sqlalchemy.exc
+from qtpy import QtCore, QtGui, QtWidgets
 
 from mcr_analyzer.database.database import Database
 from mcr_analyzer.database.models import Measurement, Result
@@ -27,7 +27,7 @@ class ExportWidget(QtWidgets.QWidget):
         self.filters = []
         layout = QtWidgets.QVBoxLayout()
 
-        filter_group = QtWidgets.QGroupBox(_("Filter selection"))
+        filter_group = QtWidgets.QGroupBox(_("Filter selection"))  # noqa: F821
         filter_layout = QtWidgets.QVBoxLayout()
         self.filters.append(FilterWidget())
 
@@ -44,7 +44,7 @@ class ExportWidget(QtWidgets.QWidget):
         filter_group.setLayout(filter_layout)
         layout.addWidget(filter_group)
 
-        template_group = QtWidgets.QGroupBox(_("Output template"))
+        template_group = QtWidgets.QGroupBox(_("Output template"))  # noqa: F821
         template_layout = QtWidgets.QHBoxLayout()
         self.template_edit = QtWidgets.QLineEdit(
             "{timestamp}\t{chip.name}\t{sample.name}\t{sample.note}\t{results}"
@@ -54,7 +54,7 @@ class ExportWidget(QtWidgets.QWidget):
         template_group.setLayout(template_layout)
         layout.addWidget(template_group)
 
-        preview_group = QtWidgets.QGroupBox(_("Preview"))
+        preview_group = QtWidgets.QGroupBox(_("Preview"))  # noqa: F821
         preview_layout = QtWidgets.QHBoxLayout()
         self.preview_edit = QtWidgets.QPlainTextEdit()
         self.preview_edit.setReadOnly(True)
@@ -64,7 +64,7 @@ class ExportWidget(QtWidgets.QWidget):
 
         self.export_button = QtWidgets.QPushButton(
             self.style().standardIcon(QtWidgets.QStyle.SP_DialogSaveButton),
-            _("Export as..."),
+            _("Export as..."),  # noqa: F821
         )
         self.export_button.clicked.connect(self.clicked_export_button)
         layout.addWidget(self.export_button)
@@ -80,9 +80,9 @@ class ExportWidget(QtWidgets.QWidget):
         last_export = settings.value("Session/LastExport")
         file_name, filter_name = QtWidgets.QFileDialog.getSaveFileName(
             self,
-            _("Save result as"),
+            _("Save result as"),  # noqa: F821
             last_export,
-            _("Tab Separated Values (*.csv *.tsv *.txt)"),
+            _("Tab Separated Values (*.csv *.tsv *.txt)"),  # noqa: F821
         )
         if file_name and filter_name:
             # Ensure file has an extension
@@ -171,17 +171,17 @@ class FilterWidget(QtWidgets.QWidget):
         super().__init__(parent)
         layout = QtWidgets.QHBoxLayout()
         self.target = QtWidgets.QComboBox()
-        self.target.addItem(_("Date"), Measurement.timestamp)
+        self.target.addItem(_("Date"), Measurement.timestamp)  # noqa: F821
         layout.addWidget(self.target)
         self.target.currentIndexChanged.connect(self._user_changed_settings)
 
         self.comparator = QtWidgets.QComboBox()
-        self.comparator.addItem(_("<"), "lt")
-        self.comparator.addItem(_("<="), "le")
-        self.comparator.addItem(_("=="), "eq")
-        self.comparator.addItem(_(">="), "ge")
-        self.comparator.addItem(_(">"), "gt")
-        self.comparator.addItem(_("!="), "ne")
+        self.comparator.addItem(_("<"), "lt")  # noqa: F821
+        self.comparator.addItem(_("<="), "le")  # noqa: F821
+        self.comparator.addItem(_("=="), "eq")  # noqa: F821
+        self.comparator.addItem(_(">="), "ge")  # noqa: F821
+        self.comparator.addItem(_(">"), "gt")  # noqa: F821
+        self.comparator.addItem(_("!="), "ne")  # noqa: F821
         self.comparator.setCurrentIndex(3)
         layout.addWidget(self.comparator)
         self.comparator.currentIndexChanged.connect(self._user_changed_settings)
