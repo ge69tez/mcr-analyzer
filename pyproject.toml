@@ -14,11 +14,11 @@ target-version = "py310"
 line-length = 100
 preview = true
 select = [
-  "F", # - Pyflakes # cSpell:ignore Pyflakes
-  "W", # - pycodestyle - Warning
-  "E", # - pycodestyle - Error # cSpell:ignore pycodestyle
-  #"C90", # - mccabe # cSpell:ignore mccabe
-  "I", # - isort # cSpell:ignore isort
+  "F",   # - Pyflakes # cSpell:ignore Pyflakes
+  "W",   # - pycodestyle - Warning
+  "E",   # - pycodestyle - Error # cSpell:ignore pycodestyle
+  "C90", # - mccabe # cSpell:ignore mccabe
+  "I",   # - isort # cSpell:ignore isort
   #"N", # - pep8-naming
   #"D", # - pydocstyle # cSpell:ignore pydocstyle
   #"UP",  # - pyupgrade # cSpell:ignore pyupgrade
@@ -72,6 +72,10 @@ select = [
   "FURB", # - refurb # cSpell:ignore FURB refurb
   "LOG",  # - flake8-logging
   "RUF",  # - Ruff-specific rules
+]
+show-fixes = true
+unfixable = [ # cSpell:ignore unfixable
+  "ERA", # - eradicate
 ]
 ignore = [
   "E203", # - whitespace-before-punctuation

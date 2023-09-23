@@ -232,40 +232,46 @@ class ResultModel(QtCore.QAbstractTableModel):
         if not index.isValid():
             return None
 
+        row = index.row()
+        column = index.column()
+
         # Refresh results
         self.update()
-        if index.row() < self.results.shape[0] and index.column() < self.results.shape[1]:
-            result = self.results[index.row()][index.column()]
+        if row < self.results.shape[0] and column < self.results.shape[1]:
+            result = self.results[row][column]
         else:
             result = None
 
         # Adjust to the right
-        if role == QtCore.Qt.TextAlignmentRole:
-            # Cast to int because of https://bugreports.qt.io/browse/PYSIDE-20
-            return int(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        match role:
+            case QtCore.Qt.TextAlignmentRole:
+                # Cast to int because of https://bugreports.qt.io/browse/PYSIDE-20
+                return int(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
-        # Font modifications for statistics and values
-        if role == QtCore.Qt.FontRole:
-            if index.row() >= self.chip.rowCount:
-                boldFont = QtGui.QFont()
-                boldFont.setBold(True)
-                return boldFont
-        if role == QtCore.Qt.ForegroundRole:
-            if result and result.valid:
-                brush = QtGui.QBrush(QtCore.Qt.GlobalColor.darkGreen)
-                return brush
-            if result and result.valid is False:
-                brush = QtGui.QBrush(QtCore.Qt.GlobalColor.darkRed)
-                return brush
+            # Font modifications for statistics and values
+            case QtCore.Qt.FontRole:
+                if row >= self.chip.rowCount:
+                    boldFont = QtGui.QFont()
+                    boldFont.setBold(True)
+                    return boldFont
+            case QtCore.Qt.ForegroundRole:
+                if result:
+                    return QtGui.QBrush(
+                        QtCore.Qt.GlobalColor.darkGreen
+                        if result.valid
+                        else QtCore.Qt.GlobalColor.darkRed
+                    )
+
         if role != QtCore.Qt.DisplayRole:
             return None
 
         if not result:
-            if index.row() == self.chip.rowCount:
-                return f"{self.means[index.column()]:5.0f}"
-            if index.row() == self.chip.rowCount + 1:
-                return f"{self.standard_deviations[index.column()]:5.0f}"
+            if row == self.chip.rowCount:
+                return f"{self.means[column]:5.0f}"
+            elif row == self.chip.rowCount + 1:
+                return f"{self.standard_deviations[column]:5.0f}"
             return None
+
         return f"{result.value if result.value else np.nan:5.0f}"
 
     def invalidate_cache(self):

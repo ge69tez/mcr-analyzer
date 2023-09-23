@@ -119,7 +119,7 @@ class ExportWidget(QtWidgets.QWidget):
                         < datetime.datetime.strptime(value, "%Y-%m-%d")
                         + datetime.timedelta(days=1),
                     )
-                if op is operator.ne:
+                elif op is operator.ne:
                     query = query.filter(
                         (obj < value)
                         | (
@@ -139,10 +139,11 @@ class ExportWidget(QtWidgets.QWidget):
                 measurement_line = f"{escape_csv(measurement.timestamp)}\t"
                 measurement_line += f"{escape_csv(measurement.chip.name)}\t"
                 measurement_line += f"{escape_csv(measurement.sample.name)}\t"
-                if measurement.notes is None:
-                    measurement_line += '""'
-                else:
-                    measurement_line += f"{escape_csv(measurement.notes)}"
+
+                measurement_line += (
+                    '""' if measurement.notes is None else f"{escape_csv(measurement.notes)}"
+                )
+
                 valid_data = False
                 for col in range(measurement.chip.columnCount):
                     if (
@@ -158,8 +159,10 @@ class ExportWidget(QtWidgets.QWidget):
                             .values(Result.value)
                         )
                         measurement_line += f"\t{np.mean(values):.0f}"
+
                 if valid_data:
                     self.preview_edit.appendPlainText(measurement_line)
+
         except sqlalchemy.exc.UnboundExecutionError:
             pass
 

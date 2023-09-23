@@ -103,9 +103,11 @@ class RsltParser:
         self._spots = None
         self.path = Path(path).resolve()
         self.dir = self.path.parent
+
         if not self.path.exists():
             raise FileNotFoundError(ENOENT, "File does not exist", str(path))
             # cSpell:ignore ENOENT
+
         with open(self.path, encoding="utf-8") as file:
             identifier_pattern = re.compile(r"^([^:]+): (.*)$")
 
@@ -124,14 +126,11 @@ class RsltParser:
                 == "Do not store PGM file for dark frame any more"
             ):
                 self._meta["Dark frame image PGM"] = None
-            if self._meta["Temperature ok"] == "yes":
-                self._meta["Temperature ok"] = True
-            else:
-                self._meta["Temperature ok"] = False
-            if self._meta["Clean image"] == "yes":
-                self._meta["Clean image"] = True
-            else:
-                self._meta["Clean image"] = False
+
+            self._meta["Temperature ok"] = self._meta["Temperature ok"] == "yes"
+
+            self._meta["Clean image"] = self._meta["Clean image"] == "yes"
+
             self._meta["X"] = int(self._meta["X"])
             self._meta["Y"] = int(self._meta["Y"])
 
