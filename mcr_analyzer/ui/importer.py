@@ -118,14 +118,14 @@ class ImportWidget(QtWidgets.QWidget):
 
         self.file_model = QtGui.QStandardItemModel(self)
         self.file_model.setHorizontalHeaderLabels(
-            [_("Date"), _("Time"), _("Sample"), _("Chip"), _("Status")]  # noqa: F821
+            [_("Date"), _("Time"), _("Sample"), _("Chip"), _("Status")],  # noqa: F821
         )
 
         for path in self.dirs:
             self.results, self.failed = imp.gather_measurements(path)
             for res in self.failed:
                 error_item = QtGui.QStandardItem(
-                    _("Failed to load '{}', might be a corrupted file.").format(res)  # noqa: F821
+                    _("Failed to load '{}', might be a corrupted file.").format(res),  # noqa: F821
                 )
                 error_item.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_DialogNoButton))
                 measurement = [
@@ -139,10 +139,10 @@ class ImportWidget(QtWidgets.QWidget):
             for res in self.results:
                 measurement = [
                     QtGui.QStandardItem(
-                        f"{res.meta['Date/time'].strftime(_('%Y-%m-%d'))}"  # noqa: F821
+                        f"{res.meta['Date/time'].strftime(_('%Y-%m-%d'))}",  # noqa: F821
                     ),
                     QtGui.QStandardItem(
-                        f"{res.meta['Date/time'].strftime(_('%H:%M:%S'))}"  # noqa: F821
+                        f"{res.meta['Date/time'].strftime(_('%H:%M:%S'))}",  # noqa: F821
                     ),
                     QtGui.QStandardItem(f"{res.meta['Probe ID']}"),
                     QtGui.QStandardItem(f"{res.meta['Chip ID']}"),
@@ -169,10 +169,10 @@ class ImportWidget(QtWidgets.QWidget):
             try:
                 session.query(Measurement).filter_by(checksum=checksum).one()
                 self.file_model.item(step + len(self.failed), 4).setText(
-                    _("Imported previously")  # noqa: F821
+                    _("Imported previously"),  # noqa: F821
                 )
                 self.file_model.item(step + len(self.failed), 4).setIcon(
-                    self.style().standardIcon(QtWidgets.QStyle.SP_DialogNoButton)
+                    self.style().standardIcon(QtWidgets.QStyle.SP_DialogNoButton),
                 )
 
             except sqlalchemy.orm.exc.NoResultFound:
@@ -219,10 +219,10 @@ class ImportWidget(QtWidgets.QWidget):
 
                 # Update UI
                 self.file_model.item(step + len(self.failed), 4).setText(
-                    _("Import successful")  # noqa: F821
+                    _("Import successful"),  # noqa: F821
                 )
                 self.file_model.item(step + len(self.failed), 4).setIcon(
-                    self.style().standardIcon(QtWidgets.QStyle.SP_DialogYesButton)
+                    self.style().standardIcon(QtWidgets.QStyle.SP_DialogYesButton),
                 )
 
         if measurement_id:

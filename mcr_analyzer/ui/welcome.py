@@ -21,7 +21,7 @@ class WelcomeWidget(QtWidgets.QWidget):
             """<h1>Welcome to MCR-Analyzer</h1>
 
             <p>You can create a new database or open an existing one.</p>
-            """
+            """,
         )
 
         layout = QtWidgets.QVBoxLayout()
@@ -52,7 +52,10 @@ class WelcomeWidget(QtWidgets.QWidget):
 
     def clicked_new_button(self):
         file_name, filter_name = QtWidgets.QFileDialog.getSaveFileName(
-            self, _("Store database as"), None, _("SQLite Database (*.sqlite)")  # noqa: F821
+            self,
+            _("Store database as"),  # noqa: F821
+            None,
+            _("SQLite Database (*.sqlite)"),  # noqa: F821
         )
         if file_name and filter_name:
             # Ensure file has an extension
@@ -73,7 +76,7 @@ class WelcomeWidget(QtWidgets.QWidget):
             settings.setValue(
                 "Session/Files",
                 util.simplify_list(
-                    recent_files[0 : settings.value("Preferences/MaxRecentFiles", 5)]
+                    recent_files[0 : settings.value("Preferences/MaxRecentFiles", 5)],
                 ),
             )
 
@@ -82,7 +85,10 @@ class WelcomeWidget(QtWidgets.QWidget):
 
     def clicked_open_button(self):
         file_name, filter_name = QtWidgets.QFileDialog.getOpenFileName(
-            self, _("Select database"), None, _("SQLite Database (*.sqlite)")  # noqa: F821
+            self,
+            _("Select database"),  # noqa: F821
+            None,
+            _("SQLite Database (*.sqlite)"),  # noqa: F821
         )
         if file_name and filter_name:
             db = Database()
@@ -97,7 +103,7 @@ class WelcomeWidget(QtWidgets.QWidget):
             settings.setValue(
                 "Session/Files",
                 util.simplify_list(
-                    recent_files[0 : settings.value("Preferences/MaxRecentFiles", 5)]
+                    recent_files[0 : settings.value("Preferences/MaxRecentFiles", 5)],
                 ),
             )
 

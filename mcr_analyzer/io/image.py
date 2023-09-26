@@ -141,7 +141,7 @@ class Image:
         """
         if self.data.dtype.itemsize > 2:
             raise RuntimeError(
-                f"Unsupported data type '{self.data.dtype.name}', PGM supports uint8 and uint16."
+                f"Unsupported data type '{self.data.dtype.name}', PGM supports uint8 and uint16.",
             )
         header = f"P5\n{self.width} {self.height}\n{2**(self.data.dtype.itemsize * 8) - 1}\n"
         with open(path, "wb") as f:

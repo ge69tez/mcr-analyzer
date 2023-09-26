@@ -46,7 +46,7 @@ class ExportWidget(QtWidgets.QWidget):
         template_group = QtWidgets.QGroupBox(_("Output template"))  # noqa: F821
         template_layout = QtWidgets.QHBoxLayout()
         self.template_edit = QtWidgets.QLineEdit(
-            "{timestamp}\t{chip.name}\t{sample.name}\t{sample.note}\t{results}"
+            "{timestamp}\t{chip.name}\t{sample.name}\t{sample.note}\t{results}",
         )
         self.template_edit.setDisabled(True)
         template_layout.addWidget(self.template_edit)
@@ -125,7 +125,7 @@ class ExportWidget(QtWidgets.QWidget):
                             obj
                             >= datetime.datetime.strptime(value, "%Y-%m-%d")
                             + datetime.timedelta(days=1)
-                        )
+                        ),
                     )
                 else:
                     query = query.filter(op(obj, value))
@@ -155,7 +155,7 @@ class ExportWidget(QtWidgets.QWidget):
                         values = list(
                             session.query(Result)
                             .filter_by(measurement=measurement, column=col, valid=True)
-                            .values(Result.value)
+                            .values(Result.value),
                         )
                         measurement_line += f"\t{np.mean(values):.0f}"
 

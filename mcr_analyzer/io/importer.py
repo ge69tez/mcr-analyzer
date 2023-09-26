@@ -118,7 +118,8 @@ class RsltParser:
 
             # Post-process results (map to corresponding types)
             self._meta["Date/time"] = dt.datetime.strptime(
-                self._meta["Date/time"], "%Y-%m-%d %H:%M"
+                self._meta["Date/time"],
+                "%Y-%m-%d %H:%M",
             )
             if (
                 self._meta["Dark frame image PGM"]

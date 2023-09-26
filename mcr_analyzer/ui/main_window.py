@@ -38,7 +38,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tab_widget.addTab(self.welcome_widget, _("&Welcome"))  # noqa: F821
         self.tab_widget.addTab(self.import_widget, _("&Import measurements"))  # noqa: F821
         self.tab_widget.addTab(
-            self.measurement_widget, _("&Measurement && Data Entry")  # noqa: F821
+            self.measurement_widget,
+            _("&Measurement && Data Entry"),  # noqa: F821
         )
         self.tab_widget.addTab(self.export_widget, _("&Export"))  # noqa: F821
 
@@ -141,7 +142,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
                 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
                 OTHER DEALINGS IN THE SOFTWARE.</p>
-            """
+            """,
             ),
         )
 
@@ -183,7 +184,7 @@ class MainWindow(QtWidgets.QMainWindow):
             settings.setValue(
                 "Session/Files",
                 util.simplify_list(
-                    recent_files[0 : settings.value("Preferences/MaxRecentFiles", 5)]
+                    recent_files[0 : settings.value("Preferences/MaxRecentFiles", 5)],
                 ),
             )
             self.measurement_widget.switch_database()

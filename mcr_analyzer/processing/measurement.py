@@ -40,7 +40,7 @@ class Measurement:
                         np.frombuffer(measurement.image, dtype=">u2").reshape(520, 696)[
                             y : y + measurement.chip.spotSize,
                             x : x + measurement.chip.spotSize,
-                        ]
+                        ],
                         # cSpell:ignore frombuffer dtype
                     )
                     result = self.db.get_or_create(

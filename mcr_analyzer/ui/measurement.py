@@ -60,12 +60,13 @@ class MeasurementWidget(QtWidgets.QWidget):
         form_layout.addRow(_("Spot size:"), self.spot_size)  # noqa: F821
         self.spot_margin_horizontal = QtWidgets.QSpinBox()
         form_layout.addRow(
-            _("Horizontal Spot Distance:"), self.spot_margin_horizontal  # noqa: F821
+            _("Horizontal Spot Distance:"),  # noqa: F821
+            self.spot_margin_horizontal,
         )
         self.spot_margin_vertical = QtWidgets.QSpinBox()
         form_layout.addRow(_("Vert. Spot Distance:"), self.spot_margin_vertical)  # noqa: F821
         self.saveGridButton = QtWidgets.QPushButton(
-            _("Save grid and calculate results")  # noqa: F821
+            _("Save grid and calculate results"),  # noqa: F821
         )
         self.saveGridButton.setDisabled(True)
         self.saveGridButton.clicked.connect(self.save_grid)
@@ -184,7 +185,7 @@ class MeasurementWidget(QtWidgets.QWidget):
             img.astype("uint8"),
             696,
             520,
-            QtGui.QImage.Format_Grayscale8
+            QtGui.QImage.Format_Grayscale8,
             # cSpell:ignore astype
         ).convertToFormat(QtGui.QImage.Format_RGB32)
 
@@ -305,7 +306,7 @@ class MeasurementWidget(QtWidgets.QWidget):
             db = Database()
             session = db.Session()
             session.query(Result).filter_by(measurementID=self.meas_id, column=col, row=row).update(
-                {Result.valid: valid}
+                {Result.valid: valid},
             )
             session.commit()
             # Tell views about change

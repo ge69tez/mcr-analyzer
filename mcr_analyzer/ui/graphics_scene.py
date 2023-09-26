@@ -115,7 +115,10 @@ class GridItem(QtWidgets.QGraphicsItem):
         )
         # Labels are drawn on the "negative" side of the origin
         return QtCore.QRectF(
-            -self.pen_width / 2 - 15, -self.pen_width / 2 - 15, width + 15, height + 15
+            -self.pen_width / 2 - 15,
+            -self.pen_width / 2 - 15,
+            width + 15,
+            height + 15,
         )
 
     def itemChange(self, change, value):  # noqa: N802
@@ -160,7 +163,12 @@ class GridItem(QtWidgets.QGraphicsItem):
         for col in range(self.cols):
             # Column labels
             head = GraphicsRectTextItem(
-                col * (self.size + self.horizontal_space), -15, self.size, 12, str(col + 1), self
+                col * (self.size + self.horizontal_space),
+                -15,
+                self.size,
+                12,
+                str(col + 1),
+                self,
             )
             self.c_headers.append(head)
 

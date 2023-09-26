@@ -62,7 +62,7 @@ class MeasurementModel(QtCore.QAbstractItemModel):
         self.db = Database()
         self.session = self.db.Session()
         for day in self.session.query(Measurement).group_by(
-            sqlalchemy.func.strftime("%Y-%m-%d", Measurement.timestamp)
+            sqlalchemy.func.strftime("%Y-%m-%d", Measurement.timestamp),
         ):
             child = MeasurementItem([str(day.timestamp.date()), None, None], self.root_item)
             self.root_item.child_append(child)
@@ -71,7 +71,7 @@ class MeasurementModel(QtCore.QAbstractItemModel):
                 .filter(Measurement.timestamp >= day.timestamp.date())
                 .filter(
                     Measurement.timestamp
-                    <= datetime.datetime.combine(day.timestamp, datetime.time.max)
+                    <= datetime.datetime.combine(day.timestamp, datetime.time.max),
                 )
             ):
                 child.child_append(
@@ -83,7 +83,7 @@ class MeasurementModel(QtCore.QAbstractItemModel):
                             result.id,
                         ],
                         child,
-                    )
+                    ),
                 )
 
     def index(self, row, column, parent):
@@ -157,7 +157,7 @@ class MeasurementModel(QtCore.QAbstractItemModel):
         self.root_item = MeasurementItem(["Date/Time", "Chip", "Sample"])
 
         for day in self.session.query(Measurement).group_by(
-            sqlalchemy.func.strftime("%Y-%m-%d", Measurement.timestamp)
+            sqlalchemy.func.strftime("%Y-%m-%d", Measurement.timestamp),
         ):
             child = MeasurementItem([str(day.timestamp.date()), None, None], self.root_item)
             self.root_item.child_append(child)
@@ -166,7 +166,7 @@ class MeasurementModel(QtCore.QAbstractItemModel):
                 .filter(Measurement.timestamp >= day.timestamp.date())
                 .filter(
                     Measurement.timestamp
-                    <= datetime.datetime.combine(day.timestamp, datetime.time.max)
+                    <= datetime.datetime.combine(day.timestamp, datetime.time.max),
                 )
             ):
                 child.child_append(
@@ -178,7 +178,7 @@ class MeasurementModel(QtCore.QAbstractItemModel):
                             result.id,
                         ],
                         child,
-                    )
+                    ),
                 )
         self.endResetModel()
 
@@ -258,7 +258,7 @@ class ResultModel(QtCore.QAbstractTableModel):
                     return QtGui.QBrush(
                         QtCore.Qt.GlobalColor.darkGreen
                         if result.valid
-                        else QtCore.Qt.GlobalColor.darkRed
+                        else QtCore.Qt.GlobalColor.darkRed,
                     )
 
         if role != QtCore.Qt.DisplayRole:
@@ -311,7 +311,7 @@ class ResultModel(QtCore.QAbstractTableModel):
                     Result.valid.is_(True),
                     Result.value.isnot(None),  # cSpell:ignore isnot
                 )
-                .values(Result.value)
+                .values(Result.value),
             )
             self.means[col] = np.mean(values) if values else np.nan
             self.standard_deviations[col] = np.std(values, ddof=1) if values else np.nan

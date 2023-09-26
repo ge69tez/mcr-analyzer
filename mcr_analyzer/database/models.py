@@ -54,7 +54,9 @@ class Chip(Base):
     """Vertical margin between two adjacent spots: skip N pixels before
     processing the next spot."""
     measurements: relationship = relationship(
-        "Measurement", back_populates="chip", order_by="Measurement.timestamp"
+        "Measurement",
+        back_populates="chip",
+        order_by="Measurement.timestamp",
     )
     """Many-to-One relationship referencing all measurements the chip was
     used for."""
@@ -69,7 +71,9 @@ class Device(Base):
     serial: str = Column(String(255), nullable=False)
     """Serial number of the device."""
     measurements: relationship = relationship(
-        "Measurement", back_populates="device", order_by="Measurement.timestamp"
+        "Measurement",
+        back_populates="device",
+        order_by="Measurement.timestamp",
     )
     """Many-to-One relationship referencing all measurements done with this
     device."""
@@ -112,7 +116,9 @@ class Measurement(Base):
     notes: str = Column(Text)
     """Additional notes."""
     results: relationship = relationship(
-        "Result", back_populates="measurement", order_by="Result.id"
+        "Result",
+        back_populates="measurement",
+        order_by="Result.id",
     )
     """Many-to-One relationship referencing all results of this measurement."""
 
@@ -187,7 +193,9 @@ class Sample(Base):
     timestamp: datetime.datetime = Column(DateTime)
     """Date and time of the sample taking."""
     measurements: relationship = relationship(
-        "Measurement", back_populates="sample", order_by="Measurement.timestamp"
+        "Measurement",
+        back_populates="sample",
+        order_by="Measurement.timestamp",
     )
     """Many-to-One relationship referencing the measurements done with this
     sample."""
@@ -218,6 +226,8 @@ class User(Base):
     samples: relationship = relationship("Sample", back_populates="takenBy", order_by="Sample.id")
     """Many-to-One relationship referencing all samples taken by a user."""
     measurements: relationship = relationship(
-        "Measurement", back_populates="user", order_by="Measurement.timestamp"
+        "Measurement",
+        back_populates="user",
+        order_by="Measurement.timestamp",
     )
     """Many-to-One relationship referencing all measurements done by a user."""
