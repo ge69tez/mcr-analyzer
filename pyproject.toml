@@ -80,3 +80,9 @@ unfixable = [ # cSpell:ignore unfixable
 ignore = [
   "E203", # - whitespace-before-punctuation
 ]
+
+[tool.pre-commit-update]
+dry_run = true
+exclude = [
+  "blacken-docs", # - 2023-09-26 "pre-commit-update" "v0.0.9": Cannot recognize a tag name pattern change (for example: "blacken-docs" "v1.12.1" -> "1.16.0"
+]
