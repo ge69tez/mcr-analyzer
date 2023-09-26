@@ -48,8 +48,9 @@ class GraphicsSpotItem(QtWidgets.QGraphicsRectItem):
         h: float,
         col: int,
         row: int,
-        valid: bool,
         parent,
+        *,
+        valid: bool,
     ) -> None:
         super().__init__(x, y, w, h, parent)
         self.col = col
@@ -175,7 +176,7 @@ class GridItem(QtWidgets.QGraphicsItem):
                     valid = utils.simplify_list(res) if res else False
                 x = col * (self.size + self.horizontal_space)
                 y = row * (self.size + self.vertical_space)
-                spot = GraphicsSpotItem(x, y, self.size, self.size, col, row, valid, self)
+                spot = GraphicsSpotItem(x, y, self.size, self.size, col, row, self, valid=valid)
                 self.spots.append(spot)
 
     def preview_settings(self, cols, rows, horizontal_space, vertical_space, size):

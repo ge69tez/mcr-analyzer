@@ -27,8 +27,8 @@ select = [
   "ASYNC", # - flake8-async
   "S",     # - flake8-bandit
   "BLE",   # - flake8-blind-except
-  #"FBT", # - flake8-boolean-trap
-  "B", # - flake8-bugbear
+  "FBT",   # - flake8-boolean-trap
+  "B",     # - flake8-bugbear
   #"A", # - flake8-builtins # cSpell:ignore builtins
   #"COM", # - flake8-commas
   #"CPY", # - flake8-copyright
@@ -78,7 +78,8 @@ unfixable = [ # cSpell:ignore unfixable
   "ERA", # - eradicate
 ]
 ignore = [
-  "E203", # - whitespace-before-punctuation
+  "E203",   # - whitespace-before-punctuation
+  "FBT003", # - boolean-positional-value-in-call - "arg__1" in "PySide6.QtWidgets.QWidget.setDisabled(arg__1)"
 ]
 
 [tool.ruff.per-file-ignores]
