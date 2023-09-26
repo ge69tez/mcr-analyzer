@@ -27,7 +27,7 @@ class ImportWidget(QtWidgets.QWidget):
     in a separate thread.
     """
 
-    importDone = QtCore.Signal()
+    import_finished = QtCore.Signal()
     database_missing = QtCore.Signal()
 
     def __init__(self, parent=None):
@@ -109,7 +109,7 @@ class ImportWidget(QtWidgets.QWidget):
         self.checksum_worker.finished.connect(self.import_thread.quit)
         self.checksum_worker.finished.connect(self.checksum_worker.deleteLater)
         self.checksum_worker.finished.connect(self.import_thread.deleteLater)
-        self.checksum_worker.finished.connect(self.finishImport)
+        self.checksum_worker.finished.connect(self.import_post_run)
         self.thread_pool.reserveThread()
         self.import_thread.start()
 
@@ -125,16 +125,16 @@ class ImportWidget(QtWidgets.QWidget):
         for path in self.dirs:
             self.results, self.failed = imp.gather_measurements(path)
             for res in self.failed:
-                errorItem = QtGui.QStandardItem(
+                error_item = QtGui.QStandardItem(
                     _("Failed to load '{}', might be a corrupted file.").format(res)  # noqa: F821
                 )
-                errorItem.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_DialogNoButton))
+                error_item.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_DialogNoButton))
                 measurement = [
                     QtGui.QStandardItem(_("n. a.")),  # noqa: F821
                     QtGui.QStandardItem(_("n. a.")),  # noqa: F821
                     QtGui.QStandardItem(_("n. a.")),  # noqa: F821
                     QtGui.QStandardItem(_("n. a.")),  # noqa: F821
-                    errorItem,
+                    error_item,
                 ]
                 self.file_model.appendRow(measurement)
             for res in self.results:
@@ -230,12 +230,9 @@ class ImportWidget(QtWidgets.QWidget):
             result_worker = ResultWorker(meas.id)
             self.thread_pool.start(result_worker)
 
-    def finishImport(self):
+    def import_post_run(self):
         self.thread_pool.releaseThread()
-        self.importDone.emit()
-
-    def debugProcessor(self, queueLength: int):
-        print(f"Importer: Reported Queue Length: {queueLength}")
+        self.import_finished.emit()
 
 
 class ChecksumWorker(QtCore.QObject):
@@ -266,4 +263,4 @@ class ResultWorker(QtCore.QRunnable):
 
     def run(self):
         processor = MeasurementProcessor()
-        processor.updateResults(self.measurement_id)
+        processor.update_results(self.measurement_id)

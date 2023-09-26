@@ -71,7 +71,7 @@ class ExportWidget(QtWidgets.QWidget):
 
         self.setLayout(layout)
 
-    def showEvent(self, event: QtGui.QShowEvent):
+    def showEvent(self, event: QtGui.QShowEvent):  # noqa: N802
         self.update_preview()
         event.accept()
 

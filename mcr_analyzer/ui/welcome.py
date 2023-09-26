@@ -47,9 +47,9 @@ class WelcomeWidget(QtWidgets.QWidget):
 
         self.setLayout(layout)
 
-    changedDatabase = QtCore.Signal()
-    createdDatabase = QtCore.Signal()
-    openedDatabase = QtCore.Signal()
+    database_changed = QtCore.Signal()
+    database_created = QtCore.Signal()
+    database_opened = QtCore.Signal()
 
     def clicked_new_button(self):
         file_name, filter_name = QtWidgets.QFileDialog.getSaveFileName(
@@ -78,8 +78,8 @@ class WelcomeWidget(QtWidgets.QWidget):
                 ),
             )
 
-            self.changedDatabase.emit()
-            self.createdDatabase.emit()
+            self.database_changed.emit()
+            self.database_created.emit()
 
     def clicked_open_button(self):
         file_name, filter_name = QtWidgets.QFileDialog.getOpenFileName(
@@ -102,5 +102,5 @@ class WelcomeWidget(QtWidgets.QWidget):
                 ),
             )
 
-            self.changedDatabase.emit()
-            self.openedDatabase.emit()
+            self.database_changed.emit()
+            self.database_opened.emit()

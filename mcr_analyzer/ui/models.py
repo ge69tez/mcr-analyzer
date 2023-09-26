@@ -25,7 +25,7 @@ class MeasurementItem:
         self._data = data
         self.children = []
 
-    def appendChild(self, item):
+    def child_append(self, item):
         self.children.append(item)
 
     def child(self, row):
@@ -34,7 +34,7 @@ class MeasurementItem:
         except IndexError:
             return None
 
-    def childCount(self):
+    def child_count(self):
         return len(self.children)
 
     def row(self):
@@ -42,7 +42,7 @@ class MeasurementItem:
             return self.parentItem.children.index(self)
         return 0
 
-    def columnCount(self):
+    def column_count(self):
         return len(self._data)
 
     def data(self, column):
@@ -66,7 +66,7 @@ class MeasurementModel(QtCore.QAbstractItemModel):
             sqlalchemy.func.strftime("%Y-%m-%d", Measurement.timestamp)
         ):
             child = MeasurementItem([str(day.timestamp.date()), None, None], self.root_item)
-            self.root_item.appendChild(child)
+            self.root_item.child_append(child)
             for result in (
                 self.session.query(Measurement)
                 .filter(Measurement.timestamp >= day.timestamp.date())
@@ -75,7 +75,7 @@ class MeasurementModel(QtCore.QAbstractItemModel):
                     <= datetime.datetime.combine(day.timestamp, datetime.time.max)
                 )
             ):
-                child.appendChild(
+                child.child_append(
                     MeasurementItem(
                         [
                             result.timestamp.time().strftime("%H:%M:%S"),
@@ -114,7 +114,7 @@ class MeasurementModel(QtCore.QAbstractItemModel):
 
         return self.createIndex(parent_item.row(), 0, parent_item)
 
-    def rowCount(self, parent):
+    def rowCount(self, parent):  # noqa: N802
         if parent.column() > 0:
             return 0
 
@@ -123,12 +123,12 @@ class MeasurementModel(QtCore.QAbstractItemModel):
         else:
             parent_item = parent.internalPointer()
 
-        return parent_item.childCount()
+        return parent_item.child_count()
 
-    def columnCount(self, parent=None):
+    def columnCount(self, parent=None):  # noqa: N802
         if parent and parent.isValid():
             return parent.internalPointer().columnCount()
-        return self.root_item.columnCount()
+        return self.root_item.column_count()
 
     def data(self, index, role):
         if not index.isValid():
@@ -146,13 +146,13 @@ class MeasurementModel(QtCore.QAbstractItemModel):
 
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
-    def headerData(self, section, orientation, role):
+    def headerData(self, section, orientation, role):  # noqa: N802
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
             return self.root_item.data(section)
 
         return None
 
-    def refreshModel(self):
+    def refresh_model(self):
         self.beginResetModel()
 
         self.root_item = MeasurementItem(["Date/Time", "Chip", "Sample"])
@@ -161,7 +161,7 @@ class MeasurementModel(QtCore.QAbstractItemModel):
             sqlalchemy.func.strftime("%Y-%m-%d", Measurement.timestamp)
         ):
             child = MeasurementItem([str(day.timestamp.date()), None, None], self.root_item)
-            self.root_item.appendChild(child)
+            self.root_item.child_append(child)
             for result in (
                 self.session.query(Measurement)
                 .filter(Measurement.timestamp >= day.timestamp.date())
@@ -170,7 +170,7 @@ class MeasurementModel(QtCore.QAbstractItemModel):
                     <= datetime.datetime.combine(day.timestamp, datetime.time.max)
                 )
             ):
-                child.appendChild(
+                child.child_append(
                     MeasurementItem(
                         [
                             result.timestamp.time().strftime("%H:%M:%S"),
@@ -199,22 +199,22 @@ class ResultModel(QtCore.QAbstractTableModel):
         self.cache_valid = True
         self.last_update = 0
 
-    def rowCount(self, parent: QtCore.QModelIndex) -> int:
+    def rowCount(self, parent: QtCore.QModelIndex) -> int:  # noqa: N802
         if not self.measurement:
             return 0
         return self.chip.rowCount + 2
 
-    def columnCount(self, parent: QtCore.QModelIndex) -> int:
+    def columnCount(self, parent: QtCore.QModelIndex) -> int:  # noqa: N802
         if not self.measurement:
             return 0
         return self.chip.columnCount
 
-    def headerData(self, section: int, orientation: QtCore.Qt.Orientation, role: int):
+    def headerData(self, section: int, orientation: QtCore.Qt.Orientation, role: int):  # noqa: N802
         if role == QtCore.Qt.FontRole:
             if orientation == QtCore.Qt.Vertical and section >= self.chip.rowCount:
-                boldFont = QtGui.QFont()
-                boldFont.setBold(True)
-                return boldFont
+                font_bold = QtGui.QFont()
+                font_bold.setBold(True)
+                return font_bold
         if role != QtCore.Qt.DisplayRole:
             return None
         if orientation == QtCore.Qt.Horizontal:
@@ -251,9 +251,9 @@ class ResultModel(QtCore.QAbstractTableModel):
             # Font modifications for statistics and values
             case QtCore.Qt.FontRole:
                 if row >= self.chip.rowCount:
-                    boldFont = QtGui.QFont()
-                    boldFont.setBold(True)
-                    return boldFont
+                    font_bold = QtGui.QFont()
+                    font_bold.setBold(True)
+                    return font_bold
             case QtCore.Qt.ForegroundRole:
                 if result:
                     return QtGui.QBrush(

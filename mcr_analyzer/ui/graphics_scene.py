@@ -61,7 +61,7 @@ class GraphicsSpotItem(QtWidgets.QGraphicsRectItem):
             self.pen.setStyle(QtCore.Qt.DotLine)
         self.setPen(self.pen)
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event):  # noqa: N802
         if event.button() == QtCore.Qt.RightButton:
             self.valid = not self.valid
             scene = self.scene()
@@ -108,7 +108,7 @@ class GridItem(QtWidgets.QGraphicsItem):
 
         self._add_children()
 
-    def boundingRect(self):
+    def boundingRect(self):  # noqa: N802
         width = self.cols * self.size + (self.cols - 1) * self.vertical_space + self.pen_width / 2
         height = (
             self.rows * self.size + (self.rows - 1) * self.horizontal_space + self.pen_width / 2
@@ -118,7 +118,7 @@ class GridItem(QtWidgets.QGraphicsItem):
             -self.pen_width / 2 - 15, -self.pen_width / 2 - 15, width + 15, height + 15
         )
 
-    def itemChange(self, change, value):
+    def itemChange(self, change, value):  # noqa: N802
         if change == QtWidgets.QGraphicsItem.ItemPositionChange and self.scene():
             self.scene().moved_grid.emit()
         return super().itemChange(change, value)

@@ -50,7 +50,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.notes = StatefulPlainTextEdit()
         self.notes.setPlaceholderText(_("Please enter additional notes here."))  # noqa: F821
         self.notes.setMinimumWidth(250)
-        self.notes.editingFinished.connect(self.updateNotes)
+        self.notes.editing_finished.connect(self.update_notes)
         form_layout.addRow(_("Notes:"), self.notes)  # noqa: F821
         form_layout.setRowWrapPolicy(QtWidgets.QFormLayout.WrapLongRows)
         self.cols = QtWidgets.QSpinBox()
@@ -69,11 +69,11 @@ class MeasurementWidget(QtWidgets.QWidget):
             _("Save grid and calculate results")  # noqa: F821
         )
         self.saveGridButton.setDisabled(True)
-        self.saveGridButton.clicked.connect(self.saveGrid)
+        self.saveGridButton.clicked.connect(self.save_grid)
         form_layout.addRow(self.saveGridButton)
         self.resetGridButton = QtWidgets.QPushButton(_("Reset grid"))  # noqa: F821
         self.resetGridButton.setDisabled(True)
-        self.resetGridButton.clicked.connect(self.resetGrid)
+        self.resetGridButton.clicked.connect(self.reset_grid)
         form_layout.addRow(self.resetGridButton)
         layout.addWidget(group_box)
 
@@ -85,8 +85,8 @@ class MeasurementWidget(QtWidgets.QWidget):
         meas_width = 696
         meas_height = 520
         self.scene = GraphicsMeasurementScene(0, 0, meas_width, meas_height)
-        self.scene.changed_validity.connect(self.updateValidity)
-        self.scene.moved_grid.connect(self.updateGridPosition)
+        self.scene.changed_validity.connect(self.update_validity)
+        self.scene.moved_grid.connect(self.update_grid_position)
         # Container for measurement image
         self.image = QtWidgets.QGraphicsPixmapItem()  # cSpell:ignore Pixmap
         self.scene.addItem(self.image)
@@ -101,8 +101,8 @@ class MeasurementWidget(QtWidgets.QWidget):
 
         layout.addWidget(group_box)
 
-    def refreshDatabase(self):
-        self.model.refreshModel()
+    def refresh_database(self):
+        self.model.refresh_model()
         settings = QtCore.QSettings()
         current_date = settings.value("Session/SelectedDate", None)
         if current_date:
@@ -111,7 +111,7 @@ class MeasurementWidget(QtWidgets.QWidget):
             for idx in matches:
                 self.tree.expand(idx)
 
-    def switchDatabase(self):
+    def switch_database(self):
         self.model = MeasurementModel()
         self.tree.setModel(self.model)
         settings = QtCore.QSettings()
@@ -126,9 +126,9 @@ class MeasurementWidget(QtWidgets.QWidget):
         # resize all columns except the last one individually
         for i in range(self.model.columnCount()):
             self.tree.resizeColumnToContents(i)
-        self.tree.selectionModel().selectionChanged.connect(self.selChanged)
+        self.tree.selectionModel().selectionChanged.connect(self.selection_changed)
 
-    def selChanged(self, selected, deselected):
+    def selection_changed(self, selected, deselected):
         self.meas_id = selected.indexes()[0].internalPointer().data(3)
         if not self.meas_id:
             return
@@ -161,11 +161,11 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.spot_margin_horizontal.setValue(measurement.chip.spotMarginHorizontal)
         self.spot_margin_vertical.setValue(measurement.chip.spotMarginVertical)
         # Connect grid related fields
-        self.cols.valueChanged.connect(self.previewGrid)
-        self.rows.valueChanged.connect(self.previewGrid)
-        self.spot_size.valueChanged.connect(self.previewGrid)
-        self.spot_margin_horizontal.valueChanged.connect(self.previewGrid)
-        self.spot_margin_vertical.valueChanged.connect(self.previewGrid)
+        self.cols.valueChanged.connect(self.preview_grid)
+        self.rows.valueChanged.connect(self.preview_grid)
+        self.spot_size.valueChanged.connect(self.preview_grid)
+        self.spot_margin_horizontal.valueChanged.connect(self.preview_grid)
+        self.spot_margin_vertical.valueChanged.connect(self.preview_grid)
         if measurement.notes:
             self.notes.setPlainText(measurement.notes)
         else:
@@ -207,7 +207,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         if parent_index.isValid:
             settings.setValue("Session/SelectedDate", parent_index.data())
 
-    def previewGrid(self):
+    def preview_grid(self):
         self.results.setDisabled(True)
         self.saveGridButton.setEnabled(True)
         self.resetGridButton.setEnabled(True)
@@ -219,7 +219,7 @@ class MeasurementWidget(QtWidgets.QWidget):
             self.spot_size.value(),
         )
 
-    def saveGrid(self):
+    def save_grid(self):
         if not self.meas_id:
             return
         db = Database()
@@ -237,7 +237,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         chip.spotMarginVertical = self.spot_margin_vertical.value()
         session.commit()
         processor = MeasurementProcessor()
-        processor.updateResults(self.meas_id)
+        processor.update_results(self.meas_id)
         self.grid.database_view()
         self.saveGridButton.setDisabled(True)
         self.resetGridButton.setDisabled(True)
@@ -245,7 +245,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.results.setEnabled(True)
         self.results.resizeColumnsToContents()
 
-    def resetGrid(self):
+    def reset_grid(self):
         if not self.meas_id:
             return
         db = Database()
@@ -268,18 +268,18 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.spot_margin_horizontal.setValue(measurement.chip.spotMarginHorizontal)
         self.spot_margin_vertical.setValue(measurement.chip.spotMarginVertical)
         # Connect grid related fields
-        self.cols.valueChanged.connect(self.previewGrid)
-        self.rows.valueChanged.connect(self.previewGrid)
-        self.spot_size.valueChanged.connect(self.previewGrid)
-        self.spot_margin_horizontal.valueChanged.connect(self.previewGrid)
-        self.spot_margin_vertical.valueChanged.connect(self.previewGrid)
+        self.cols.valueChanged.connect(self.preview_grid)
+        self.rows.valueChanged.connect(self.preview_grid)
+        self.spot_size.valueChanged.connect(self.preview_grid)
+        self.spot_margin_horizontal.valueChanged.connect(self.preview_grid)
+        self.spot_margin_vertical.valueChanged.connect(self.preview_grid)
         self.grid.setPos(measurement.chip.marginLeft, measurement.chip.marginTop)
         self.grid.database_view()
         self.saveGridButton.setDisabled(True)
         self.resetGridButton.setDisabled(True)
         self.results.setEnabled(True)
 
-    def updateGridPosition(self):
+    def update_grid_position(self):
         """Filters out additional events before activating grid preview."""
         x = int(self.grid.scenePos().x())
         y = int(self.grid.scenePos().y())
@@ -288,9 +288,9 @@ class MeasurementWidget(QtWidgets.QWidget):
             return
         if not self.meas_id:
             return
-        self.previewGrid()
+        self.preview_grid()
 
-    def updateNotes(self):
+    def update_notes(self):
         if self.meas_id:
             db = Database()
             session = db.Session()
@@ -301,7 +301,7 @@ class MeasurementWidget(QtWidgets.QWidget):
             session.query(Measurement).filter_by(id=self.meas_id).update({Measurement.notes: note})
             session.commit()
 
-    def updateValidity(self, row, col, valid):
+    def update_validity(self, row, col, valid):
         if self.meas_id:
             db = Database()
             session = db.Session()
@@ -320,19 +320,19 @@ class StatefulPlainTextEdit(QtWidgets.QPlainTextEdit):
         super().__init__()
         self._content = None
 
-    def checkChanges(self):
+    def check_changes(self):
         if self._content != self.toPlainText():
             self._content = self.toPlainText()
-            self.editingFinished.emit()
+            self.editing_finished.emit()
 
-    editingFinished = QtCore.Signal()
+    editing_finished = QtCore.Signal()
 
-    def focusInEvent(self, event):
+    def focusInEvent(self, event):  # noqa: N802
         if event.reason() != QtCore.Qt.PopupFocusReason:
             self._content = self.toPlainText()
         super().focusInEvent(event)
 
-    def focusOutEvent(self, event):
+    def focusOutEvent(self, event):  # noqa: N802
         if event.reason() != QtCore.Qt.PopupFocusReason:
-            self.checkChanges()
+            self.check_changes()
         super().focusOutEvent(event)

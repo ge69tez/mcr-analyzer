@@ -20,7 +20,7 @@ class Measurement:
     def __init__(self):
         self.db = Database()
 
-    def updateResults(self, measurement_id: int):
+    def update_results(self, measurement_id: int):
         with self.db.Session() as session:
             measurement = (
                 session.query(MeasurementModel)

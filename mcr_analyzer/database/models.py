@@ -36,22 +36,22 @@ class Chip(Base):
     """Internal ID, used for cross-references."""
     name: str = Column(String)
     """Chip ID assigned by user during measurement."""
-    rowCount: int = Column(Integer, nullable=False)
+    rowCount: int = Column(Integer, nullable=False)  # noqa: N815
     """Number of rows, typically five. Used for redundancy and error
     reduction."""
-    columnCount: int = Column(Integer, nullable=False)
+    columnCount: int = Column(Integer, nullable=False)  # noqa: N815
     """Number of columns. Different anti-bodies or anti-gens."""
-    marginLeft: int = Column(Integer, nullable=False)
+    marginLeft: int = Column(Integer, nullable=False)  # noqa: N815
     """Distance between left border of the image and first column of spots."""
-    marginTop: int = Column(Integer, nullable=False)
+    marginTop: int = Column(Integer, nullable=False)  # noqa: N815
     """Distance between top border of the image and first row of spots."""
-    spotSize: int = Column(Integer, nullable=False)
+    spotSize: int = Column(Integer, nullable=False)  # noqa: N815
     """Size (in pixels) of a single spot. Side length of the square used for
     processing."""
-    spotMarginHorizontal: int = Column(Integer, nullable=False)
+    spotMarginHorizontal: int = Column(Integer, nullable=False)  # noqa: N815
     """Horizontal margin between two adjacent spots: skip N pixels before
     processing the next spot."""
-    spotMarginVertical: int = Column(Integer, nullable=False)
+    spotMarginVertical: int = Column(Integer, nullable=False)  # noqa: N815
     """Vertical margin between two adjacent spots: skip N pixels before
     processing the next spot."""
     measurements: relationship = relationship(
@@ -82,15 +82,15 @@ class Measurement(Base):
     __tablename__ = "measurement"
     id: int = Column(Integer, primary_key=True)
     """Internal ID, used for cross-references."""
-    chipID: int = Column(Integer, ForeignKey("chip.id"), index=True)
+    chipID: int = Column(Integer, ForeignKey("chip.id"), index=True)  # noqa: N815
     """Refers to the used :class:`Chip`."""
     chip: relationship = relationship("Chip", back_populates="measurements")
     """One-to-Many relationship referencing the used chip."""
-    deviceID: int = Column(Integer, ForeignKey("device.id"), index=True)
+    deviceID: int = Column(Integer, ForeignKey("device.id"), index=True)  # noqa: N815
     """Refers to the used :class:`Device`."""
     device: relationship = relationship("Device", back_populates="measurements")
     """One-to-Many relationship referencing the used device."""
-    sampleID: int = Column(Integer, ForeignKey("sample.id"), index=True)
+    sampleID: int = Column(Integer, ForeignKey("sample.id"), index=True)  # noqa: N815
     """Refers to the measured :class:`Sample`."""
     sample: relationship = relationship("Sample", back_populates="measurements")
     """One-to-Many relationship referencing the analyzed sample."""
@@ -102,12 +102,12 @@ class Measurement(Base):
     """SHA256 hash of the raw 16-bit image data. Used for duplicate detection."""
     timestamp: datetime.datetime = Column(DateTime, index=True)
     """Date and time of the measurement."""
-    userID: int = Column(Integer, ForeignKey("user.id"), index=True)
+    userID: int = Column(Integer, ForeignKey("user.id"), index=True)  # noqa: N815
     """Refers to the :class:`User` who did the measurement."""
     user: relationship = relationship("User", back_populates="measurements")
     """One-to-Many relationship referencing the user who did the
     measurement."""
-    chipFailure: bool = Column(Boolean, nullable=False, default=False)
+    chipFailure: bool = Column(Boolean, nullable=False, default=False)  # noqa: N815
     """Was there a failure during measurement (leaky chip). Defaults to
     `False`."""
     notes: str = Column(Text)
@@ -141,7 +141,7 @@ class Result(Base):
     __tablename__ = "result"
     id: int = Column(Integer, primary_key=True)
     """Internal ID, used for cross-references."""
-    measurementID: int = Column(Integer, ForeignKey("measurement.id"), index=True)
+    measurementID: int = Column(Integer, ForeignKey("measurement.id"), index=True)  # noqa: N815
     """Reference to the :class:`Measurement` to which the result belongs."""
     measurement: relationship = relationship("Measurement", back_populates="results")
     """One-to-Many relationship referencing the measurement which yielded this
@@ -152,7 +152,7 @@ class Result(Base):
     """Column index, counted from 0."""
     value: float = Column(Float)
     """Calculated brightness of the spot."""
-    reagentID: int = Column(Integer, ForeignKey("reagent.id"), index=True)
+    reagentID: int = Column(Integer, ForeignKey("reagent.id"), index=True)  # noqa: N815
     """Reference to :class:`Reagent`."""
     reagent: relationship = relationship("Reagent", back_populates="results")
     """One-to-Many relationship referencing the substance of this spot."""
@@ -174,16 +174,16 @@ class Sample(Base):
     name: str = Column(String)
     """Short description of the sample, entered as Probe ID during
     measurement."""
-    knownPositive: bool = Column(Boolean)
+    knownPositive: bool = Column(Boolean)  # noqa: N815
     """Is this a know positive sample? Makes use of the tri-state SQL bool
     `None`, `True`, or `False`."""
-    typeID: int = Column(Integer, ForeignKey("sampleType.id"), index=True)
+    typeID: int = Column(Integer, ForeignKey("sampleType.id"), index=True)  # noqa: N815
     """Refers to :class:`SampleType`."""
     type: relationship = relationship("SampleType", back_populates="samples")
     """One-to-Many relationship referencing the type of this sample."""
-    takenByID: int = Column(Integer, ForeignKey("user.id"), index=True)
+    takenByID: int = Column(Integer, ForeignKey("user.id"), index=True)  # noqa: N815
     """Refers to the :class:`User` who took the sample."""
-    takenBy: relationship = relationship("User", back_populates="samples")
+    takenBy: relationship = relationship("User", back_populates="samples")  # noqa: N815
     """One-to-Many relationship referencing the user who took this sample."""
     timestamp: datetime.datetime = Column(DateTime)
     """Date and time of the sample taking."""
@@ -214,7 +214,7 @@ class User(Base):
     """Internal ID, used for cross-references."""
     name: str = Column(String, nullable=False)
     """Name of the researcher."""
-    loginID: str = Column(String)
+    loginID: str = Column(String)  # noqa: N815
     """User ID of the researcher, to be used for automatic association."""
     samples: relationship = relationship("Sample", back_populates="takenBy", order_by="Sample.id")
     """Many-to-One relationship referencing all samples taken by a user."""

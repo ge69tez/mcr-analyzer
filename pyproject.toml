@@ -19,7 +19,7 @@ select = [
   "E",   # - pycodestyle - Error # cSpell:ignore pycodestyle
   "C90", # - mccabe # cSpell:ignore mccabe
   "I",   # - isort # cSpell:ignore isort
-  #"N", # - pep8-naming
+  "N",   # - pep8-naming
   #"D", # - pydocstyle # cSpell:ignore pydocstyle
   #"UP",  # - pyupgrade # cSpell:ignore pyupgrade
   "YTT", # - flake8-2020

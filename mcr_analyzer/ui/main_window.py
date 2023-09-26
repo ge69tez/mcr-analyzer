@@ -43,12 +43,12 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.tab_widget.addTab(self.export_widget, _("&Export"))  # noqa: F821
 
-        self.welcome_widget.changedDatabase.connect(self.measurement_widget.switchDatabase)
-        self.welcome_widget.changedDatabase.connect(self.update_recent_files)
-        self.welcome_widget.createdDatabase.connect(self.switch_to_import)
-        self.welcome_widget.openedDatabase.connect(self.switch_to_measurement)
+        self.welcome_widget.database_changed.connect(self.measurement_widget.switch_database)
+        self.welcome_widget.database_changed.connect(self.update_recent_files)
+        self.welcome_widget.database_created.connect(self.switch_to_import)
+        self.welcome_widget.database_opened.connect(self.switch_to_measurement)
         self.import_widget.database_missing.connect(self.switch_to_welcome)
-        self.import_widget.importDone.connect(self.measurement_widget.refreshDatabase)
+        self.import_widget.import_finished.connect(self.measurement_widget.refresh_database)
 
         # Open last active database
         settings = QtCore.QSettings()
@@ -58,13 +58,13 @@ class MainWindow(QtWidgets.QMainWindow):
             if path.exists():
                 db = Database()
                 db.connect_database(f"sqlite:///{path}")
-                self.measurement_widget.switchDatabase()
+                self.measurement_widget.switch_database()
                 # Only restore the last tab if we can open the database
                 self.tab_widget.setCurrentIndex(settings.value("Session/ActiveTab", 0, int))
         except IndexError:
             pass
 
-    def closeEvent(self, event: QtGui.QCloseEvent):
+    def closeEvent(self, event: QtGui.QCloseEvent):  # noqa: N802
         settings = QtCore.QSettings()
         settings.setValue("Session/ActiveTab", self.tab_widget.currentIndex())
         event.accept()
@@ -107,7 +107,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def create_status_bar(self):
         self.statusBar()
 
-    def sizeHint(self):
+    def sizeHint(self):  # noqa: N802
         return QtCore.QSize(1700, 900)
 
     def show_about_dialog(self):
@@ -187,7 +187,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     recent_files[0 : settings.value("Preferences/MaxRecentFiles", 5)]
                 ),
             )
-            self.measurement_widget.switchDatabase()
+            self.measurement_widget.switch_database()
             self.switch_to_measurement()
         else:
             # Update recent files
