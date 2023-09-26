@@ -21,7 +21,7 @@ select = [
   "I",   # - isort # cSpell:ignore isort
   "N",   # - pep8-naming
   #"D", # - pydocstyle # cSpell:ignore pydocstyle
-  #"UP",  # - pyupgrade # cSpell:ignore pyupgrade
+  "UP",  # - pyupgrade # cSpell:ignore pyupgrade
   "YTT", # - flake8-2020
   #"ANN", # - flake8-annotations
   "ASYNC", # - flake8-async

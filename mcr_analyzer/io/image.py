@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # MCR-Analyzer
 #
@@ -176,7 +175,7 @@ class Image:
 
 def is_path(file):
     """Helper function for testing whether *file* needs an :func:`open` call."""
-    return isinstance(file, (bytes, str, Path))
+    return isinstance(file, bytes | str | Path)
 
 
 def peek(file, length=1):
