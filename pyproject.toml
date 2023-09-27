@@ -64,10 +64,10 @@ select = [
   "PD",   # - pandas-vet
   "PGH",  # - pygrep-hooks # cSpell:ignore pygrep
   "PL",   # - Pylint
-  #"TRY", # - tryceratops # cSpell:ignore tryceratops
-  "FLY", # - flynt # cSpell:ignore flynt
-  "NPY", # - NumPy-specific rules
-  "AIR", # - Airflow
+  "TRY",  # - tryceratops # cSpell:ignore tryceratops
+  "FLY",  # - flynt # cSpell:ignore flynt
+  "NPY",  # - NumPy-specific rules
+  "AIR",  # - Airflow
   #"PERF", # - Perflint # cSpell:ignore Perflint
   "FURB", # - refurb # cSpell:ignore FURB refurb
   "LOG",  # - flake8-logging
