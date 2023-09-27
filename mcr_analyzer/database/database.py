@@ -22,13 +22,13 @@ class Database:
     def __new__(cls, *args, **kwargs):
         if not hasattr(cls, "_instance"):
             cls._instance = super().__new__(cls)
-            cls._instance._initialized = False
+            cls._instance.initialized = False
         return cls._instance
 
     def __init__(self, engine: str | None = None):
         super().__init__()
-        if not self._initialized:
-            self._initialized = True
+        if not self.initialized:
+            self.initialized = True
             self.base = Base
             self.Session = sessionmaker()
             if engine:
