@@ -16,6 +16,7 @@ import numpy as np
 import sqlalchemy.exc
 from qtpy import QtCore, QtGui, QtWidgets
 
+from mcr_analyzer.config import TZ_INFO
 from mcr_analyzer.database.database import Database
 from mcr_analyzer.database.models import Measurement, Result
 
@@ -115,7 +116,7 @@ class ExportWidget(QtWidgets.QWidget):
                     query = query.filter(
                         obj >= value,
                         obj
-                        < datetime.datetime.strptime(value, "%Y-%m-%d")
+                        < datetime.datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=TZ_INFO)
                         + datetime.timedelta(days=1),
                     )
                 elif op is operator.ne:
@@ -123,7 +124,7 @@ class ExportWidget(QtWidgets.QWidget):
                         (obj < value)
                         | (
                             obj
-                            >= datetime.datetime.strptime(value, "%Y-%m-%d")
+                            >= datetime.datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=TZ_INFO)
                             + datetime.timedelta(days=1)
                         ),
                     )

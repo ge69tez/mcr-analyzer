@@ -32,8 +32,8 @@ select = [
   #"A", # - flake8-builtins # cSpell:ignore builtins
   "COM", # - flake8-commas
   #"CPY", # - flake8-copyright
-  "C4", # - flake8-comprehensions
-  #"DTZ", # - flake8-datetimez # cSpell:ignore datetimez
+  "C4",  # - flake8-comprehensions
+  "DTZ", # - flake8-datetimez # cSpell:ignore datetimez
   "T10", # - flake8-debugger
   "DJ",  # - flake8-django
   #"EM",  # - flake8-errmsg # cSpell:ignore errmsg

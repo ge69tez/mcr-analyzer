@@ -9,12 +9,14 @@
 """Import functions related to MCR measurements."""
 
 import copy
-import datetime as dt
+import datetime
 import re
 from errno import ENOENT
 from pathlib import Path
 
 import numpy as np
+
+from mcr_analyzer.config import TZ_INFO
 
 
 class FileImporter:
@@ -44,7 +46,9 @@ class FileImporter:
                 for i, name in enumerate(sorted(rslt.dir.glob(f"{base}-*.pgm"))):
                     temp_result = copy.deepcopy(rslt)
                     temp_result.meta["Result image PGM"] = name.name
-                    temp_result.meta["Date/time"] = rslt.meta["Date/time"] + dt.timedelta(seconds=i)
+                    temp_result.meta["Date/time"] = rslt.meta["Date/time"] + datetime.timedelta(
+                        seconds=i,
+                    )
                     measurements.append(temp_result)
         return measurements, failed
 
@@ -117,10 +121,11 @@ class RsltParser:
                     self._meta[match.group(1)] = match.group(2)
 
             # Post-process results (map to corresponding types)
-            self._meta["Date/time"] = dt.datetime.strptime(
+            self._meta["Date/time"] = datetime.datetime.strptime(
                 self._meta["Date/time"],
                 "%Y-%m-%d %H:%M",
-            )
+            ).replace(tzinfo=TZ_INFO)
+
             if (
                 self._meta["Dark frame image PGM"]
                 == "Do not store PGM file for dark frame any more"
