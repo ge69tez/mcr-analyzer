@@ -38,14 +38,14 @@ class ImportWidget(QtWidgets.QWidget):
         self.failed = None
         self.checksum_worker = None
         self.thread_pool = QtCore.QThreadPool.globalInstance()
-        self.setWindowTitle(_("Import measurements"))  # noqa: F821
+        self.setWindowTitle("Import measurements")
 
         layout = QtWidgets.QVBoxLayout()
         self.setLayout(layout)
 
         self.path_button = QtWidgets.QPushButton(
             self.style().standardIcon(QtWidgets.QStyle.SP_DirOpenIcon),
-            _("Select Folder..."),  # noqa: F821
+            "Select Folder...",
         )
         self.path_button.setIconSize(QtCore.QSize(48, 48))
         self.path_button.clicked.connect(self.path_dialog)
@@ -57,7 +57,7 @@ class ImportWidget(QtWidgets.QWidget):
 
         self.import_button = QtWidgets.QPushButton(
             self.style().standardIcon(QtWidgets.QStyle.SP_DialogSaveButton),
-            _("Import into Database"),  # noqa: F821
+            "Import into Database",
         )
         self.import_button.setIconSize(QtCore.QSize(48, 48))
         self.import_button.clicked.connect(self.start_import)
@@ -80,8 +80,8 @@ class ImportWidget(QtWidgets.QWidget):
         if not db.valid:
             if QtWidgets.QMessageBox.warning(
                 self,
-                _("No database selected"),  # noqa: F821
-                _("You need to open or create a database first."),  # noqa: F821
+                "No database selected",
+                "You need to open or create a database first.",
             ):
                 self.database_missing.emit()
             return
@@ -117,33 +117,27 @@ class ImportWidget(QtWidgets.QWidget):
         imp = FileImporter()
 
         self.file_model = QtGui.QStandardItemModel(self)
-        self.file_model.setHorizontalHeaderLabels(
-            [_("Date"), _("Time"), _("Sample"), _("Chip"), _("Status")],  # noqa: F821
-        )
+        self.file_model.setHorizontalHeaderLabels(["Date", "Time", "Sample", "Chip", "Status"])
 
         for path in self.dirs:
             self.results, self.failed = imp.gather_measurements(path)
             for res in self.failed:
                 error_item = QtGui.QStandardItem(
-                    _("Failed to load '{}', might be a corrupted file.").format(res),  # noqa: F821
+                    f"Failed to load '{res}', might be a corrupted file.",
                 )
                 error_item.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_DialogNoButton))
                 measurement = [
-                    QtGui.QStandardItem(_("n. a.")),  # noqa: F821
-                    QtGui.QStandardItem(_("n. a.")),  # noqa: F821
-                    QtGui.QStandardItem(_("n. a.")),  # noqa: F821
-                    QtGui.QStandardItem(_("n. a.")),  # noqa: F821
+                    QtGui.QStandardItem("n. a."),
+                    QtGui.QStandardItem("n. a."),
+                    QtGui.QStandardItem("n. a."),
+                    QtGui.QStandardItem("n. a."),
                     error_item,
                 ]
                 self.file_model.appendRow(measurement)
             for res in self.results:
                 measurement = [
-                    QtGui.QStandardItem(
-                        f"{res.meta['Date/time'].strftime(_('%Y-%m-%d'))}",  # noqa: F821
-                    ),
-                    QtGui.QStandardItem(
-                        f"{res.meta['Date/time'].strftime(_('%H:%M:%S'))}",  # noqa: F821
-                    ),
+                    QtGui.QStandardItem(f"{res.meta['Date/time'].strftime('%Y-%m-%d')}"),
+                    QtGui.QStandardItem(f"{res.meta['Date/time'].strftime('%H:%M:%S')}"),
                     QtGui.QStandardItem(f"{res.meta['Probe ID']}"),
                     QtGui.QStandardItem(f"{res.meta['Chip ID']}"),
                     QtGui.QStandardItem(""),
@@ -169,7 +163,7 @@ class ImportWidget(QtWidgets.QWidget):
             try:
                 session.query(Measurement).filter_by(checksum=checksum).one()
                 self.file_model.item(step + len(self.failed), 4).setText(
-                    _("Imported previously"),  # noqa: F821
+                    "Imported previously",
                 )
                 self.file_model.item(step + len(self.failed), 4).setIcon(
                     self.style().standardIcon(QtWidgets.QStyle.SP_DialogNoButton),
@@ -218,9 +212,7 @@ class ImportWidget(QtWidgets.QWidget):
                 measurement_id = meas.id
 
                 # Update UI
-                self.file_model.item(step + len(self.failed), 4).setText(
-                    _("Import successful"),  # noqa: F821
-                )
+                self.file_model.item(step + len(self.failed), 4).setText("Import successful")
                 self.file_model.item(step + len(self.failed), 4).setIcon(
                     self.style().standardIcon(QtWidgets.QStyle.SP_DialogYesButton),
                 )

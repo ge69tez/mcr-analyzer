@@ -220,9 +220,9 @@ class ResultModel(QtCore.QAbstractTableModel):
         elif section < self.chip.rowCount:
             return_value = string.ascii_uppercase[section]
         elif section == self.chip.rowCount:
-            return_value = _("Mean")  # noqa: F821
+            return_value = "Mean"
         elif section == self.chip.rowCount + 1:
-            return_value = _("Std.")  # noqa: F821
+            return_value = "Std."
 
         return return_value
 

@@ -31,53 +31,53 @@ class MeasurementWidget(QtWidgets.QWidget):
 
         layout.addWidget(self.tree)
 
-        group_box = QtWidgets.QGroupBox(_("Record data"))  # noqa: F821
+        group_box = QtWidgets.QGroupBox("Record data")
         form_layout = QtWidgets.QFormLayout()
         group_box.setLayout(form_layout)
         self.measurer = QtWidgets.QLineEdit()
-        form_layout.addRow(_("Measured by:"), self.measurer)  # noqa: F821
+        form_layout.addRow("Measured by:", self.measurer)
         self.device = QtWidgets.QLineEdit()
         self.device.setReadOnly(True)
-        form_layout.addRow(_("Device:"), self.device)  # noqa: F821
+        form_layout.addRow("Device:", self.device)
         self.timestamp = QtWidgets.QLineEdit()
         self.timestamp.setReadOnly(True)
-        form_layout.addRow(_("Date/Time:"), self.timestamp)  # noqa: F821
+        form_layout.addRow("Date/Time:", self.timestamp)
         self.chip = QtWidgets.QLineEdit()
-        form_layout.addRow(_("Chip ID:"), self.chip)  # noqa: F821
+        form_layout.addRow("Chip ID:", self.chip)
         self.sample = QtWidgets.QLineEdit()
-        form_layout.addRow(_("Sample ID:"), self.sample)  # noqa: F821
+        form_layout.addRow("Sample ID:", self.sample)
         self.notes = StatefulPlainTextEdit()
-        self.notes.setPlaceholderText(_("Please enter additional notes here."))  # noqa: F821
+        self.notes.setPlaceholderText("Please enter additional notes here.")
         self.notes.setMinimumWidth(250)
         self.notes.editing_finished.connect(self.update_notes)
-        form_layout.addRow(_("Notes:"), self.notes)  # noqa: F821
+        form_layout.addRow("Notes:", self.notes)
         form_layout.setRowWrapPolicy(QtWidgets.QFormLayout.WrapLongRows)
         self.cols = QtWidgets.QSpinBox()
-        form_layout.addRow(_("Number of Columns:"), self.cols)  # noqa: F821
+        form_layout.addRow("Number of Columns:", self.cols)
         self.rows = QtWidgets.QSpinBox()
-        form_layout.addRow(_("Number of Rows:"), self.rows)  # noqa: F821
+        form_layout.addRow("Number of Rows:", self.rows)
         self.spot_size = QtWidgets.QSpinBox()
-        form_layout.addRow(_("Spot size:"), self.spot_size)  # noqa: F821
+        form_layout.addRow("Spot size:", self.spot_size)
         self.spot_margin_horizontal = QtWidgets.QSpinBox()
         form_layout.addRow(
-            _("Horizontal Spot Distance:"),  # noqa: F821
+            "Horizontal Spot Distance:",
             self.spot_margin_horizontal,
         )
         self.spot_margin_vertical = QtWidgets.QSpinBox()
-        form_layout.addRow(_("Vert. Spot Distance:"), self.spot_margin_vertical)  # noqa: F821
+        form_layout.addRow("Vert. Spot Distance:", self.spot_margin_vertical)
         self.saveGridButton = QtWidgets.QPushButton(
-            _("Save grid and calculate results"),  # noqa: F821
+            "Save grid and calculate results",
         )
         self.saveGridButton.setDisabled(True)
         self.saveGridButton.clicked.connect(self.save_grid)
         form_layout.addRow(self.saveGridButton)
-        self.resetGridButton = QtWidgets.QPushButton(_("Reset grid"))  # noqa: F821
+        self.resetGridButton = QtWidgets.QPushButton("Reset grid")
         self.resetGridButton.setDisabled(True)
         self.resetGridButton.clicked.connect(self.reset_grid)
         form_layout.addRow(self.resetGridButton)
         layout.addWidget(group_box)
 
-        group_box = QtWidgets.QGroupBox(_("Visualization"))  # noqa: F821
+        group_box = QtWidgets.QGroupBox("Visualization")
         v_layout = QtWidgets.QVBoxLayout()
         group_box.setLayout(v_layout)
         # Visualization via multi-layered GraphicsScene
@@ -142,7 +142,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         else:
             self.measurer.clear()
         self.device.setText(measurement.device.serial)
-        self.timestamp.setText(measurement.timestamp.strftime(_("%Y-%m-%d %H:%M:%S")))  # noqa: F821
+        self.timestamp.setText(measurement.timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         self.chip.setText(measurement.chip.name)
         self.sample.setText(measurement.sample.name)
         # Disconnect all signals

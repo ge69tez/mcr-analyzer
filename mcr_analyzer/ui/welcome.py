@@ -17,12 +17,10 @@ from mcr_analyzer.database.database import Database
 class WelcomeWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        welcome_msg = _(  # noqa: F821
-            """<h1>Welcome to MCR-Analyzer</h1>
+        welcome_msg = """<h1>Welcome to MCR-Analyzer</h1>
 
             <p>You can create a new database or open an existing one.</p>
-            """,
-        )
+            """
 
         layout = QtWidgets.QVBoxLayout()
 
@@ -30,7 +28,7 @@ class WelcomeWidget(QtWidgets.QWidget):
         layout.addWidget(self.text)
         self.new_button = QtWidgets.QPushButton(
             self.style().standardIcon(QtWidgets.QStyle.SP_FileIcon),
-            _("Create &new database..."),  # noqa: F821
+            "Create &new database...",
         )
         self.new_button.setIconSize(QtCore.QSize(48, 48))
         self.new_button.clicked.connect(self.clicked_new_button)
@@ -38,7 +36,7 @@ class WelcomeWidget(QtWidgets.QWidget):
 
         self.open_button = QtWidgets.QPushButton(
             self.style().standardIcon(QtWidgets.QStyle.SP_DialogOpenButton),
-            _("&Open existing database..."),  # noqa: F821
+            "&Open existing database...",
         )
         self.open_button.setIconSize(QtCore.QSize(48, 48))
         self.open_button.clicked.connect(self.clicked_open_button)
@@ -53,9 +51,9 @@ class WelcomeWidget(QtWidgets.QWidget):
     def clicked_new_button(self):
         file_name, filter_name = QtWidgets.QFileDialog.getSaveFileName(
             self,
-            _("Store database as"),  # noqa: F821
+            "Store database as",
             None,
-            _("SQLite Database (*.sqlite)"),  # noqa: F821
+            "SQLite Database (*.sqlite)",
         )
         if file_name and filter_name:
             # Ensure file has an extension
@@ -86,9 +84,9 @@ class WelcomeWidget(QtWidgets.QWidget):
     def clicked_open_button(self):
         file_name, filter_name = QtWidgets.QFileDialog.getOpenFileName(
             self,
-            _("Select database"),  # noqa: F821
+            "Select database",
             None,
-            _("SQLite Database (*.sqlite)"),  # noqa: F821
+            "SQLite Database (*.sqlite)",
         )
         if file_name and filter_name:
             db = Database()

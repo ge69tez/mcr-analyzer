@@ -10,19 +10,16 @@ import sys
 
 from qtpy import QtWidgets
 
-from mcr_analyzer.i18n import setup_gettext
 from mcr_analyzer.ui.main_window import MainWindow
 
 
 class Analyzer(QtWidgets.QApplication):
-    def __init__(self, localedir):
+    def __init__(self):
         super().__init__(sys.argv)
 
         self.setOrganizationName("TranslaTUM")
         self.setOrganizationDomain("www.translatum.tum.de")  # cSpell:ignore translatum
         self.setApplicationName("MCR-Analyzer")
-
-        setup_gettext(localedir)
 
         self.window = MainWindow()
 
@@ -31,6 +28,6 @@ class Analyzer(QtWidgets.QApplication):
         return self.exec()
 
 
-def main(localedir=None):
-    analyzer = Analyzer(localedir)
+def main():
+    analyzer = Analyzer()
     sys.exit(analyzer.run())

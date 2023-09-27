@@ -22,7 +22,7 @@ from mcr_analyzer.ui.welcome import WelcomeWidget
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(_("MCR-Analyzer"))  # noqa: F821
+        self.setWindowTitle("MCR-Analyzer")
         self.tab_widget = QtWidgets.QTabWidget(self)
         self.setCentralWidget(self.tab_widget)
 
@@ -36,13 +36,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.create_status_bar()
         self.update_recent_files()
 
-        self.tab_widget.addTab(self.welcome_widget, _("&Welcome"))  # noqa: F821
-        self.tab_widget.addTab(self.import_widget, _("&Import measurements"))  # noqa: F821
-        self.tab_widget.addTab(
-            self.measurement_widget,
-            _("&Measurement && Data Entry"),  # noqa: F821
-        )
-        self.tab_widget.addTab(self.export_widget, _("&Export"))  # noqa: F821
+        self.tab_widget.addTab(self.welcome_widget, "&Welcome")
+        self.tab_widget.addTab(self.import_widget, "&Import measurements")
+        self.tab_widget.addTab(self.measurement_widget, "&Measurement && Data Entry")
+        self.tab_widget.addTab(self.export_widget, "&Export")
 
         self.welcome_widget.database_changed.connect(self.measurement_widget.switch_database)
         self.welcome_widget.database_changed.connect(self.update_recent_files)
@@ -71,38 +68,38 @@ class MainWindow(QtWidgets.QMainWindow):
         event.accept()
 
     def create_actions(self):
-        self.about_action = QtWidgets.QAction(_("&About"), self)  # noqa: F821
+        self.about_action = QtWidgets.QAction("&About", self)
         self.about_action.triggered.connect(self.show_about_dialog)
 
-        self.new_action = QtWidgets.QAction(_("Create &new database..."), self)  # noqa: F821
+        self.new_action = QtWidgets.QAction("Create &new database...", self)
         self.new_action.setShortcut(QtGui.QKeySequence.New)
-        self.new_action.setStatusTip(_("Create a new MCR-Analyzer database."))  # noqa: F821
+        self.new_action.setStatusTip("Create a new MCR-Analyzer database.")
         self.new_action.triggered.connect(self.welcome_widget.clicked_new_button)
 
-        self.open_action = QtWidgets.QAction(_("&Open existing database..."), self)  # noqa: F821
+        self.open_action = QtWidgets.QAction("&Open existing database...", self)
         self.open_action.setShortcut(QtGui.QKeySequence.Open)
-        self.open_action.setStatusTip(_("Open an existing MCR-Analyzer database."))  # noqa: F821
+        self.open_action.setStatusTip("Open an existing MCR-Analyzer database.")
         self.open_action.triggered.connect(self.welcome_widget.clicked_open_button)
 
-        self.quit_action = QtWidgets.QAction(_("&Quit"), self)  # noqa: F821
+        self.quit_action = QtWidgets.QAction("&Quit", self)
         self.quit_action.setShortcut(QtGui.QKeySequence.Quit)
-        self.quit_action.setStatusTip(_("Terminate the application."))  # noqa: F821
+        self.quit_action.setStatusTip("Terminate the application.")
         self.quit_action.triggered.connect(self.close)
 
     def create_menus(self):
-        file_menu = self.menuBar().addMenu(_("&File"))  # noqa: F821
+        file_menu = self.menuBar().addMenu("&File")
         file_menu.addAction(self.new_action)
         file_menu.addAction(self.open_action)
 
         file_menu.addSeparator()
-        self.recent_menu = file_menu.addMenu(_("Recently used databases"))  # noqa: F821
+        self.recent_menu = file_menu.addMenu("Recently used databases")
         file_menu.addSeparator()
 
         file_menu.addAction(self.quit_action)
 
         self.menuBar().addSeparator()
 
-        help_menu = self.menuBar().addMenu(_("&Help"))  # noqa: F821
+        help_menu = self.menuBar().addMenu("&Help")
         help_menu.addAction(self.about_action)
 
     def create_status_bar(self):
@@ -115,8 +112,7 @@ class MainWindow(QtWidgets.QMainWindow):
         QtWidgets.QMessageBox.about(
             self,
             f"About {self.windowTitle()}",
-            _(  # noqa: F821
-                """
+            """
                 <h1>MCR-Analyzer</h1>
 
                 <p>Copyright &copy; 2021 Martin Knopp,
@@ -144,7 +140,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
                 OTHER DEALINGS IN THE SOFTWARE.</p>
             """,
-            ),
         )
 
     def update_recent_files(self):
@@ -199,11 +194,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 recent_files.remove(str(file_name))
             settings.setValue("Session/Files", util.simplify_list(recent_files))
 
-            QtWidgets.QMessageBox.warning(
-                self,
-                _("File not found"),  # noqa: F821
-                _(file_name),  # noqa: F821
-            )
+            QtWidgets.QMessageBox.warning(self, "File not found", file_name)
 
     def switch_to_import(self):
         """Slot to show the import widget."""
