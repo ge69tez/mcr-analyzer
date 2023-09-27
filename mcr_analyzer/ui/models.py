@@ -267,7 +267,7 @@ class ResultModel(QtCore.QAbstractTableModel):
         if not result:
             if row == self.chip.rowCount:
                 return f"{self.means[column]:5.0f}"
-            elif row == self.chip.rowCount + 1:
+            if row == self.chip.rowCount + 1:
                 return f"{self.standard_deviations[column]:5.0f}"
             return None
 

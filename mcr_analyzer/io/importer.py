@@ -196,5 +196,4 @@ class RsltParser:
         match = re.match(r"X=(\d+)Y=(\d+)", string)
         if match:
             return int(match.group(1)), int(match.group(2))
-        else:
-            return None
+        return None
