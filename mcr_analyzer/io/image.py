@@ -45,7 +45,8 @@ class Image:
         elif header[0] in b"123456789" and header[1] in b"0123456789\n":
             self._read_txt()
         else:
-            raise TypeError("File does not seem to be either PNM or MCR ASCII.")
+            msg = "File does not seem to be either PNM or MCR ASCII."
+            raise TypeError(msg)
 
     @property
     def width(self):
@@ -103,13 +104,15 @@ class Image:
         else:
             max_value = 1
         if pnm_type[1] != "gray":
-            raise NotImplementedError("Only grayscale is supported at the moment.")
+            msg = "Only grayscale is supported at the moment."
+            raise NotImplementedError(msg)
         if max_value <= 255:
             data_type = "B"
         elif max_value < 2**16:
             data_type = "u2"
         else:
-            raise TypeError(f"PNM only supports values up to {2**16}.")
+            msg = f"PNM only supports values up to {2 ** 16}."
+            raise TypeError(msg)
         if encoding == "ascii":
             sep = " "
         else:
@@ -140,9 +143,8 @@ class Image:
         :param path: filename/path to be written
         """
         if self.data.dtype.itemsize > 2:
-            raise RuntimeError(
-                f"Unsupported data type '{self.data.dtype.name}', PGM supports uint8 and uint16.",
-            )
+            msg = f"Unsupported data type '{self.data.dtype.name}', PGM supports uint8 and uint16."
+            raise RuntimeError(msg)
         header = f"P5\n{self.width} {self.height}\n{2**(self.data.dtype.itemsize * 8) - 1}\n"
         with open(path, "wb") as f:
             f.write(header.encode("ascii"))

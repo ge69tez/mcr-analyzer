@@ -36,7 +36,7 @@ select = [
   "DTZ", # - flake8-datetimez # cSpell:ignore datetimez
   "T10", # - flake8-debugger
   "DJ",  # - flake8-django
-  #"EM",  # - flake8-errmsg # cSpell:ignore errmsg
+  "EM",  # - flake8-errmsg # cSpell:ignore errmsg
   "EXE", # - flake8-executable
   "FA",  # - flake8-future-annotations
   "ISC", # - flake8-implicit-str-concat # cSpell:ignore concat
