@@ -128,7 +128,7 @@ class MeasurementWidget(QtWidgets.QWidget):
             self.tree.resizeColumnToContents(i)
         self.tree.selectionModel().selectionChanged.connect(self.selection_changed)
 
-    def selection_changed(self, selected, deselected):
+    def selection_changed(self, selected, deselected):  # noqa: ARG002
         self.meas_id = selected.indexes()[0].internalPointer().data(3)
         if not self.meas_id:
             return

@@ -192,12 +192,12 @@ class ResultModel(QtCore.QAbstractTableModel):
         self.cache_valid = True
         self.last_update = 0
 
-    def rowCount(self, parent: QtCore.QModelIndex) -> int:  # noqa: N802
+    def rowCount(self, parent: QtCore.QModelIndex) -> int:  # noqa: N802, ARG002
         if not self.measurement:
             return 0
         return self.chip.rowCount + 2
 
-    def columnCount(self, parent: QtCore.QModelIndex) -> int:  # noqa: N802
+    def columnCount(self, parent: QtCore.QModelIndex) -> int:  # noqa: N802, ARG002
         if not self.measurement:
             return 0
         return self.chip.columnCount

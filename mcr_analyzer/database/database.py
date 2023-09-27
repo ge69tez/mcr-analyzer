@@ -19,7 +19,7 @@ Base = declarative_base()
 
 class Database:
     # Singleton as we want only one database engine throughout the program
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls):
         if not hasattr(cls, "_instance"):
             cls._instance = super().__new__(cls)
             cls._instance.initialized = False

@@ -56,7 +56,7 @@ select = [
   "TID",  # - flake8-tidy-imports
   "TCH",  # - flake8-type-checking
   "INT",  # - flake8-gettext # cSpell:ignore gettext
-  #"ARG", # - flake8-unused-arguments
+  "ARG",  # - flake8-unused-arguments
   #"PTH", # - flake8-use-pathlib # cSpell:ignore pathlib
   "TD",  # - flake8-todos # cSpell:ignore todos
   "FIX", # - flake8-fixme

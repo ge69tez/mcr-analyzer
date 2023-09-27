@@ -126,7 +126,7 @@ class GridItem(QtWidgets.QGraphicsItem):
             self.scene().moved_grid.emit()
         return super().itemChange(change, value)
 
-    def paint(self, painter, option, widget):
+    def paint(self, painter, option, widget):  # noqa: ARG002
         # All painting is done by our children
         return
 
