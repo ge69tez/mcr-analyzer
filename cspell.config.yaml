@@ -2,7 +2,7 @@ version: "0.2"
 ignorePaths:
   - .gitignore
   - .github/disabled-workflows/
-  - doc/
+  - docs/
 dictionaryDefinitions: []
 dictionaries: []
 words:
