@@ -111,7 +111,7 @@ class RsltParser:
             raise FileNotFoundError(ENOENT, "File does not exist", str(path))
             # cSpell:ignore ENOENT
 
-        with open(self.path, encoding="utf-8") as file:
+        with Path(self.path).open(encoding="utf-8") as file:
             identifier_pattern = re.compile(r"^([^:]+): (.*)$")
 
             # Read in first meta block

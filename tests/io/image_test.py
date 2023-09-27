@@ -8,6 +8,8 @@
 
 """Test module for io.images """
 
+from pathlib import Path
+
 import pytest
 
 from mcr_analyzer.io.image import Image
@@ -28,7 +30,7 @@ from mcr_analyzer.io.image import Image
 )
 def test_file(request, tmp_path_factory):
     file = tmp_path_factory.mktemp("data").joinpath(f"img.{request.param[0]}")
-    with open(file, "wb") as f:
+    with Path(file).open("wb") as f:
         f.write(request.param[1])
     return file
 

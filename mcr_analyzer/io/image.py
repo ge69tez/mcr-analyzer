@@ -21,21 +21,21 @@ class Image:
     has functions for writing all these formats as well.
     """
 
-    def __init__(self, fp=None):
+    def __init__(self, file_pointer=None):
         """
-        Initialize image object using data from *fp*.
+        Initialize image object using data from *file_pointer*.
 
-        :param fp: (File) pointer to image data, usually a filename.
-        :type fp: str, bytes, pathlib.Path, or file like.
+        :param file_pointer: (File) pointer to image data, usually a filename.
+        :type file_pointer: str, bytes, pathlib.Path, or file like.
         """
         self.img = None
         self._size = (0, 0)
 
         # Support file like objects and direct stream
-        if is_path(fp):
-            self.file = open(fp, "rb")  # noqa: SIM115
+        if is_path(file_pointer):
+            self.file = Path(file_pointer).open("rb")  # noqa: SIM115
         else:
-            self.file = fp
+            self.file = file_pointer
 
         # Identify file
         header = peek(self.file, length=2)
@@ -143,7 +143,7 @@ class Image:
             msg = f"Unsupported data type '{self.data.dtype.name}', PGM supports uint8 and uint16."
             raise RuntimeError(msg)
         header = f"P5\n{self.width} {self.height}\n{2**(self.data.dtype.itemsize * 8) - 1}\n"
-        with open(path, "wb") as f:
+        with Path(path).open("wb") as f:
             f.write(header.encode("ascii"))
             if self.data.dtype.itemsize == 2:
                 f.write(self.data.astype(">u2").tobytes())  # cSpell:ignore astype tobytes
@@ -164,7 +164,7 @@ class Image:
 
         :param path: filename/path to be written
         """
-        with open(path, "w", encoding="utf-8") as f:
+        with Path(path).open("w", encoding="utf-8") as f:
             # Write header (width, height and newline)
             f.write(f"{self.width}\n{self.height}\n\n")
             # Write image data

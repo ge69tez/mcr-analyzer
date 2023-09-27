@@ -57,12 +57,12 @@ select = [
   "TCH",  # - flake8-type-checking
   "INT",  # - flake8-gettext # cSpell:ignore gettext
   "ARG",  # - flake8-unused-arguments
-  #"PTH", # - flake8-use-pathlib # cSpell:ignore pathlib
-  "TD",  # - flake8-todos # cSpell:ignore todos
-  "FIX", # - flake8-fixme
-  "ERA", # - eradicate
-  "PD",  # - pandas-vet
-  "PGH", # - pygrep-hooks # cSpell:ignore pygrep
+  "PTH",  # - flake8-use-pathlib # cSpell:ignore pathlib
+  "TD",   # - flake8-todos # cSpell:ignore todos
+  "FIX",  # - flake8-fixme
+  "ERA",  # - eradicate
+  "PD",   # - pandas-vet
+  "PGH",  # - pygrep-hooks # cSpell:ignore pygrep
   #"PL",  # - Pylint
   #"TRY", # - tryceratops # cSpell:ignore tryceratops
   "FLY", # - flynt # cSpell:ignore flynt
