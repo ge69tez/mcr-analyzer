@@ -26,7 +26,6 @@ class Spot(metaclass=ABCMeta):
     @abstractmethod
     def value(self) -> float:
         """Return chemiluminescence value of the spot."""
-        pass
 
 
 class DeviceBuiltin(Spot):
