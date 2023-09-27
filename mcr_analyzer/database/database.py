@@ -49,7 +49,8 @@ class Database:
         self.base.metadata.drop_all(bind=self._engine)
         self.base.metadata.create_all(bind=self._engine)
 
-    def get_or_create(self, session, model, **kwargs):
+    @staticmethod
+    def get_or_create(session, model, **kwargs):
         instance = session.query(model).filter_by(**kwargs).one_or_none()
         if not instance:
             instance = model(**kwargs)

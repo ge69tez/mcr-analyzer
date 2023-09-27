@@ -108,7 +108,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def create_status_bar(self):
         self.statusBar()
 
-    def sizeHint(self):  # noqa: N802
+    def sizeHint(self):  # noqa: N802, PLR6301
         return QtCore.QSize(1700, 900)
 
     def show_about_dialog(self):

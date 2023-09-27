@@ -37,6 +37,8 @@ def test_file(request, tmp_path_factory):
 
 def test_image_read(test_file):
     img = Image(test_file)
-    assert img.width == 5
-    assert img.height == 3
+    image_width = 5
+    image_height = 3
+    assert img.width == image_width
+    assert img.height == image_height
     assert img.size == (5, 3)

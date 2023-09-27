@@ -96,25 +96,32 @@ class Image:
         self.file.seek(2)
         pnm_type = self._pnm_kind(pnm_kind)
         encoding = pnm_type[0]
+
         width = int(self._parse_header(rb"^\s*(\d+)\D+"))
         height = int(self._parse_header(rb"^\s*(\d+)\D+"))
+
         self._size = (width, height)
+
         max_value = int(self._parse_header(b"^\\s*(\\d+)\\D")) if pnm_type[1] != "bitmap" else 1
+
         if pnm_type[1] != "gray":
             msg = "Only grayscale is supported at the moment."
             raise NotImplementedError(msg)
-        if max_value <= 255:
+
+        if max_value < 2**8:
             data_type = "B"
         elif max_value < 2**16:
             data_type = "u2"
         else:
             msg = f"PNM only supports values up to {2 ** 16}."
             raise TypeError(msg)
+
         if encoding == "ascii":
             sep = " "
         else:
             sep = ""
             data_type = ">" + data_type
+
         self.data = np.fromfile(self.file, dtype=data_type, sep=sep).reshape(height, width)
         # cSpell:ignore dtype
 
@@ -139,13 +146,19 @@ class Image:
 
         :param path: filename/path to be written
         """
-        if self.data.dtype.itemsize > 2:
+
+        max_size_in_bytes = 2
+
+        if self.data.dtype.itemsize > max_size_in_bytes:
             msg = f"Unsupported data type '{self.data.dtype.name}', PGM supports uint8 and uint16."
             raise RuntimeError(msg)
+
         header = f"P5\n{self.width} {self.height}\n{2**(self.data.dtype.itemsize * 8) - 1}\n"
+
         with Path(path).open("wb") as f:
             f.write(header.encode("ascii"))
-            if self.data.dtype.itemsize == 2:
+
+            if self.data.dtype.itemsize == max_size_in_bytes:
                 f.write(self.data.astype(">u2").tobytes())  # cSpell:ignore astype tobytes
             else:
                 f.write(self.data.tobytes())

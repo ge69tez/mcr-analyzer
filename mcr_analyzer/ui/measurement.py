@@ -17,7 +17,7 @@ from mcr_analyzer.ui.models import MeasurementModel, ResultModel
 
 
 class MeasurementWidget(QtWidgets.QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None):  # noqa: PLR0915
         super().__init__(parent)
         self.meas_id = None
         self.model = None
@@ -128,7 +128,7 @@ class MeasurementWidget(QtWidgets.QWidget):
             self.tree.resizeColumnToContents(i)
         self.tree.selectionModel().selectionChanged.connect(self.selection_changed)
 
-    def selection_changed(self, selected, deselected):  # noqa: ARG002
+    def selection_changed(self, selected, deselected):  # noqa: ARG002, PLR0915
         self.meas_id = selected.indexes()[0].internalPointer().data(3)
         if not self.meas_id:
             return

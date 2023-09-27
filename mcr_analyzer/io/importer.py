@@ -25,7 +25,8 @@ class FileImporter:
     This function handles multi-image measurements by copying their base
     metadata and delaying each image by one second."""
 
-    def gather_measurements(self, path):
+    @staticmethod
+    def gather_measurements(path):
         measurements = []
         failed = []
         results = Path(path).glob("**/*.rslt")

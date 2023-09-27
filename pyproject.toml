@@ -63,7 +63,7 @@ select = [
   "ERA",  # - eradicate
   "PD",   # - pandas-vet
   "PGH",  # - pygrep-hooks # cSpell:ignore pygrep
-  #"PL",  # - Pylint
+  "PL",   # - Pylint
   #"TRY", # - tryceratops # cSpell:ignore tryceratops
   "FLY", # - flynt # cSpell:ignore flynt
   "NPY", # - NumPy-specific rules
@@ -85,7 +85,8 @@ namespace-packages = ["docs/"]
 
 [tool.ruff.per-file-ignores]
 "tests/*" = [
-  "S101", # - assert
+  "PLR6301", # - no-self-use
+  "S101",    # - assert
 ]
 
 [tool.pre-commit-update]

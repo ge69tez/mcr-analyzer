@@ -8,7 +8,7 @@
 
 """Test module for utils"""
 
-import mcr_analyzer.utils as utils
+from mcr_analyzer import utils
 
 
 class TestEnsureList:

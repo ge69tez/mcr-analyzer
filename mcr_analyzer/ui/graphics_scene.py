@@ -10,7 +10,7 @@ import string
 
 from qtpy import QtCore, QtGui, QtWidgets
 
-import mcr_analyzer.utils as utils
+from mcr_analyzer import utils
 from mcr_analyzer.database.database import Database
 from mcr_analyzer.database.models import Measurement, Result
 
@@ -25,7 +25,15 @@ class GraphicsMeasurementScene(QtWidgets.QGraphicsScene):
 class GraphicsRectTextItem(QtWidgets.QGraphicsRectItem):
     """Draws text on a rectangular background."""
 
-    def __init__(self, x: float, y: float, w: float, h: float, t: str, parent) -> None:
+    def __init__(  # noqa: PLR0913
+        self,
+        x: float,
+        y: float,
+        w: float,
+        h: float,
+        t: str,
+        parent,
+    ) -> None:
         super().__init__(x, y, w, h, parent)
         self.text = t
         self.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.white))
@@ -40,7 +48,7 @@ class GraphicsRectTextItem(QtWidgets.QGraphicsRectItem):
 class GraphicsSpotItem(QtWidgets.QGraphicsRectItem):
     """Draws spot marker and stores associated information."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         x: float,
         y: float,
@@ -126,7 +134,7 @@ class GridItem(QtWidgets.QGraphicsItem):
             self.scene().moved_grid.emit()
         return super().itemChange(change, value)
 
-    def paint(self, painter, option, widget):  # noqa: ARG002
+    def paint(self, painter, option, widget):  # noqa: ARG002, PLR6301
         # All painting is done by our children
         return
 
@@ -187,7 +195,7 @@ class GridItem(QtWidgets.QGraphicsItem):
                 spot = GraphicsSpotItem(x, y, self.size, self.size, col, row, self, valid=valid)
                 self.spots.append(spot)
 
-    def preview_settings(self, cols, rows, horizontal_space, vertical_space, size):
+    def preview_settings(self, cols, rows, horizontal_space, vertical_space, size):  # noqa: PLR0913
         self._clear_children()
         self.preview_mode = True
         self.cols = cols

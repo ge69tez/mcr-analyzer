@@ -8,7 +8,7 @@
 
 import sys
 
-from qtpy import QtCore, QtWidgets
+from qtpy import QtWidgets
 
 from mcr_analyzer.i18n import setup_gettext
 from mcr_analyzer.ui.main_window import MainWindow
@@ -28,12 +28,7 @@ class Analyzer(QtWidgets.QApplication):
 
     def run(self):
         self.window.show()
-        res = self.exec_()
-        self.exit()
-        return res
-
-    def exit(self):
-        QtCore.QCoreApplication.processEvents()
+        return self.exec()
 
 
 def main(localedir=None):

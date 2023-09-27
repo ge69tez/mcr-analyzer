@@ -123,7 +123,7 @@ class MeasurementModel(QtCore.QAbstractItemModel):
             return parent.internalPointer().columnCount()
         return self.root_item.column_count()
 
-    def data(self, index, role):
+    def data(self, index, role):  # noqa: PLR6301
         if not index.isValid():
             return None
         if role != QtCore.Qt.DisplayRole:
@@ -133,7 +133,7 @@ class MeasurementModel(QtCore.QAbstractItemModel):
 
         return item.data(index.column())
 
-    def flags(self, index):
+    def flags(self, index):  # noqa: PLR6301
         if not index.isValid():
             return QtCore.Qt.NoItemFlags
 
@@ -203,6 +203,8 @@ class ResultModel(QtCore.QAbstractTableModel):
         return self.chip.columnCount
 
     def headerData(self, section: int, orientation: QtCore.Qt.Orientation, role: int):  # noqa: N802
+        return_value = None
+
         if (
             role == QtCore.Qt.FontRole
             and orientation == QtCore.Qt.Vertical
@@ -210,18 +212,19 @@ class ResultModel(QtCore.QAbstractTableModel):
         ):
             font_bold = QtGui.QFont()
             font_bold.setBold(True)
-            return font_bold
-        if role != QtCore.Qt.DisplayRole:
-            return None
-        if orientation == QtCore.Qt.Horizontal:
-            return section + 1
-        if section < self.chip.rowCount:
-            return string.ascii_uppercase[section]
-        if section == self.chip.rowCount:
-            return _("Mean")  # noqa: F821
-        if section == self.chip.rowCount + 1:
-            return _("Std.")  # noqa: F821
-        return None
+            return_value = font_bold
+        elif role != QtCore.Qt.DisplayRole:
+            return_value = None
+        elif orientation == QtCore.Qt.Horizontal:
+            return_value = section + 1
+        elif section < self.chip.rowCount:
+            return_value = string.ascii_uppercase[section]
+        elif section == self.chip.rowCount:
+            return_value = _("Mean")  # noqa: F821
+        elif section == self.chip.rowCount + 1:
+            return_value = _("Std.")  # noqa: F821
+
+        return return_value
 
     def data(self, index: QtCore.QModelIndex, role: int):
         # Validate index
@@ -261,14 +264,16 @@ class ResultModel(QtCore.QAbstractTableModel):
         if role != QtCore.Qt.DisplayRole:
             return None
 
-        if not result:
-            if row == self.chip.rowCount:
-                return f"{self.means[column]:5.0f}"
-            if row == self.chip.rowCount + 1:
-                return f"{self.standard_deviations[column]:5.0f}"
-            return None
+        return_value = None
 
-        return f"{result.value if result.value else np.nan:5.0f}"
+        if result:
+            return_value = f"{result.value if result.value else np.nan:5.0f}"
+        elif row == self.chip.rowCount:
+            return_value = f"{self.means[column]:5.0f}"
+        elif row == self.chip.rowCount + 1:
+            return_value = f"{self.standard_deviations[column]:5.0f}"
+
+        return return_value
 
     def invalidate_cache(self):
         self.beginResetModel()
@@ -278,7 +283,10 @@ class ResultModel(QtCore.QAbstractTableModel):
 
     def update(self):
         # Limit DB queries to 500ms
-        if (time.monotonic() * 1000 - self.last_update <= 500) and self.cache_valid:
+        database_query_limit_in_milliseconds = 500
+        if (
+            time.monotonic() * 1000 - self.last_update <= database_query_limit_in_milliseconds
+        ) and self.cache_valid:
             return
 
         if not self.cache_valid:
