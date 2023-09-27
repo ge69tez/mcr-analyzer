@@ -90,10 +90,7 @@ class MeasurementModel(QtCore.QAbstractItemModel):
         if not self.hasIndex(row, column, parent):
             return QtCore.QModelIndex()
 
-        if not parent.isValid():
-            parent_item = self.root_item
-        else:
-            parent_item = parent.internalPointer()
+        parent_item = parent.internalPointer() if parent.isValid() else self.root_item
 
         child_item = parent_item.child(row)
         if child_item:
@@ -117,10 +114,7 @@ class MeasurementModel(QtCore.QAbstractItemModel):
         if parent.column() > 0:
             return 0
 
-        if not parent.isValid():
-            parent_item = self.root_item
-        else:
-            parent_item = parent.internalPointer()
+        parent_item = parent.internalPointer() if parent.isValid() else self.root_item
 
         return parent_item.child_count()
 
@@ -209,11 +203,14 @@ class ResultModel(QtCore.QAbstractTableModel):
         return self.chip.columnCount
 
     def headerData(self, section: int, orientation: QtCore.Qt.Orientation, role: int):  # noqa: N802
-        if role == QtCore.Qt.FontRole:
-            if orientation == QtCore.Qt.Vertical and section >= self.chip.rowCount:
-                font_bold = QtGui.QFont()
-                font_bold.setBold(True)
-                return font_bold
+        if (
+            role == QtCore.Qt.FontRole
+            and orientation == QtCore.Qt.Vertical
+            and section >= self.chip.rowCount
+        ):
+            font_bold = QtGui.QFont()
+            font_bold.setBold(True)
+            return font_bold
         if role != QtCore.Qt.DisplayRole:
             return None
         if orientation == QtCore.Qt.Horizontal:

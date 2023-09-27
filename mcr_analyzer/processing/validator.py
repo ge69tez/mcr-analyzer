@@ -77,4 +77,4 @@ class SpotReaderValidator(Validator):
             if abs(self.data[i] - mean) < self.cutoff * mean:
                 close_vals.append(i)
 
-        return [True if i in close_vals else False for i in range(len(self.data))]
+        return [i in close_vals for i in range(len(self.data))]

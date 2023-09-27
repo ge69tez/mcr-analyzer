@@ -6,6 +6,7 @@
 # This program is free software, see the LICENSE file in the root of this
 # repository for details
 
+import contextlib
 from pathlib import Path
 
 from qtpy import QtCore, QtGui, QtWidgets
@@ -194,10 +195,8 @@ class MainWindow(QtWidgets.QMainWindow):
             settings = QtCore.QSettings()
             recent_files = util.ensure_list(settings.value("Session/Files"))
 
-            try:
+            with contextlib.suppress(ValueError):
                 recent_files.remove(str(file_name))
-            except ValueError:
-                pass
             settings.setValue("Session/Files", util.simplify_list(recent_files))
 
             QtWidgets.QMessageBox.warning(

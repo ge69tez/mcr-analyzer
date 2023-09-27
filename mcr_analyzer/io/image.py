@@ -33,7 +33,7 @@ class Image:
 
         # Support file like objects and direct stream
         if is_path(fp):
-            self.file = open(fp, "rb")
+            self.file = open(fp, "rb")  # noqa: SIM115
         else:
             self.file = fp
 
@@ -99,10 +99,7 @@ class Image:
         width = int(self._parse_header(rb"^\s*(\d+)\D+"))
         height = int(self._parse_header(rb"^\s*(\d+)\D+"))
         self._size = (width, height)
-        if pnm_type[1] != "bitmap":
-            max_value = int(self._parse_header(rb"^\s*(\d+)\D"))
-        else:
-            max_value = 1
+        max_value = int(self._parse_header(b"^\\s*(\\d+)\\D")) if pnm_type[1] != "bitmap" else 1
         if pnm_type[1] != "gray":
             msg = "Only grayscale is supported at the moment."
             raise NotImplementedError(msg)
