@@ -64,9 +64,7 @@ class SpotReaderValidator(Validator):
         for i in range(1, len(self.data) - 2):
             delta = self.data[indices[i + 2]] - self.data[indices[i]]
             if min_delta > delta:
-                close_vals.clear()
-                for j in range(i, i + 3):
-                    close_vals.append(indices[j])
+                close_vals = [indices[j] for j in range(i, i + 3)]
                 min_delta = delta
 
         mean = sum([self.data[i] for i in close_vals]) / len(close_vals)

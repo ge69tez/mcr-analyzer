@@ -68,7 +68,7 @@ select = [
   "FLY",  # - flynt # cSpell:ignore flynt
   "NPY",  # - NumPy-specific rules
   "AIR",  # - Airflow
-  #"PERF", # - Perflint # cSpell:ignore Perflint
+  "PERF", # - Perflint # cSpell:ignore Perflint
   "FURB", # - refurb # cSpell:ignore FURB refurb
   "LOG",  # - flake8-logging
   "RUF",  # - Ruff-specific rules

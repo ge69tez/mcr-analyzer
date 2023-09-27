@@ -143,9 +143,7 @@ class RsltParser:
             columns = range(1, self._meta["X"] + 1)
             rows = range(self._meta["Y"] + 1)
             # Read in result table
-            results = []
-            for _ in rows:
-                results.append(file.readline())
+            results = [file.readline() for _ in rows]
             self._results = np.genfromtxt(results, dtype=np.uint16, skip_header=1, usecols=columns)
             # cSpell:ignore genfromtxt usecols
 
