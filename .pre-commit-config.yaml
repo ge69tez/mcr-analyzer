@@ -1,23 +1,23 @@
 repos:
   - repo: https://gitlab.com/vojko.pribudic/pre-commit-update
-    rev: v0.0.9
+    rev: v0.1.0
     hooks:
       - id: pre-commit-update
 
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.5
+    rev: v2.2.6
     hooks:
       - id: codespell # cSpell:ignore codespell
         additional_dependencies:
           - tomli # cSpell:ignore tomli
 
   - repo: https://github.com/streetsidesoftware/cspell-cli
-    rev: v7.3.0
+    rev: v7.3.1
     hooks:
       - id: cspell
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.291
+    rev: v0.0.292
     hooks:
       - id: ruff
         args:
@@ -60,12 +60,12 @@ repos:
       - id: blacken-docs
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: 1.1.0
+    rev: 1.2.0
     hooks:
       - id: pyproject-fmt # cSpell:ignore pyproject
 
   - repo: https://github.com/asottile/setup-cfg-fmt
-    rev: v2.4.0
+    rev: v2.5.0
     hooks:
       - id: setup-cfg-fmt
         additional_dependencies:
