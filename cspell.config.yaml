@@ -9,8 +9,9 @@ words:
   - Knopp
   - numpy
   - pylint
+  - pyqt
   - pytest
-  - qtpy
+  - pytz
   - RSLT
   - setuptools
   - sqlalchemy

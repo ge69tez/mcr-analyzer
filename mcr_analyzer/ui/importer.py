@@ -2,7 +2,7 @@ import hashlib
 
 import numpy as np
 import sqlalchemy
-from qtpy import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 from mcr_analyzer.database.database import Database
 from mcr_analyzer.database.models import Chip, Device, Measurement, Sample
@@ -18,8 +18,8 @@ class ImportWidget(QtWidgets.QWidget):
     in a separate thread.
     """
 
-    import_finished = QtCore.Signal()
-    database_missing = QtCore.Signal()
+    import_finished = QtCore.pyqtSignal()
+    database_missing = QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -36,7 +36,9 @@ class ImportWidget(QtWidgets.QWidget):
         self.setLayout(layout)
 
         self.path_button = QtWidgets.QPushButton(
-            self.style().standardIcon(QtWidgets.QStyle.SP_DirOpenIcon),
+            self.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_DirOpenIcon,  # cSpell:ignore Pixmap
+            ),
             "Select Folder...",
         )
         self.path_button.setIconSize(QtCore.QSize(48, 48))
@@ -48,7 +50,7 @@ class ImportWidget(QtWidgets.QWidget):
         layout.addWidget(self.path_button)
 
         self.import_button = QtWidgets.QPushButton(
-            self.style().standardIcon(QtWidgets.QStyle.SP_DialogSaveButton),
+            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton),
             "Import into Database",
         )
         self.import_button.setIconSize(QtCore.QSize(48, 48))
@@ -79,7 +81,7 @@ class ImportWidget(QtWidgets.QWidget):
             return
 
         dialog = QtWidgets.QFileDialog(self)
-        dialog.setFileMode(QtWidgets.QFileDialog.Directory)
+        dialog.setFileMode(QtWidgets.QFileDialog.FileMode.Directory)
         if dialog.exec():
             self.dirs = dialog.selectedFiles()
             self.measurements_table.show()
@@ -117,7 +119,9 @@ class ImportWidget(QtWidgets.QWidget):
                 error_item = QtGui.QStandardItem(
                     f"Failed to load '{res}', might be a corrupted file.",
                 )
-                error_item.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_DialogNoButton))
+                error_item.setIcon(
+                    self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogNoButton),
+                )
                 measurement = [
                     QtGui.QStandardItem("n. a."),
                     QtGui.QStandardItem("n. a."),
@@ -158,7 +162,7 @@ class ImportWidget(QtWidgets.QWidget):
                     "Imported previously",
                 )
                 self.file_model.item(step + len(self.failed), 4).setIcon(
-                    self.style().standardIcon(QtWidgets.QStyle.SP_DialogNoButton),
+                    self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogNoButton),
                 )
 
             except sqlalchemy.orm.exc.NoResultFound:
@@ -206,7 +210,7 @@ class ImportWidget(QtWidgets.QWidget):
                 # Update UI
                 self.file_model.item(step + len(self.failed), 4).setText("Import successful")
                 self.file_model.item(step + len(self.failed), 4).setIcon(
-                    self.style().standardIcon(QtWidgets.QStyle.SP_DialogYesButton),
+                    self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogYesButton),
                 )
 
         if measurement_id:
@@ -225,8 +229,8 @@ class ChecksumWorker(QtCore.QObject):
         super().__init__(parent)
         self.results = results
 
-    finished = QtCore.Signal()
-    progress = QtCore.Signal(int, bytes)
+    finished = QtCore.pyqtSignal()
+    progress = QtCore.pyqtSignal(int, bytes)
 
     def run(self):
         """Start processing."""

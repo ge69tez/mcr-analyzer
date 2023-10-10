@@ -1,5 +1,5 @@
 import numpy as np
-from qtpy import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 from mcr_analyzer.database.database import Database
 from mcr_analyzer.database.models import Measurement, Result
@@ -43,7 +43,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.notes.setMinimumWidth(250)
         self.notes.editing_finished.connect(self.update_notes)
         form_layout.addRow("Notes:", self.notes)
-        form_layout.setRowWrapPolicy(QtWidgets.QFormLayout.WrapLongRows)
+        form_layout.setRowWrapPolicy(QtWidgets.QFormLayout.RowWrapPolicy.WrapLongRows)
         self.cols = QtWidgets.QSpinBox()
         form_layout.addRow("Number of Columns:", self.cols)
         self.rows = QtWidgets.QSpinBox()
@@ -99,7 +99,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         current_date = settings.value("Session/SelectedDate", None)
         if current_date:
             root = self.model.index(0, 0, QtCore.QModelIndex())
-            matches = self.model.match(root, QtCore.Qt.DisplayRole, current_date)
+            matches = self.model.match(root, QtCore.Qt.ItemDataRole.DisplayRole, current_date)
             for idx in matches:
                 self.tree.expand(idx)
 
@@ -110,7 +110,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         current_date = settings.value("Session/SelectedDate", None)
         if current_date:
             root = self.model.index(0, 0, QtCore.QModelIndex())
-            matches = self.model.match(root, QtCore.Qt.DisplayRole, current_date)
+            matches = self.model.match(root, QtCore.Qt.ItemDataRole.DisplayRole, current_date)
             for idx in matches:
                 self.tree.expand(idx)
 
@@ -177,9 +177,9 @@ class MeasurementWidget(QtWidgets.QWidget):
             img.astype("uint8"),
             696,
             520,
-            QtGui.QImage.Format_Grayscale8,
+            QtGui.QImage.Format.Format_Grayscale8,
             # cSpell:ignore astype
-        ).convertToFormat(QtGui.QImage.Format_RGB32)
+        ).convertToFormat(QtGui.QImage.Format.Format_RGB32)
 
         self.result_model = ResultModel(self.meas_id)
         self.results.setModel(self.result_model)
@@ -317,14 +317,14 @@ class StatefulPlainTextEdit(QtWidgets.QPlainTextEdit):
             self._content = self.toPlainText()
             self.editing_finished.emit()
 
-    editing_finished = QtCore.Signal()
+    editing_finished = QtCore.pyqtSignal()
 
     def focusInEvent(self, event):  # noqa: N802
-        if event.reason() != QtCore.Qt.PopupFocusReason:
+        if event.reason() != QtCore.Qt.FocusReason.PopupFocusReason:
             self._content = self.toPlainText()
         super().focusInEvent(event)
 
     def focusOutEvent(self, event):  # noqa: N802
-        if event.reason() != QtCore.Qt.PopupFocusReason:
+        if event.reason() != QtCore.Qt.FocusReason.PopupFocusReason:
             self.check_changes()
         super().focusOutEvent(event)

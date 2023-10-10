@@ -1,7 +1,7 @@
 import contextlib
 from pathlib import Path
 
-from qtpy import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 import mcr_analyzer.utils as util
 from mcr_analyzer.database.database import Database
@@ -60,21 +60,21 @@ class MainWindow(QtWidgets.QMainWindow):
         event.accept()
 
     def create_actions(self):
-        self.about_action = QtWidgets.QAction("&About", self)
+        self.about_action = QtGui.QAction("&About", self)
         self.about_action.triggered.connect(self.show_about_dialog)
 
-        self.new_action = QtWidgets.QAction("Create &new database...", self)
-        self.new_action.setShortcut(QtGui.QKeySequence.New)
+        self.new_action = QtGui.QAction("Create &new database...", self)
+        self.new_action.setShortcut(QtGui.QKeySequence.StandardKey.New)
         self.new_action.setStatusTip("Create a new MCR-Analyzer database.")
         self.new_action.triggered.connect(self.welcome_widget.clicked_new_button)
 
-        self.open_action = QtWidgets.QAction("&Open existing database...", self)
-        self.open_action.setShortcut(QtGui.QKeySequence.Open)
+        self.open_action = QtGui.QAction("&Open existing database...", self)
+        self.open_action.setShortcut(QtGui.QKeySequence.StandardKey.Open)
         self.open_action.setStatusTip("Open an existing MCR-Analyzer database.")
         self.open_action.triggered.connect(self.welcome_widget.clicked_open_button)
 
-        self.quit_action = QtWidgets.QAction("&Quit", self)
-        self.quit_action.setShortcut(QtGui.QKeySequence.Quit)
+        self.quit_action = QtGui.QAction("&Quit", self)
+        self.quit_action.setShortcut(QtGui.QKeySequence.StandardKey.Quit)
         self.quit_action.setStatusTip("Terminate the application.")
         self.quit_action.triggered.connect(self.close)
 
@@ -147,7 +147,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 except (KeyError, RuntimeError, ValueError):
                     menu_entry = str(path)
 
-                action = QtWidgets.QAction(menu_entry, self.recent_menu)
+                action = QtGui.QAction(menu_entry, self.recent_menu)
                 action.setData(str(path))
                 action.triggered.connect(self.open_recent_file)
                 self.recent_menu.addAction(action)

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import sqlalchemy.exc
-from qtpy import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 from mcr_analyzer.config import TZ_INFO
 from mcr_analyzer.database.database import Database
@@ -55,7 +55,9 @@ class ExportWidget(QtWidgets.QWidget):
         layout.addWidget(preview_group, 1)
 
         self.export_button = QtWidgets.QPushButton(
-            self.style().standardIcon(QtWidgets.QStyle.SP_DialogSaveButton),
+            self.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton,  # cSpell:ignore Pixmap
+            ),
             "Export as...",
         )
         self.export_button.clicked.connect(self.clicked_export_button)
@@ -187,7 +189,7 @@ class FilterWidget(QtWidgets.QWidget):
 
         self.setLayout(layout)
 
-    filter_updated = QtCore.Signal()
+    filter_updated = QtCore.pyqtSignal()
 
     def __str__(self):
         return f"{self.target.currentData()}, {self.comparator.currentData()}, {self.value.text()}"

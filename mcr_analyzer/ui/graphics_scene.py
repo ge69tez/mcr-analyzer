@@ -1,6 +1,6 @@
 import string
 
-from qtpy import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 from mcr_analyzer import utils
 from mcr_analyzer.database.database import Database
@@ -10,8 +10,8 @@ from mcr_analyzer.database.models import Measurement, Result
 class GraphicsMeasurementScene(QtWidgets.QGraphicsScene):
     """Adds event handlers to QGraphicsScene."""
 
-    changed_validity = QtCore.Signal(int, int, bool)
-    moved_grid = QtCore.Signal()
+    changed_validity = QtCore.pyqtSignal(int, int, bool)
+    moved_grid = QtCore.pyqtSignal()
 
 
 class GraphicsRectTextItem(QtWidgets.QGraphicsRectItem):
@@ -34,7 +34,11 @@ class GraphicsRectTextItem(QtWidgets.QGraphicsRectItem):
     def paint(self, painter: QtGui.QPainter, option, widget) -> None:
         super().paint(painter, option, widget)
         painter.setPen(QtCore.Qt.GlobalColor.black)
-        painter.drawText(option.rect, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter, self.text)
+        painter.drawText(
+            option.rect,
+            QtCore.Qt.AlignmentFlag.AlignHCenter | QtCore.Qt.AlignmentFlag.AlignVCenter,
+            self.text,
+        )
 
 
 class GraphicsSpotItem(QtWidgets.QGraphicsRectItem):
@@ -58,20 +62,20 @@ class GraphicsSpotItem(QtWidgets.QGraphicsRectItem):
         self.valid = valid
         self.pen = QtGui.QPen(QtCore.Qt.GlobalColor.red)
         if not self.valid:
-            self.pen.setStyle(QtCore.Qt.DotLine)
+            self.pen.setStyle(QtCore.Qt.PenStyle.DotLine)
         self.setPen(self.pen)
 
     def mousePressEvent(self, event):  # noqa: N802
-        if event.button() == QtCore.Qt.RightButton:
+        if event.button() == QtCore.Qt.MouseButton.RightButton:
             self.valid = not self.valid
             scene = self.scene()
             if scene is not None and isinstance(scene, GraphicsMeasurementScene):
                 scene.changed_validity.emit(self.row, self.col, self.valid)
             if self.valid:
-                self.pen.setStyle(QtCore.Qt.SolidLine)
+                self.pen.setStyle(QtCore.Qt.PenStyle.SolidLine)
                 self.setPen(self.pen)
             else:
-                self.pen.setStyle(QtCore.Qt.DotLine)
+                self.pen.setStyle(QtCore.Qt.PenStyle.DotLine)
                 self.setPen(self.pen)
         super().mousePressEvent(event)
 
@@ -100,8 +104,8 @@ class GridItem(QtWidgets.QGraphicsItem):
         self.spots = []
         self.c_headers = []
         self.r_headers = []
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges)
         self.pen_width = 1.0
 
         self.preview_mode = False
@@ -122,7 +126,7 @@ class GridItem(QtWidgets.QGraphicsItem):
         )
 
     def itemChange(self, change, value):  # noqa: N802
-        if change == QtWidgets.QGraphicsItem.ItemPositionChange and self.scene():
+        if change == QtWidgets.QGraphicsItem.GraphicsItemChange.ItemPositionChange and self.scene():
             self.scene().moved_grid.emit()
         return super().itemChange(change, value)
 

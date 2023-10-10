@@ -43,16 +43,16 @@ jobs:
           pip install pyinstaller PySide6 .
       - name: Build application
         run: |
-          pyinstaller -F -w analyzer.py
+          pyinstaller --onefile --noconsole mcr_analyzer/mcr_analyzer.py
       - name: Determine version number
         id: create-version
         run: |
           $RELEASE_VERSION = (${env:GITHUB_REF_NAME}).Trim("v", " ")
-          Move-Item ./dist/analyzer.exe ./dist/analyzer-${RELEASE_VERSION}.exe
+          Move-Item ./dist/mcr_analyzer.exe ./dist/mcr_analyzer-${RELEASE_VERSION}.exe
       - name: Archive binaries
         uses: actions/upload-artifact@v3
         with:
-          name: analyzer-win64
+          name: mcr_analyzer-win64
           path: dist/*.exe
 
   release:
@@ -65,7 +65,7 @@ jobs:
           ref: ${{ github.ref }}
       - uses: actions/download-artifact@v3
         with:
-          name: analyzer-win64
+          name: mcr_analyzer-win64
           path: artifacts/
       - name: Determine version number
         id: create-version

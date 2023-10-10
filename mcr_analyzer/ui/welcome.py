@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from qtpy import QtCore, QtWidgets
+from PyQt6 import QtCore, QtWidgets
 
 import mcr_analyzer.utils as util
 from mcr_analyzer.database.database import Database
@@ -19,7 +19,9 @@ class WelcomeWidget(QtWidgets.QWidget):
         self.text = QtWidgets.QLabel(welcome_msg)
         layout.addWidget(self.text)
         self.new_button = QtWidgets.QPushButton(
-            self.style().standardIcon(QtWidgets.QStyle.SP_FileIcon),
+            self.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_FileIcon,  # cSpell:ignore Pixmap
+            ),
             "Create &new database...",
         )
         self.new_button.setIconSize(QtCore.QSize(48, 48))
@@ -27,7 +29,7 @@ class WelcomeWidget(QtWidgets.QWidget):
         layout.addWidget(self.new_button)
 
         self.open_button = QtWidgets.QPushButton(
-            self.style().standardIcon(QtWidgets.QStyle.SP_DialogOpenButton),
+            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogOpenButton),
             "&Open existing database...",
         )
         self.open_button.setIconSize(QtCore.QSize(48, 48))
@@ -36,9 +38,9 @@ class WelcomeWidget(QtWidgets.QWidget):
 
         self.setLayout(layout)
 
-    database_changed = QtCore.Signal()
-    database_created = QtCore.Signal()
-    database_opened = QtCore.Signal()
+    database_changed = QtCore.pyqtSignal()
+    database_created = QtCore.pyqtSignal()
+    database_opened = QtCore.pyqtSignal()
 
     def clicked_new_button(self):
         file_name, filter_name = QtWidgets.QFileDialog.getSaveFileName(

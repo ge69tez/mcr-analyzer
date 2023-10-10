@@ -4,7 +4,7 @@ import time
 
 import numpy as np
 import sqlalchemy
-from qtpy import QtCore, QtGui
+from PyQt6 import QtCore, QtGui
 
 from mcr_analyzer.database.database import Database
 from mcr_analyzer.database.models import Measurement, Result
@@ -118,7 +118,7 @@ class MeasurementModel(QtCore.QAbstractItemModel):
     def data(self, index, role):  # noqa: PLR6301
         if not index.isValid():
             return None
-        if role != QtCore.Qt.DisplayRole:
+        if role != QtCore.Qt.ItemDataRole.DisplayRole:
             return None
 
         item = index.internalPointer()
@@ -127,12 +127,15 @@ class MeasurementModel(QtCore.QAbstractItemModel):
 
     def flags(self, index):  # noqa: PLR6301
         if not index.isValid():
-            return QtCore.Qt.NoItemFlags
+            return QtCore.Qt.ItemFlag.NoItemFlags
 
-        return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
+        return QtCore.Qt.ItemFlag.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsSelectable
 
     def headerData(self, section, orientation, role):  # noqa: N802
-        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
+        if (
+            orientation == QtCore.Qt.Orientation.Horizontal
+            and role == QtCore.Qt.ItemDataRole.DisplayRole
+        ):
             return self.root_item.data(section)
 
         return None
@@ -198,16 +201,16 @@ class ResultModel(QtCore.QAbstractTableModel):
         return_value = None
 
         if (
-            role == QtCore.Qt.FontRole
-            and orientation == QtCore.Qt.Vertical
+            role == QtCore.Qt.ItemDataRole.FontRole
+            and orientation == QtCore.Qt.Orientation.Vertical
             and section >= self.chip.rowCount
         ):
             font_bold = QtGui.QFont()
             font_bold.setBold(True)
             return_value = font_bold
-        elif role != QtCore.Qt.DisplayRole:
+        elif role != QtCore.Qt.ItemDataRole.DisplayRole:
             return_value = None
-        elif orientation == QtCore.Qt.Horizontal:
+        elif orientation == QtCore.Qt.Orientation.Horizontal:
             return_value = section + 1
         elif section < self.chip.rowCount:
             return_value = string.ascii_uppercase[section]
@@ -235,17 +238,16 @@ class ResultModel(QtCore.QAbstractTableModel):
 
         # Adjust to the right
         match role:
-            case QtCore.Qt.TextAlignmentRole:
-                # Cast to int because of https://bugreports.qt.io/browse/PYSIDE-20
-                return int(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+            case QtCore.Qt.ItemDataRole.TextAlignmentRole:
+                return QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
 
             # Font modifications for statistics and values
-            case QtCore.Qt.FontRole:
+            case QtCore.Qt.ItemDataRole.FontRole:
                 if row >= self.chip.rowCount:
                     font_bold = QtGui.QFont()
                     font_bold.setBold(True)
                     return font_bold
-            case QtCore.Qt.ForegroundRole:
+            case QtCore.Qt.ItemDataRole.ForegroundRole:
                 if result:
                     return QtGui.QBrush(
                         QtCore.Qt.GlobalColor.darkGreen
@@ -253,7 +255,7 @@ class ResultModel(QtCore.QAbstractTableModel):
                         else QtCore.Qt.GlobalColor.darkRed,
                     )
 
-        if role != QtCore.Qt.DisplayRole:
+        if role != QtCore.Qt.ItemDataRole.DisplayRole:
             return None
 
         return_value = None
