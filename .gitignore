@@ -414,6 +414,7 @@ tmp/
 
 # - Data
 data/*.sqlite
+data/
 
 # - Ignore personal preference
 .envrc
