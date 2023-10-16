@@ -1,7 +1,7 @@
 name: Build and Release
 
 env:
-  PYTHON_VERSION: "3.10"
+  PYTHON_VERSION: "3.11"
   UPX_VERSION: "3.96"
 
 on:
