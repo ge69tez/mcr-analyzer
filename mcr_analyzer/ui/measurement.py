@@ -95,24 +95,14 @@ class MeasurementWidget(QtWidgets.QWidget):
 
     def refresh_database(self):
         self.model.refresh_model()
-        settings = QtCore.QSettings()
-        current_date = settings.value("Session/SelectedDate", None)
-        if current_date:
-            root = self.model.index(0, 0, QtCore.QModelIndex())
-            matches = self.model.match(root, QtCore.Qt.ItemDataRole.DisplayRole, current_date)
-            for idx in matches:
-                self.tree.expand(idx)
+
+        self._expand_rows_with_selected_date()
 
     def switch_database(self):
         self.model = MeasurementModel()
         self.tree.setModel(self.model)
-        settings = QtCore.QSettings()
-        current_date = settings.value("Session/SelectedDate", None)
-        if current_date:
-            root = self.model.index(0, 0, QtCore.QModelIndex())
-            matches = self.model.match(root, QtCore.Qt.ItemDataRole.DisplayRole, current_date)
-            for idx in matches:
-                self.tree.expand(idx)
+
+        self._expand_rows_with_selected_date()
 
         # Work around https://bugreports.qt.io/browse/QTBUG-52307:
         # resize all columns except the last one individually
@@ -194,9 +184,9 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.image.setPixmap(QtGui.QPixmap.fromImage(q_image))
 
         # Store date of last used measurement for expanding tree on next launch
-        settings = QtCore.QSettings()
         parent_index = selected.indexes()[0].parent()
         if parent_index.isValid:
+            settings = QtCore.QSettings()
             settings.setValue("Session/SelectedDate", parent_index.data())
 
     def preview_grid(self):
@@ -305,6 +295,15 @@ class MeasurementWidget(QtWidgets.QWidget):
             start = self.result_model.index(row, col)
             end = self.result_model.index(self.result_model.rowCount(None), col)
             self.result_model.dataChanged.emit(start, end)
+
+    def _expand_rows_with_selected_date(self):
+        settings = QtCore.QSettings()
+        current_date = settings.value("Session/SelectedDate", None)
+        if current_date:
+            root = self.model.index(0, 0, QtCore.QModelIndex())
+            matches = self.model.match(root, QtCore.Qt.ItemDataRole.DisplayRole, current_date)
+            for idx in matches:
+                self.tree.expand(idx)
 
 
 class StatefulPlainTextEdit(QtWidgets.QPlainTextEdit):

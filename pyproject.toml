@@ -79,7 +79,7 @@ unfixable = [ # cSpell:ignore unfixable
 ]
 ignore = [
   "E203",   # - whitespace-before-punctuation
-  "FBT003", # - boolean-positional-value-in-call - "arg__1" in "PySide6.QtWidgets.QWidget.setDisabled(arg__1)"
+  "FBT003", # - boolean-positional-value-in-call - "arg__1" in "QtWidgets.QWidget.setDisabled(arg__1)"
 ]
 namespace-packages = ["docs/"]
 
@@ -87,6 +87,11 @@ namespace-packages = ["docs/"]
 "tests/*" = [
   "PLR6301", # - no-self-use
   "S101",    # - assert
+]
+
+[tool.ruff.flake8-bugbear]
+extend-immutable-calls = [
+  "PyQt6.QtCore.QModelIndex", # - Allow default arguments like "parent: QModelIndex = QModelIndex()".
 ]
 
 [tool.pre-commit-update]

@@ -14,7 +14,9 @@ from mcr_analyzer.ui.welcome import WelcomeWidget
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
+
         self.setWindowTitle("MCR-Analyzer")
+
         self.tab_widget = QtWidgets.QTabWidget(self)
         self.setCentralWidget(self.tab_widget)
 
@@ -40,24 +42,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.import_widget.database_missing.connect(self.switch_to_welcome)
         self.import_widget.import_finished.connect(self.measurement_widget.refresh_database)
 
-        # Open last active database
-        settings = QtCore.QSettings()
-        recent_files = util.ensure_list(settings.value("Session/Files"))
-        try:
-            path = Path(recent_files[0])
-            if path.exists():
-                db = Database()
-                db.connect_database(f"sqlite:///{path}")
-                self.measurement_widget.switch_database()
-                # Only restore the last tab if we can open the database
-                self.tab_widget.setCurrentIndex(settings.value("Session/ActiveTab", 0, int))
-        except IndexError:
-            pass
+        self.restore_settings()
 
     def closeEvent(self, event: QtGui.QCloseEvent):  # noqa: N802
-        settings = QtCore.QSettings()
-        settings.setValue("Session/ActiveTab", self.tab_widget.currentIndex())
+        self.save_settings()
         event.accept()
+
+    def sizeHint(self):  # noqa: N802, PLR6301
+        return QtCore.QSize(1700, 900)
 
     def create_actions(self):
         self.about_action = QtGui.QAction("&About", self)
@@ -96,43 +88,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def create_status_bar(self):
         self.statusBar()
-
-    def sizeHint(self):  # noqa: N802, PLR6301
-        return QtCore.QSize(1700, 900)
-
-    def show_about_dialog(self):
-        QtWidgets.QMessageBox.about(
-            self,
-            f"About {self.windowTitle()}",
-            """
-                <h1>MCR-Analyzer</h1>
-
-                <p>Copyright &copy; 2021 Martin Knopp,
-                Technical University of Munich</p>
-
-                <p>Permission is hereby granted, free of charge, to any person
-                obtaining a copy of this software and associated documentation
-                files (the "Software"), to deal in the Software without
-                restriction, including without limitation the rights to use,
-                copy, modify, merge, publish, distribute, sublicense, and/or
-                sell copies of the Software, and to permit persons to whom the
-                Software is furnished to do so, subject to the following
-                conditions:</p>
-
-                <p>The above copyright notice and this permission notice shall
-                be included in all copies or substantial portions of the
-                Software.</p>
-
-                <p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
-                KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
-                WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE
-                AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-                HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-                WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-                FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-                OTHER DEALINGS IN THE SOFTWARE.</p>
-            """,
-        )
 
     def update_recent_files(self):
         self.recent_menu.clear()
@@ -199,3 +154,68 @@ class MainWindow(QtWidgets.QMainWindow):
     def switch_to_welcome(self):
         """Slot to show the welcome widget."""
         self.tab_widget.setCurrentWidget(self.welcome_widget)
+
+    def show_about_dialog(self):
+        QtWidgets.QMessageBox.about(
+            self,
+            f"About {self.windowTitle()}",
+            """
+                <h1>MCR-Analyzer</h1>
+
+                <p>Copyright &copy; 2021 Martin Knopp,
+                Technical University of Munich</p>
+
+                <p>Permission is hereby granted, free of charge, to any person
+                obtaining a copy of this software and associated documentation
+                files (the "Software"), to deal in the Software without
+                restriction, including without limitation the rights to use,
+                copy, modify, merge, publish, distribute, sublicense, and/or
+                sell copies of the Software, and to permit persons to whom the
+                Software is furnished to do so, subject to the following
+                conditions:</p>
+
+                <p>The above copyright notice and this permission notice shall
+                be included in all copies or substantial portions of the
+                Software.</p>
+
+                <p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+                KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+                WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE
+                AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+                HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+                WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+                FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+                OTHER DEALINGS IN THE SOFTWARE.</p>
+            """,
+        )
+
+    def save_settings(self):
+        settings = QtCore.QSettings()
+        settings.beginGroup("MainWindow")
+        settings.setValue("ActiveTab", self.tab_widget.currentIndex())
+        settings.setValue("Geometry", self.saveGeometry())
+        settings.setValue("WindowState", self.saveState())
+        settings.endGroup()
+
+    def restore_settings(self) -> None:
+        settings = QtCore.QSettings()
+        settings.beginGroup("MainWindow")
+        geometry: QtCore.QByteArray = settings.value("Geometry")
+        window_state: QtCore.QByteArray = settings.value("WindowState")
+        settings.endGroup()
+
+        if geometry:
+            self.restoreGeometry(geometry)
+
+        if window_state:
+            self.restoreState(window_state)
+
+        recent_files = util.ensure_list(settings.value("Session/Files"))
+        if len(recent_files) > 0:
+            path = Path(recent_files[0])
+            if path.exists():
+                db = Database()
+                db.connect_database(f"sqlite:///{path}")
+                self.measurement_widget.switch_database()
+                # Only restore the last tab if we can open the database
+                self.tab_widget.setCurrentIndex(settings.value("MainWindow/ActiveTab", 0, int))

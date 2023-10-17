@@ -59,18 +59,7 @@ class WelcomeWidget(QtWidgets.QWidget):
             db.connect_database(f"sqlite:///{file_name}")
             db.empty_and_init_db()
 
-            # Update recent files
-            settings = QtCore.QSettings()
-            recent_files = util.ensure_list(settings.value("Session/Files"))
-            recent_files.insert(0, str(file_name))
-            recent_files = util.ensure_list(util.remove_duplicates(recent_files))
-
-            settings.setValue(
-                "Session/Files",
-                util.simplify_list(
-                    recent_files[0 : settings.value("Preferences/MaxRecentFiles", 5)],
-                ),
-            )
+            _update_settings_recent_files(file_name)
 
             self.database_changed.emit()
             self.database_created.emit()
@@ -86,18 +75,22 @@ class WelcomeWidget(QtWidgets.QWidget):
             db = Database()
             db.connect_database(f"sqlite:///{file_name}")
 
-            # Update recent files
-            settings = QtCore.QSettings()
-            recent_files = util.ensure_list(settings.value("Session/Files"))
-            recent_files.insert(0, str(file_name))
-            recent_files = util.ensure_list(util.remove_duplicates(recent_files))
-
-            settings.setValue(
-                "Session/Files",
-                util.simplify_list(
-                    recent_files[0 : settings.value("Preferences/MaxRecentFiles", 5)],
-                ),
-            )
+            _update_settings_recent_files(file_name)
 
             self.database_changed.emit()
             self.database_opened.emit()
+
+
+def _update_settings_recent_files(file_name):
+    settings = QtCore.QSettings()
+    recent_files = util.ensure_list(settings.value("Session/Files"))
+
+    recent_files.insert(0, str(file_name))
+    recent_files = util.ensure_list(util.remove_duplicates(recent_files))
+
+    settings.setValue(
+        "Session/Files",
+        util.simplify_list(
+            recent_files[0 : settings.value("Preferences/MaxRecentFiles", 5)],
+        ),
+    )
