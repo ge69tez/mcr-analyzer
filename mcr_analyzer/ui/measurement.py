@@ -19,8 +19,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.setLayout(layout)
 
         self.tree = QtWidgets.QTreeView()
-        self.tree.setUniformRowHeights(True)
-
+        self.tree.header().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
         layout.addWidget(self.tree)
 
         group_box = QtWidgets.QGroupBox("Record data")
@@ -106,10 +105,6 @@ class MeasurementWidget(QtWidgets.QWidget):
 
         self._expand_rows_with_selected_date()
 
-        # Work around https://bugreports.qt.io/browse/QTBUG-52307:
-        # resize all columns except the last one individually
-        for i in range(self.model.columnCount()):
-            self.tree.resizeColumnToContents(i)
         self.tree.selectionModel().selectionChanged.connect(self.selection_changed)
 
     @QtCore.pyqtSlot(QtCore.QItemSelection, QtCore.QItemSelection)

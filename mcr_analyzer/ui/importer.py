@@ -61,6 +61,9 @@ class ImportWidget(QtWidgets.QWidget):
         self.measurements_table = QtWidgets.QTableView()
         self.measurements_table.verticalHeader().hide()
         self.measurements_table.horizontalHeader().setStretchLastSection(True)
+        self.measurements_table.horizontalHeader().setSectionResizeMode(
+            QtWidgets.QHeaderView.ResizeMode.ResizeToContents,
+        )
         self.measurements_table.hide()
         layout.addWidget(self.measurements_table)
 
@@ -148,10 +151,6 @@ class ImportWidget(QtWidgets.QWidget):
                 self.file_model.appendRow(measurement)
 
         self.measurements_table.setModel(self.file_model)
-        # Work around https://bugreports.qt.io/browse/QTBUG-52307:
-        # resize all columns except the last one individually
-        for i in range(self.file_model.columnCount() - 1):
-            self.measurements_table.resizeColumnToContents(i)
 
         self.progress_bar.setValue(0)
 
