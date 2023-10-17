@@ -304,29 +304,39 @@ class MeasurementWidget(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot()
     def update_notes(self):
-        if self.meas_id:
-            db = Database()
-            session = db.Session()
-            note = self.notes.toPlainText()
-            # Set column to NULL if text is empty
-            if not note:
-                note = None
-            session.query(Measurement).filter_by(id=self.meas_id).update({Measurement.notes: note})
-            session.commit()
+        if not self.meas_id:
+            return
+
+        db = Database()
+        session = db.Session()
+
+        note = self.notes.toPlainText()
+
+        # Set column to NULL if text is empty
+        if not note:
+            note = None
+
+        session.query(Measurement).filter_by(id=self.meas_id).update({Measurement.notes: note})
+        session.commit()
 
     @QtCore.pyqtSlot(int, int, bool)
     def update_validity(self, row, col, valid):
-        if self.meas_id:
-            db = Database()
-            session = db.Session()
-            session.query(Result).filter_by(measurementID=self.meas_id, column=col, row=row).update(
-                {Result.valid: valid},
-            )
-            session.commit()
-            # Tell views about change
-            start = self.result_model.index(row, col)
-            end = self.result_model.index(self.result_model.rowCount(None), col)
-            self.result_model.dataChanged.emit(start, end)
+        if not self.meas_id:
+            return
+
+        db = Database()
+
+        session = db.Session()
+        session.query(Result).filter_by(measurementID=self.meas_id, column=col, row=row).update(
+            {Result.valid: valid},
+        )
+        session.commit()
+
+        # Tell views about change
+        start = self.result_model.index(row, col)
+        end = self.result_model.index(self.result_model.rowCount(None), col)
+
+        self.result_model.dataChanged.emit(start, end)
 
     def _expand_rows_with_selected_date(self):
         settings = QtCore.QSettings()

@@ -184,7 +184,10 @@ class RsltParser:
 
     @staticmethod
     def _parse_spot_coordinates(string: str):
+        return_value = None
+
         match = re.match(r"X=(\d+)Y=(\d+)", string)
         if match:
-            return int(match.group(1)), int(match.group(2))
-        return None
+            return_value = int(match.group(1)), int(match.group(2))
+
+        return return_value

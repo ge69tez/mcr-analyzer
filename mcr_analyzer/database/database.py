@@ -53,6 +53,4 @@ class Database:
     @property
     def valid(self):
         """Is the database setup correctly?"""
-        if self._engine:
-            return True
-        return False
+        return bool(self._engine)
