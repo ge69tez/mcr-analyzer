@@ -5,7 +5,7 @@ from mcr_analyzer.database.database import Database
 from mcr_analyzer.database.models import Measurement, Result
 from mcr_analyzer.processing.measurement import Measurement as MeasurementProcessor
 from mcr_analyzer.ui.graphics_scene import GraphicsMeasurementScene, GridItem
-from mcr_analyzer.ui.models import MeasurementModel, ResultModel
+from mcr_analyzer.ui.models import MeasurementTreeModel, ResultTableModel
 
 
 class MeasurementWidget(QtWidgets.QWidget):
@@ -100,7 +100,7 @@ class MeasurementWidget(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot()
     def switch_database(self):
-        self.model = MeasurementModel()
+        self.model = MeasurementTreeModel()
         self.tree.setModel(self.model)
 
         self._expand_rows_with_selected_date()
@@ -177,7 +177,7 @@ class MeasurementWidget(QtWidgets.QWidget):
             # cSpell:ignore astype
         ).convertToFormat(QtGui.QImage.Format.Format_RGB32)
 
-        self.result_model = ResultModel(self.meas_id)
+        self.result_model = ResultTableModel(self.meas_id)
         self.results.setModel(self.result_model)
         self.results.resizeColumnsToContents()
 

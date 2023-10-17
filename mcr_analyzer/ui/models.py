@@ -1,6 +1,7 @@
 import datetime
 import string
 import time
+import typing
 
 import numpy as np
 import sqlalchemy
@@ -10,175 +11,228 @@ from mcr_analyzer.database.database import Database
 from mcr_analyzer.database.models import Measurement, Result
 
 
-class MeasurementItem:
-    def __init__(self, data: list | None = None, parent=None):
-        self.parentItem = parent
-        self._data = data
-        self.children = []
+class MeasurementTreeItem:
+    def __init__(
+        self,
+        tree_item_data: list,
+        parent_tree_item: typing.Self | None = None,
+    ):
+        self._tree_item_data = tree_item_data
+        self._parent_tree_item = parent_tree_item
+        self._child_tree_items: list[MeasurementTreeItem] = []
 
-    def child_append(self, item):
-        self.children.append(item)
+    def append_child_tree_item(self, child_tree_item: typing.Self):
+        self.get_child_tree_items().append(child_tree_item)
 
-    def child(self, row):
-        try:
-            return self.children[row]
-        except IndexError:
-            return None
+    def get_child_tree_item(self, row: int):
+        child_tree_items = self.get_child_tree_items()
 
-    def child_count(self):
-        return len(self.children)
+        return_value: typing.Self | None = None
+
+        if 0 <= row < len(child_tree_items):
+            return_value = child_tree_items[row]
+
+        return return_value
+
+    def child_tree_items_count(self):
+        return len(self.get_child_tree_items())
 
     def row(self):
-        if self.parentItem:
-            return self.parentItem.children.index(self)
-        return 0
+        return_value = 0
+
+        parent_tree_item = self.get_parent_tree_item()
+        if parent_tree_item:
+            return_value = parent_tree_item.get_child_tree_items().index(self)
+
+        return return_value
 
     def column_count(self):
-        return len(self._data)
+        return len(self.get_tree_item_data())
 
-    def data(self, column):
-        try:
-            return self._data[column]
-        except IndexError:
-            return None
+    def data(self, column: int):
+        child_tree_items = self.get_tree_item_data()
 
-    def parent(self):
-        return self.parentItem
+        return_value: typing.Any = None
+
+        if 0 <= column < len(child_tree_items):
+            return_value = child_tree_items[column]
+
+        return return_value
+
+    def get_parent_tree_item(self):
+        return self._parent_tree_item
+
+    def get_child_tree_items(self):
+        return self._child_tree_items
+
+    def get_tree_item_data(self):
+        return self._tree_item_data
 
 
-class MeasurementModel(QtCore.QAbstractItemModel):
-    def __init__(self, parent=None):
+class MeasurementTreeModel(QtCore.QAbstractItemModel):
+    def __init__(self, parent: QtCore.QObject | None = None):
         super().__init__(parent)
-        self.root_item = MeasurementItem(["Date/Time", "Chip", "Sample"])
 
         self.db = Database()
         self.session = self.db.Session()
-        for day in self.session.query(Measurement).group_by(
-            sqlalchemy.func.strftime("%Y-%m-%d", Measurement.timestamp),
-        ):
-            child = MeasurementItem([str(day.timestamp.date()), None, None], self.root_item)
-            self.root_item.child_append(child)
-            for result in (
-                self.session.query(Measurement)
-                .filter(Measurement.timestamp >= day.timestamp.date())
-                .filter(
-                    Measurement.timestamp
-                    <= datetime.datetime.combine(day.timestamp, datetime.time.max),
-                )
-            ):
-                child.child_append(
-                    MeasurementItem(
-                        [
-                            result.timestamp.time().strftime("%H:%M:%S"),
-                            result.chip.name,
-                            result.sample.name,
-                            result.id,
-                        ],
-                        child,
-                    ),
-                )
 
-    def index(self, row, column, parent):
+        header_row = ["Date/Time", "Chip", "Sample"]
+        self._root_tree_item = MeasurementTreeItem(header_row)
+
+        self._setup_model_data()
+
+    def index(
+        self,
+        row: int,
+        column: int,
+        parent: QtCore.QModelIndex = QtCore.QModelIndex(),
+    ):
         if not self.hasIndex(row, column, parent):
             return QtCore.QModelIndex()
 
-        parent_item = parent.internalPointer() if parent.isValid() else self.root_item
+        return_value = QtCore.QModelIndex()
 
-        child_item = parent_item.child(row)
-        if child_item:
-            return self.createIndex(row, column, child_item)
+        parent_tree_item = self._get_tree_item(parent)
+        if parent_tree_item:
+            child_tree_item = parent_tree_item.get_child_tree_item(row)
+            if child_tree_item:
+                return_value = self.createIndex(row, column, child_tree_item)
 
-        return QtCore.QModelIndex()
+        return return_value
 
-    def parent(self, index):
-        if not index.isValid():
+    @typing.overload
+    def parent(self, child: QtCore.QModelIndex) -> QtCore.QModelIndex:
+        ...
+
+    @typing.overload
+    # - https://www.riverbankcomputing.com/static/Docs/PyQt6/api/qtcore/qabstractitemmodel.html#parent
+    def parent(self) -> QtCore.QObject:
+        ...
+
+    def parent(
+        self,
+        child: QtCore.QModelIndex = QtCore.QModelIndex(),
+    ):
+        if not child.isValid():
             return QtCore.QModelIndex()
 
-        child_item = index.internalPointer()
-        parent_item = child_item.parent()
+        return_value = QtCore.QModelIndex()
 
-        if parent_item == self.root_item:
-            return QtCore.QModelIndex()
+        child_tree_item = self._get_tree_item(child)
+        if child_tree_item:
+            parent_tree_item = child_tree_item.get_parent_tree_item()
+            if parent_tree_item and parent_tree_item != self._root_tree_item:
+                return_value = self.createIndex(parent_tree_item.row(), 0, parent_tree_item)
 
-        return self.createIndex(parent_item.row(), 0, parent_item)
+        return return_value
 
-    def rowCount(self, parent):  # noqa: N802
-        if parent.column() > 0:
-            return 0
+    def rowCount(self, parent: QtCore.QModelIndex = QtCore.QModelIndex()):  # noqa: N802
+        return_value = 0
 
-        parent_item = parent.internalPointer() if parent.isValid() else self.root_item
+        if parent.column() <= 0:
+            parent_tree_item = self._get_tree_item(parent)
+            if parent_tree_item:
+                return_value = parent_tree_item.child_tree_items_count()
 
-        return parent_item.child_count()
+        return return_value
 
-    def columnCount(self, parent=None):  # noqa: N802
-        if parent and parent.isValid():
-            return parent.internalPointer().columnCount()
-        return self.root_item.column_count()
+    def columnCount(self, parent: QtCore.QModelIndex = QtCore.QModelIndex()):  # noqa: N802
+        parent_tree_item = self._get_tree_item(parent)
 
-    def data(self, index, role):  # noqa: PLR6301
+        return parent_tree_item.column_count()
+
+    def data(
+        self,
+        index: QtCore.QModelIndex,
+        role: int = QtCore.Qt.ItemDataRole.DisplayRole,
+    ):
         if not index.isValid():
             return None
-        if role != QtCore.Qt.ItemDataRole.DisplayRole:
-            return None
 
-        item = index.internalPointer()
+        return_value: typing.Any = None
 
-        return item.data(index.column())
+        match role:
+            case QtCore.Qt.ItemDataRole.DisplayRole:
+                tree_item = self._get_tree_item(index)
+                return_value = tree_item.data(index.column())
 
-    def flags(self, index):  # noqa: PLR6301
-        if not index.isValid():
-            return QtCore.Qt.ItemFlag.NoItemFlags
+        return return_value
 
-        return QtCore.Qt.ItemFlag.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsSelectable
+    def headerData(  # noqa: N802
+        self,
+        section: int,
+        orientation: QtCore.Qt.Orientation,
+        role: int = QtCore.Qt.ItemDataRole.DisplayRole,
+    ):
+        return_value: typing.Any = None
 
-    def headerData(self, section, orientation, role):  # noqa: N802
-        if (
-            orientation == QtCore.Qt.Orientation.Horizontal
-            and role == QtCore.Qt.ItemDataRole.DisplayRole
-        ):
-            return self.root_item.data(section)
+        match role:
+            case QtCore.Qt.ItemDataRole.DisplayRole:
+                match orientation:
+                    case QtCore.Qt.Orientation.Horizontal:
+                        return_value = self._root_tree_item.data(section)
 
-        return None
+        return return_value
 
     def refresh_model(self):
         self.beginResetModel()
 
-        self.root_item = MeasurementItem(["Date/Time", "Chip", "Sample"])
+        self._setup_model_data()
 
+        self.endResetModel()
+
+    def _get_tree_item(self, index: QtCore.QModelIndex) -> MeasurementTreeItem:
+        return_value: MeasurementTreeItem = self._root_tree_item
+
+        if index.isValid():
+            tree_item = index.internalPointer()
+            if tree_item:
+                return_value = tree_item
+
+        return return_value
+
+    def _setup_model_data(self):
         for day in self.session.query(Measurement).group_by(
             sqlalchemy.func.strftime("%Y-%m-%d", Measurement.timestamp),
         ):
-            child = MeasurementItem([str(day.timestamp.date()), None, None], self.root_item)
-            self.root_item.child_append(child)
+            date_row_tree_item = MeasurementTreeItem(
+                [str(day.timestamp.date()), None, None],
+                self._root_tree_item,
+            )
+
+            self._root_tree_item.append_child_tree_item(date_row_tree_item)
+
             for result in (
                 self.session.query(Measurement)
-                .filter(Measurement.timestamp >= day.timestamp.date())
+                .filter(day.timestamp.date() <= Measurement.timestamp)
                 .filter(
+                    # - Before the same day at 23:59:59
                     Measurement.timestamp
                     <= datetime.datetime.combine(day.timestamp, datetime.time.max),
                 )
             ):
-                child.child_append(
-                    MeasurementItem(
+                date_row_tree_item.append_child_tree_item(
+                    MeasurementTreeItem(
                         [
                             result.timestamp.time().strftime("%H:%M:%S"),
                             result.chip.name,
                             result.sample.name,
                             result.id,
                         ],
-                        child,
+                        date_row_tree_item,
                     ),
                 )
-        self.endResetModel()
 
 
-class ResultModel(QtCore.QAbstractTableModel):
-    def __init__(self, id_: int, parent: QtCore.QObject = None):
+class ResultTableModel(QtCore.QAbstractTableModel):
+    def __init__(self, id: int, parent: QtCore.QObject | None = None):
         super().__init__(parent)
+
         self.db = Database()
         self.session = self.db.Session()
+
         self.measurement = (
-            self.session.query(Measurement).filter(Measurement.id == id_).one_or_none()
+            self.session.query(Measurement).filter(Measurement.id == id).one_or_none()
         )
         self.chip = self.measurement.chip
         self.results = None
@@ -187,85 +241,107 @@ class ResultModel(QtCore.QAbstractTableModel):
         self.cache_valid = True
         self.last_update = 0
 
-    def rowCount(self, parent: QtCore.QModelIndex) -> int:  # noqa: N802, ARG002
+    def rowCount(self, parent: QtCore.QModelIndex = QtCore.QModelIndex()):  # noqa: N802, ARG002
         if not self.measurement:
             return 0
+
+        # - 2 additional rows:
+        #   - Mean
+        #   - Standard deviation
         return self.chip.rowCount + 2
 
-    def columnCount(self, parent: QtCore.QModelIndex) -> int:  # noqa: N802, ARG002
+    def columnCount(self, parent: QtCore.QModelIndex = QtCore.QModelIndex()):  # noqa: N802, ARG002
         if not self.measurement:
             return 0
+
         return self.chip.columnCount
 
-    def headerData(self, section: int, orientation: QtCore.Qt.Orientation, role: int):  # noqa: N802
-        return_value = None
-
-        if (
-            role == QtCore.Qt.ItemDataRole.FontRole
-            and orientation == QtCore.Qt.Orientation.Vertical
-            and section >= self.chip.rowCount
-        ):
-            font_bold = QtGui.QFont()
-            font_bold.setBold(True)
-            return_value = font_bold
-        elif role != QtCore.Qt.ItemDataRole.DisplayRole:
-            return_value = None
-        elif orientation == QtCore.Qt.Orientation.Horizontal:
-            return_value = section + 1
-        elif section < self.chip.rowCount:
-            return_value = string.ascii_uppercase[section]
-        elif section == self.chip.rowCount:
-            return_value = "Mean"
-        elif section == self.chip.rowCount + 1:
-            return_value = "Std."
-
-        return return_value
-
-    def data(self, index: QtCore.QModelIndex, role: int):
-        # Validate index
+    def data(
+        self,
+        index: QtCore.QModelIndex,
+        role: int = QtCore.Qt.ItemDataRole.DisplayRole,
+    ):
         if not index.isValid():
             return None
 
-        row = index.row()
-        column = index.column()
+        row_index = index.row()
+        column_index = index.column()
+
+        row_index_max = self.chip.rowCount - 1
 
         # Refresh results
+        #
         self.update()
-        if row < self.results.shape[0] and column < self.results.shape[1]:
-            result = self.results[row][column]
-        else:
-            result = None
 
-        # Adjust to the right
+        result = None
+
+        if row_index < self.results.shape[0] and column_index < self.results.shape[1]:
+            result = self.results[row_index][column_index]
+
+        return_value: typing.Any = None
+
         match role:
-            case QtCore.Qt.ItemDataRole.TextAlignmentRole:
-                return QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
-
-            # Font modifications for statistics and values
-            case QtCore.Qt.ItemDataRole.FontRole:
-                if row >= self.chip.rowCount:
-                    font_bold = QtGui.QFont()
-                    font_bold.setBold(True)
-                    return font_bold
-            case QtCore.Qt.ItemDataRole.ForegroundRole:
+            case QtCore.Qt.ItemDataRole.DisplayRole:
                 if result:
-                    return QtGui.QBrush(
-                        QtCore.Qt.GlobalColor.darkGreen
-                        if result.valid
-                        else QtCore.Qt.GlobalColor.darkRed,
-                    )
+                    return_value = f"{result.value if result.value else np.nan:5.0f}"
 
-        if role != QtCore.Qt.ItemDataRole.DisplayRole:
-            return None
+                elif row_index == row_index_max + 1:
+                    return_value = f"{self.means[column_index]:5.0f}"
 
-        return_value = None
+                elif row_index == row_index_max + 2:
+                    return_value = f"{self.standard_deviations[column_index]:5.0f}"
 
-        if result:
-            return_value = f"{result.value if result.value else np.nan:5.0f}"
-        elif row == self.chip.rowCount:
-            return_value = f"{self.means[column]:5.0f}"
-        elif row == self.chip.rowCount + 1:
-            return_value = f"{self.standard_deviations[column]:5.0f}"
+            # - Set font bold for 2 additional rows:
+            #   - Mean
+            #   - Standard deviation
+            case QtCore.Qt.ItemDataRole.FontRole if row_index_max < row_index:
+                return_value = _get_qtgui_qfont_bold()
+
+            case QtCore.Qt.ItemDataRole.ForegroundRole if result:
+                color = (
+                    QtCore.Qt.GlobalColor.darkGreen
+                    if result.valid
+                    else QtCore.Qt.GlobalColor.darkRed
+                )
+                return_value = QtGui.QBrush(color)
+
+            case QtCore.Qt.ItemDataRole.TextAlignmentRole:
+                return_value = (
+                    QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
+                )
+
+        return return_value
+
+    def headerData(  # noqa: N802
+        self,
+        section: int,
+        orientation: QtCore.Qt.Orientation,
+        role: int = QtCore.Qt.ItemDataRole.DisplayRole,
+    ):
+        row_index_max = self.chip.rowCount - 1
+
+        return_value: typing.Any = None
+
+        match role:
+            case QtCore.Qt.ItemDataRole.DisplayRole:
+                match orientation:
+                    case QtCore.Qt.Orientation.Horizontal:
+                        return_value = section + 1
+
+                    case QtCore.Qt.Orientation.Vertical:
+                        if section <= row_index_max:
+                            return_value = string.ascii_uppercase[section]
+
+                        elif section == row_index_max + 1:
+                            return_value = "Mean"
+
+                        elif section == row_index_max + 2:
+                            return_value = "Std."
+
+            case QtCore.Qt.ItemDataRole.FontRole if (
+                orientation == QtCore.Qt.Orientation.Vertical and row_index_max < section
+            ):
+                return_value = _get_qtgui_qfont_bold()
 
         return return_value
 
@@ -287,21 +363,23 @@ class ResultModel(QtCore.QAbstractTableModel):
             self.session.expire(self.measurement.chip)
             self.cache_valid = True
 
-        rows = self.chip.rowCount
-        cols = self.chip.columnCount
-        self.results = np.empty([rows, cols], dtype=object)  # cSpell:ignore dtype
-        self.means = np.empty([cols])
-        self.standard_deviations = np.empty([cols])
+        row_count = self.chip.rowCount
+        column_count = self.chip.columnCount
 
-        for row in range(rows):
-            for col in range(cols):
+        self.results = np.empty([row_count, column_count], dtype=object)  # cSpell:ignore dtype
+
+        self.means = np.empty([column_count])
+        self.standard_deviations = np.empty([column_count])
+
+        for row in range(row_count):
+            for col in range(column_count):
                 self.results[row][col] = (
                     self.session.query(Result)
                     .filter_by(measurement=self.measurement, column=col, row=row)
                     .one_or_none()
                 )
 
-        for col in range(cols):
+        for col in range(column_count):
             values = list(
                 self.session.query(Result)
                 .filter(
@@ -317,3 +395,9 @@ class ResultModel(QtCore.QAbstractTableModel):
             # cSpell:ignore ddof
 
         self.last_update = time.monotonic() * 1000
+
+
+def _get_qtgui_qfont_bold():  # cSpell:ignore qtgui qfont
+    font_bold = QtGui.QFont()
+    font_bold.setBold(True)
+    return font_bold
