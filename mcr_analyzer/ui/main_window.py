@@ -35,10 +35,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tab_widget.addTab(self.measurement_widget, "&Measurement && Data Entry")
         self.tab_widget.addTab(self.export_widget, "&Export")
 
-        self.welcome_widget.database_changed.connect(self.measurement_widget.switch_database)
-        self.welcome_widget.database_changed.connect(self.update_recent_files)
         self.welcome_widget.database_created.connect(self.switch_to_import)
         self.welcome_widget.database_opened.connect(self.switch_to_measurement)
+        self.welcome_widget.database_changed.connect(self.measurement_widget.switch_database)
+        self.welcome_widget.database_changed.connect(self.update_recent_files)
+
         self.import_widget.database_missing.connect(self.switch_to_welcome)
         self.import_widget.import_finished.connect(self.measurement_widget.refresh_database)
 
@@ -89,6 +90,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def create_status_bar(self):
         self.statusBar()
 
+    @QtCore.pyqtSlot()
     def update_recent_files(self):
         self.recent_menu.clear()
         settings = QtCore.QSettings()
@@ -112,8 +114,10 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.recent_menu.setEnabled(True)
 
+    @QtCore.pyqtSlot()
     def open_recent_file(self):
         file_name = Path(self.sender().data())
+
         if file_name.exists():
             db = Database()
             db.connect_database(f"sqlite:///{file_name}")
@@ -132,6 +136,7 @@ class MainWindow(QtWidgets.QMainWindow):
             )
             self.measurement_widget.switch_database()
             self.switch_to_measurement()
+
         else:
             # Update recent files
             settings = QtCore.QSettings()
@@ -143,18 +148,22 @@ class MainWindow(QtWidgets.QMainWindow):
 
             QtWidgets.QMessageBox.warning(self, "File not found", file_name)
 
+    @QtCore.pyqtSlot()
     def switch_to_import(self):
         """Slot to show the import widget."""
         self.tab_widget.setCurrentWidget(self.import_widget)
 
+    @QtCore.pyqtSlot()
     def switch_to_measurement(self):
         """Slot to show the measurement widget."""
         self.tab_widget.setCurrentWidget(self.measurement_widget)
 
+    @QtCore.pyqtSlot()
     def switch_to_welcome(self):
         """Slot to show the welcome widget."""
         self.tab_widget.setCurrentWidget(self.welcome_widget)
 
+    @QtCore.pyqtSlot()
     def show_about_dialog(self):
         QtWidgets.QMessageBox.about(
             self,

@@ -93,11 +93,13 @@ class MeasurementWidget(QtWidgets.QWidget):
 
         layout.addWidget(group_box)
 
+    @QtCore.pyqtSlot()
     def refresh_database(self):
         self.model.refresh_model()
 
         self._expand_rows_with_selected_date()
 
+    @QtCore.pyqtSlot()
     def switch_database(self):
         self.model = MeasurementModel()
         self.tree.setModel(self.model)
@@ -110,23 +112,29 @@ class MeasurementWidget(QtWidgets.QWidget):
             self.tree.resizeColumnToContents(i)
         self.tree.selectionModel().selectionChanged.connect(self.selection_changed)
 
-    def selection_changed(self, selected, deselected):  # noqa: ARG002, PLR0915
+    @QtCore.pyqtSlot(QtCore.QItemSelection, QtCore.QItemSelection)
+    def selection_changed(self, selected, deselected) -> None:  # noqa: ARG002, PLR0915
         self.meas_id = selected.indexes()[0].internalPointer().data(3)
         if not self.meas_id:
             return
+
         db = Database()
         session = db.Session()
+
         measurement = (
             session.query(Measurement).filter(Measurement.id == self.meas_id).one_or_none()
         )
+
         if measurement.user:
             self.measurer.setText(measurement.user.name)
         else:
             self.measurer.clear()
+
         self.device.setText(measurement.device.serial)
         self.timestamp.setText(measurement.timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         self.chip.setText(measurement.chip.name)
         self.sample.setText(measurement.sample.name)
+
         # Disconnect all signals
         try:
             self.cols.valueChanged.disconnect()
@@ -137,17 +145,20 @@ class MeasurementWidget(QtWidgets.QWidget):
         except (RuntimeError, TypeError):
             # Don't fail if they are not connected
             pass
+
         self.cols.setValue(measurement.chip.columnCount)
         self.rows.setValue(measurement.chip.rowCount)
         self.spot_size.setValue(measurement.chip.spotSize)
         self.spot_margin_horizontal.setValue(measurement.chip.spotMarginHorizontal)
         self.spot_margin_vertical.setValue(measurement.chip.spotMarginVertical)
+
         # Connect grid related fields
         self.cols.valueChanged.connect(self.preview_grid)
         self.rows.valueChanged.connect(self.preview_grid)
         self.spot_size.valueChanged.connect(self.preview_grid)
         self.spot_margin_horizontal.valueChanged.connect(self.preview_grid)
         self.spot_margin_vertical.valueChanged.connect(self.preview_grid)
+
         if measurement.notes:
             self.notes.setPlainText(measurement.notes)
         else:
@@ -177,6 +188,7 @@ class MeasurementWidget(QtWidgets.QWidget):
 
         if self.grid:
             self.scene.removeItem(self.grid)
+
         self.grid = GridItem(self.meas_id)
         self.scene.addItem(self.grid)
         self.grid.setPos(measurement.chip.marginLeft, measurement.chip.marginTop)
@@ -189,6 +201,7 @@ class MeasurementWidget(QtWidgets.QWidget):
             settings = QtCore.QSettings()
             settings.setValue("Session/SelectedDate", parent_index.data())
 
+    @QtCore.pyqtSlot()
     def preview_grid(self):
         self.results.setDisabled(True)
         self.saveGridButton.setEnabled(True)
@@ -201,14 +214,19 @@ class MeasurementWidget(QtWidgets.QWidget):
             self.spot_size.value(),
         )
 
+    @QtCore.pyqtSlot()
     def save_grid(self):
         if not self.meas_id:
             return
+
         db = Database()
         session = db.Session()
+
         for result in session.query(Result).filter_by(measurementID=self.meas_id):
             session.delete(result)
+
         measurement = session.query(Measurement).filter_by(id=self.meas_id).one()
+
         chip = measurement.chip
         chip.columnCount = self.cols.value()
         chip.rowCount = self.rows.value()
@@ -217,24 +235,35 @@ class MeasurementWidget(QtWidgets.QWidget):
         chip.spotSize = self.spot_size.value()
         chip.spotMarginHorizontal = self.spot_margin_horizontal.value()
         chip.spotMarginVertical = self.spot_margin_vertical.value()
+
         session.commit()
+
         processor = MeasurementProcessor()
         processor.update_results(self.meas_id)
+
         self.grid.database_view()
+
         self.saveGridButton.setDisabled(True)
+
         self.resetGridButton.setDisabled(True)
+
         self.result_model.invalidate_cache()
+
         self.results.setEnabled(True)
         self.results.resizeColumnsToContents()
 
+    @QtCore.pyqtSlot()
     def reset_grid(self):
         if not self.meas_id:
             return
+
         db = Database()
         session = db.Session()
+
         measurement = (
             session.query(Measurement).filter(Measurement.id == self.meas_id).one_or_none()
         )
+
         # Disconnect all signals
         try:
             self.cols.valueChanged.disconnect()
@@ -244,11 +273,13 @@ class MeasurementWidget(QtWidgets.QWidget):
             self.spot_margin_vertical.valueChanged.disconnect()
         except TypeError:
             pass
+
         self.cols.setValue(measurement.chip.columnCount)
         self.rows.setValue(measurement.chip.rowCount)
         self.spot_size.setValue(measurement.chip.spotSize)
         self.spot_margin_horizontal.setValue(measurement.chip.spotMarginHorizontal)
         self.spot_margin_vertical.setValue(measurement.chip.spotMarginVertical)
+
         # Connect grid related fields
         self.cols.valueChanged.connect(self.preview_grid)
         self.rows.valueChanged.connect(self.preview_grid)
@@ -261,17 +292,22 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.resetGridButton.setDisabled(True)
         self.results.setEnabled(True)
 
+    @QtCore.pyqtSlot()
     def update_grid_position(self):
         """Filters out additional events before activating grid preview."""
         x = int(self.grid.scenePos().x())
         y = int(self.grid.scenePos().y())
+
         # Initial position is (0,0) and triggers an event which needs to be ignored
         if x == 0 and y == 0:
             return
+
         if not self.meas_id:
             return
+
         self.preview_grid()
 
+    @QtCore.pyqtSlot()
     def update_notes(self):
         if self.meas_id:
             db = Database()
@@ -283,6 +319,7 @@ class MeasurementWidget(QtWidgets.QWidget):
             session.query(Measurement).filter_by(id=self.meas_id).update({Measurement.notes: note})
             session.commit()
 
+    @QtCore.pyqtSlot(int, int, bool)
     def update_validity(self, row, col, valid):
         if self.meas_id:
             db = Database()

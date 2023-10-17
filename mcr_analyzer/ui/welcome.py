@@ -42,6 +42,7 @@ class WelcomeWidget(QtWidgets.QWidget):
     database_created = QtCore.pyqtSignal()
     database_opened = QtCore.pyqtSignal()
 
+    @QtCore.pyqtSlot()
     def clicked_new_button(self):
         file_name, filter_name = QtWidgets.QFileDialog.getSaveFileName(
             self,
@@ -57,13 +58,16 @@ class WelcomeWidget(QtWidgets.QWidget):
 
             db = Database()
             db.connect_database(f"sqlite:///{file_name}")
+
             db.empty_and_init_db()
 
             _update_settings_recent_files(file_name)
 
             self.database_changed.emit()
+
             self.database_created.emit()
 
+    @QtCore.pyqtSlot()
     def clicked_open_button(self):
         file_name, filter_name = QtWidgets.QFileDialog.getOpenFileName(
             self,

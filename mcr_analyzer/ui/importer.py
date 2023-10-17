@@ -18,8 +18,8 @@ class ImportWidget(QtWidgets.QWidget):
     in a separate thread.
     """
 
-    import_finished = QtCore.pyqtSignal()
     database_missing = QtCore.pyqtSignal()
+    import_finished = QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -68,6 +68,7 @@ class ImportWidget(QtWidgets.QWidget):
         self.progress_bar.hide()
         layout.addWidget(self.progress_bar)
 
+    @QtCore.pyqtSlot()
     def path_dialog(self):
         """Show folder selection dialog."""
         db = Database()
@@ -88,6 +89,7 @@ class ImportWidget(QtWidgets.QWidget):
             self.import_button.show()
             self.update_filelist()
 
+    @QtCore.pyqtSlot()
     def start_import(self):
         """Set up import thread and start processing."""
         self.import_button.hide()
@@ -115,13 +117,16 @@ class ImportWidget(QtWidgets.QWidget):
 
         for path in self.dirs:
             self.results, self.failed = imp.gather_measurements(path)
+
             for res in self.failed:
                 error_item = QtGui.QStandardItem(
                     f"Failed to load '{res}', might be a corrupted file.",
                 )
+
                 error_item.setIcon(
                     self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogNoButton),
                 )
+
                 measurement = [
                     QtGui.QStandardItem("n. a."),
                     QtGui.QStandardItem("n. a."),
@@ -129,7 +134,9 @@ class ImportWidget(QtWidgets.QWidget):
                     QtGui.QStandardItem("n. a."),
                     error_item,
                 ]
+
                 self.file_model.appendRow(measurement)
+
             for res in self.results:
                 measurement = [
                     QtGui.QStandardItem(f"{res.meta['Date/time'].strftime('%Y-%m-%d')}"),
@@ -148,6 +155,7 @@ class ImportWidget(QtWidgets.QWidget):
 
         self.progress_bar.setValue(0)
 
+    @QtCore.pyqtSlot(int, bytes)
     def update_status(self, step, checksum):
         """Slot to be called whenever our thread has calculated a SHA256 sum."""
         db = Database()
@@ -217,6 +225,7 @@ class ImportWidget(QtWidgets.QWidget):
             result_worker = ResultWorker(meas.id)
             self.thread_pool.start(result_worker)
 
+    @QtCore.pyqtSlot()
     def import_post_run(self):
         self.thread_pool.releaseThread()
         self.import_finished.emit()
@@ -232,12 +241,15 @@ class ChecksumWorker(QtCore.QObject):
     finished = QtCore.pyqtSignal()
     progress = QtCore.pyqtSignal(int, bytes)
 
+    @QtCore.pyqtSlot()
     def run(self):
         """Start processing."""
+
         for i, res in enumerate(self.results):
             img = Image(res.dir.joinpath(res.meta["Result image PGM"]))
             sha = hashlib.sha256(np.ascontiguousarray(img.data, ">u2"))
             self.progress.emit(i, sha.digest())
+
         self.finished.emit()
 
 

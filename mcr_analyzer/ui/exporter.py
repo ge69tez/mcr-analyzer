@@ -69,6 +69,7 @@ class ExportWidget(QtWidgets.QWidget):
         self.update_preview()
         event.accept()
 
+    @QtCore.pyqtSlot()
     def clicked_export_button(self):
         settings = QtCore.QSettings()
         last_export = settings.value("Session/LastExport")
@@ -78,19 +79,23 @@ class ExportWidget(QtWidgets.QWidget):
             last_export,
             "Tab Separated Values (*.csv *.tsv *.txt)",
         )
+
         if file_name and filter_name:
             # Ensure file has an extension
             file_name = Path(file_name)
+
             if not file_name.exists() and not file_name.suffix:
                 file_name = file_name.with_suffix(".csv")
 
             settings.setValue("Session/LastExport", str(file_name))
+
             with file_name.open(mode="w", encoding="utf-8") as output:
                 output.write(self.preview_edit.toPlainText())
 
     def add_filter(self, cmp, comparator, value):
         self.filters.append((comparator, cmp, value))
 
+    @QtCore.pyqtSlot()
     def update_preview(self):
         self.preview_edit.clear()
 
@@ -194,6 +199,7 @@ class FilterWidget(QtWidgets.QWidget):
     def __str__(self):
         return f"{self.target.currentData()}, {self.comparator.currentData()}, {self.value.text()}"
 
+    @QtCore.pyqtSlot()
     def _user_changed_settings(self):
         """Slot whenever the user interacted with the filter settings."""
         self.filter_updated.emit()
