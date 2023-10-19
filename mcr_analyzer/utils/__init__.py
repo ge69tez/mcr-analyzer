@@ -5,7 +5,7 @@ def ensure_list(var):
     """
     if not var:
         return []
-    return var if type(var) in [list, tuple] else [var]
+    return var if type(var) in {list, tuple} else [var]
 
 
 def remove_duplicates(lst: list):
@@ -16,4 +16,4 @@ def remove_duplicates(lst: list):
 
 def simplify_list(lst: list):
     """Return single string if list contains only one string."""
-    return lst if type(lst) in [list, tuple] and len(lst) != 1 else lst[0]
+    return lst if type(lst) in {list, tuple} and len(lst) != 1 else lst[0]
