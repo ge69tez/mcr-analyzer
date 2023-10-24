@@ -56,10 +56,13 @@ class WelcomeWidget(QtWidgets.QWidget):
             if not file_name.exists() and not file_name.suffix:
                 file_name = file_name.with_suffix(".sqlite")
 
-            db = Database()
-            db.connect_database(f"sqlite:///{file_name}")
+            # - Create an empty file
+            file_name.open(mode="w").close()
 
-            db.empty_and_init_db()
+            engine_url = f"sqlite:///{file_name}"
+            db = Database(engine_url)
+
+            db.create_all()
 
             _update_settings_recent_files(file_name)
 
@@ -76,8 +79,8 @@ class WelcomeWidget(QtWidgets.QWidget):
             "SQLite Database (*.sqlite)",
         )
         if file_name and filter_name:
-            db = Database()
-            db.connect_database(f"sqlite:///{file_name}")
+            engine_url = f"sqlite:///{file_name}"
+            db = Database(engine_url)  # noqa: F841
 
             _update_settings_recent_files(file_name)
 

@@ -1,45 +1,50 @@
 """Database routines for setup and usage."""
 
 
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker  # cSpell:ignore sessionmaker
+from sqlalchemy import URL, create_engine
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Session,
+    sessionmaker,  # cSpell:ignore sessionmaker
+)
 
-# ORM interface
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    __allow_unmapped__ = True
 
 
 class Database:
-    # Singleton as we want only one database engine throughout the program
-    def __new__(cls):
-        if not hasattr(cls, "_instance"):
-            cls._instance = super().__new__(cls)
-            cls._instance.initialized = False
-        return cls._instance
+    Session: sessionmaker[Session]
 
-    def __init__(self, engine: str | None = None):
+    def __new__(cls, _engine_url: str | None = None):
+        if not hasattr(cls, "_singleton_instance"):
+            cls._singleton_instance = super().__new__(cls)
+
+            cls._singleton_instance.Session = sessionmaker()
+
+        return cls._singleton_instance
+
+    def __init__(self, engine_url: str | None = None):
         super().__init__()
-        if not self.initialized:
-            self.initialized = True
-            self.base = Base
-            self.Session = sessionmaker()
-            if engine:
-                self._engine = create_engine(engine, connect_args={"timeout": 30})
-                self.Session.configure(bind=self._engine)
-            else:
-                self._engine = None
-        elif engine:
-            self.connect_database(engine)
 
-    def connect_database(self, engine: str):
-        if self._engine:
-            self._engine.dispose()
-        self._engine = create_engine(engine, connect_args={"timeout": 30})
-        self.Session.configure(bind=self._engine)
+        if engine_url:
+            engine = create_engine(url=engine_url, connect_args={"timeout": 30})
+            self.Session.configure(bind=engine)
 
-    def empty_and_init_db(self):
-        self.base.metadata.drop_all(bind=self._engine)
-        self.base.metadata.create_all(bind=self._engine)
+    def get_bind(self):
+        with self.Session() as session:
+            return session.get_bind()
+
+    def configure(self, engine_url: URL):
+        engine = create_engine(
+            url=engine_url,
+            connect_args={"timeout": 30},
+        )
+
+        self.Session.configure(bind=engine)
+
+    def create_all(self):
+        Base.metadata.create_all(bind=self.get_bind())
 
     @staticmethod
     def get_or_create(session, model, **kwargs):
@@ -53,4 +58,8 @@ class Database:
     @property
     def valid(self):
         """Is the database setup correctly?"""
-        return bool(self._engine)
+        with self.Session() as session:
+            return session.bind is not None
+
+
+database = Database()

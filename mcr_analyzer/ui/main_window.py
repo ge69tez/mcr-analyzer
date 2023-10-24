@@ -119,8 +119,8 @@ class MainWindow(QtWidgets.QMainWindow):
         file_name = Path(self.sender().data())
 
         if file_name.exists():
-            db = Database()
-            db.connect_database(f"sqlite:///{file_name}")
+            engine_url = f"sqlite:///{file_name}"
+            db = Database(engine_url)  # noqa: F841
 
             # Update recent files
             settings = QtCore.QSettings()
@@ -223,8 +223,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if len(recent_files) > 0:
             path = Path(recent_files[0])
             if path.exists():
-                db = Database()
-                db.connect_database(f"sqlite:///{path}")
+                engine_url = f"sqlite:///{path}"
+                db = Database(engine_url)  # noqa: F841
                 self.measurement_widget.switch_database()
                 # Only restore the last tab if we can open the database
                 self.tab_widget.setCurrentIndex(settings.value("MainWindow/ActiveTab", 0, int))
