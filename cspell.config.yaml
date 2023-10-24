@@ -1,7 +1,8 @@
 version: "0.2"
 ignorePaths:
-  - .gitignore
+  - .git/**
   - .github/disabled-workflows/
+  - .gitignore
   - docs/
 dictionaryDefinitions: []
 dictionaries: []

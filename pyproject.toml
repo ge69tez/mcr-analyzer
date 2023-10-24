@@ -97,5 +97,6 @@ extend-immutable-calls = [
 [tool.pre-commit-update]
 dry_run = true
 exclude = [
-  "blacken-docs", # - 2023-09-26 "pre-commit-update" "v0.0.9": Cannot recognize a tag name pattern change (for example: "blacken-docs" "v1.12.1" -> "1.16.0"
+  "blacken-docs",            # - 2023-09-26 "pre-commit-update" "v0.0.9": Cannot recognize a tag name pattern change (for example: "blacken-docs" "v1.12.1" -> "1.16.0"
+  "conventional-pre-commit", # - 2023-10-24 - v2.4.0 -> v2.4.0-pre
 ]
