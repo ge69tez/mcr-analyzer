@@ -5,7 +5,6 @@ import datetime
 from sqlalchemy import (
     BINARY,
     Boolean,
-    Column,
     DateTime,
     Float,
     ForeignKey,
@@ -14,7 +13,7 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from mcr_analyzer.database.database import Base
 
@@ -22,36 +21,36 @@ from mcr_analyzer.database.database import Base
 class Chip(Base):
     __tablename__ = "chip"
 
-    id: int = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     """Internal ID, used for cross-references."""
 
-    name: str = Column(String)
+    name: Mapped[str] = mapped_column(String)
     """Chip ID assigned by user during measurement."""
 
-    rowCount: int = Column(Integer, nullable=False)  # noqa: N815
+    rowCount: Mapped[int] = mapped_column(Integer, nullable=False)  # noqa: N815
     """Number of rows, typically five. Used for redundancy and error
     reduction."""
 
-    columnCount: int = Column(Integer, nullable=False)  # noqa: N815
+    columnCount: Mapped[int] = mapped_column(Integer, nullable=False)  # noqa: N815
     """Number of columns. Different anti-bodies or anti-gens."""
 
-    marginLeft: int = Column(Integer, nullable=False)  # noqa: N815
+    marginLeft: Mapped[int] = mapped_column(Integer, nullable=False)  # noqa: N815
     """Distance between left border of the image and first column of spots."""
 
-    marginTop: int = Column(Integer, nullable=False)  # noqa: N815
+    marginTop: Mapped[int] = mapped_column(Integer, nullable=False)  # noqa: N815
     """Distance between top border of the image and first row of spots."""
 
-    spotSize: int = Column(Integer, nullable=False)  # noqa: N815
+    spotSize: Mapped[int] = mapped_column(Integer, nullable=False)  # noqa: N815
     """Size (in pixels) of a single spot. Side length of the square used for processing."""
 
-    spotMarginHorizontal: int = Column(Integer, nullable=False)  # noqa: N815
+    spotMarginHorizontal: Mapped[int] = mapped_column(Integer, nullable=False)  # noqa: N815
     """Horizontal margin between two adjacent spots: skip N pixels before processing the next
     spot."""
 
-    spotMarginVertical: int = Column(Integer, nullable=False)  # noqa: N815
+    spotMarginVertical: Mapped[int] = mapped_column(Integer, nullable=False)  # noqa: N815
     """Vertical margin between two adjacent spots: skip N pixels before processing the next spot."""
 
-    measurements: relationship = relationship(
+    measurements: Mapped[list["Measurement"]] = relationship(
         "Measurement",
         back_populates="chip",
         order_by="Measurement.timestamp",
@@ -64,13 +63,13 @@ class Device(Base):
 
     __tablename__ = "device"
 
-    id: int = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     """Internal ID, used for cross-references."""
 
-    serial: str = Column(String(255), nullable=False)
+    serial: Mapped[str] = mapped_column(String(255), nullable=False)
     """Serial number of the device."""
 
-    measurements: relationship = relationship(
+    measurements: Mapped[list["Measurement"]] = relationship(
         "Measurement",
         back_populates="device",
         order_by="Measurement.timestamp",
@@ -83,50 +82,63 @@ class Measurement(Base):
 
     __tablename__ = "measurement"
 
-    id: int = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     """Internal ID, used for cross-references."""
 
-    chipID: int = Column(Integer, ForeignKey("chip.id"), index=True)  # noqa: N815
+    chipID: Mapped[int] = mapped_column(Integer, ForeignKey("chip.id"), index=True)  # noqa: N815
     """Refers to the used :class:`Chip`."""
 
-    chip: relationship = relationship("Chip", back_populates="measurements")
+    chip: Mapped["Chip"] = relationship("Chip", back_populates="measurements")
     """One-to-Many relationship referencing the used chip."""
 
-    deviceID: int = Column(Integer, ForeignKey("device.id"), index=True)  # noqa: N815
+    deviceID: Mapped[int] = mapped_column(  # noqa: N815
+        Integer,
+        ForeignKey("device.id"),
+        index=True,
+    )
     """Refers to the used :class:`Device`."""
 
-    device: relationship = relationship("Device", back_populates="measurements")
+    device: Mapped["Device"] = relationship("Device", back_populates="measurements")
     """One-to-Many relationship referencing the used device."""
 
-    sampleID: int = Column(Integer, ForeignKey("sample.id"), index=True)  # noqa: N815
+    sampleID: Mapped[int] = mapped_column(  # noqa: N815
+        Integer,
+        ForeignKey("sample.id"),
+        index=True,
+    )
     """Refers to the measured :class:`Sample`."""
 
-    sample: relationship = relationship("Sample", back_populates="measurements")
+    sample: Mapped["Sample"] = relationship("Sample", back_populates="measurements")
     """One-to-Many relationship referencing the analyzed sample."""
 
-    image: bytes = Column(LargeBinary, nullable=False)
+    image: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     """Raw 16-bit image data, big endian. (Numpy's ``>u2`` datatype, for compatibility with `netpbm
     <http://netpbm.sourceforge.net/doc/pgm.html>`_). """  # cSpell:ignore netpbm
 
-    checksum: bytes = Column(BINARY(32), nullable=False)
+    checksum: Mapped[bytes] = mapped_column(BINARY(32), nullable=False)
     """SHA256 hash of the raw 16-bit image data. Used for duplicate detection."""
 
-    timestamp: datetime.datetime = Column(DateTime, index=True)
+    timestamp: Mapped[datetime.datetime] = mapped_column(DateTime, index=True)
     """Date and time of the measurement."""
 
-    userID: int = Column(Integer, ForeignKey("user.id"), index=True)  # noqa: N815
+    userID: Mapped[int] = mapped_column(  # noqa: N815
+        Integer,
+        ForeignKey("user.id"),
+        index=True,
+        nullable=True,
+    )
     """Refers to the :class:`User` who did the measurement."""
 
-    user: relationship = relationship("User", back_populates="measurements")
+    user: Mapped["User"] = relationship("User", back_populates="measurements")
     """One-to-Many relationship referencing the user who did the measurement."""
 
-    chipFailure: bool = Column(Boolean, nullable=False, default=False)  # noqa: N815
+    chipFailure: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)  # noqa: N815
     """Was there a failure during measurement (leaky chip). Defaults to `False`."""
 
-    notes: str = Column(Text)
+    notes: Mapped[str] = mapped_column(Text, nullable=True)
     """Additional notes."""
 
-    results: relationship = relationship(
+    results: Mapped[list["Result"]] = relationship(
         "Result",
         back_populates="measurement",
         order_by="Result.id",
@@ -144,13 +156,17 @@ class Reagent(Base):
 
     __tablename__ = "reagent"
 
-    id: int = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     """Internal ID, used for cross-references."""
 
-    name: str = Column(String)
+    name: Mapped[str] = mapped_column(String)
     """Name of the substance."""
 
-    results: relationship = relationship("Result", back_populates="reagent", order_by="Result.id")
+    results: Mapped[list["Result"]] = relationship(
+        "Result",
+        back_populates="reagent",
+        order_by="Result.id",
+    )
     """Many-to-One relationship referencing the Spots of this substance."""
 
 
@@ -159,34 +175,43 @@ class Result(Base):
 
     __tablename__ = "result"
 
-    id: int = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     """Internal ID, used for cross-references."""
 
-    measurementID: int = Column(Integer, ForeignKey("measurement.id"), index=True)  # noqa: N815
+    measurementID: Mapped[int] = mapped_column(  # noqa: N815
+        Integer,
+        ForeignKey("measurement.id"),
+        index=True,
+    )
     """Reference to the :class:`Measurement` to which the result belongs."""
 
-    measurement: relationship = relationship("Measurement", back_populates="results")
+    measurement: Mapped["Measurement"] = relationship("Measurement", back_populates="results")
     """One-to-Many relationship referencing the measurement which yielded this result."""
 
-    row: int = Column(Integer)
+    row: Mapped[int] = mapped_column(Integer)
     """Row index, counted from 0."""
 
-    column: int = Column(Integer)
+    column: Mapped[int] = mapped_column(Integer)
     """Column index, counted from 0."""
 
-    value: float = Column(Float)
+    value: Mapped[float] = mapped_column(Float, nullable=True)
     """Calculated brightness of the spot."""
 
-    reagentID: int = Column(Integer, ForeignKey("reagent.id"), index=True)  # noqa: N815
+    reagentID: Mapped[int] = mapped_column(  # noqa: N815
+        Integer,
+        ForeignKey("reagent.id"),
+        index=True,
+        nullable=True,
+    )
     """Reference to :class:`Reagent`."""
 
-    reagent: relationship = relationship("Reagent", back_populates="results")
+    reagent: Mapped["Reagent"] = relationship("Reagent", back_populates="results")
     """One-to-Many relationship referencing the substance of this spot."""
 
-    concentration: float = Column(Float)
+    concentration: Mapped[float] = mapped_column(Float, nullable=True)
     """Additional concentration information to specify the :attr:`reagent` more precisely."""
 
-    valid: bool = Column(Boolean)
+    valid: Mapped[bool] = mapped_column(Boolean, nullable=True)
     """Is this a valid result which can be used in calculations? Invalid results can be caused by
     the process (bleeding of nearby results, air bubbles, or dirt) or determination as an outlier
     (mathematical postprocessing)."""
@@ -197,32 +222,42 @@ class Sample(Base):
 
     __tablename__ = "sample"
 
-    id: int = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     """Internal ID, used for cross-references."""
 
-    name: str = Column(String)
+    name: Mapped[str] = mapped_column(String)
     """Short description of the sample, entered as Probe ID during measurement."""
 
-    knownPositive: bool = Column(Boolean)  # noqa: N815
+    knownPositive: Mapped[bool] = mapped_column(Boolean, nullable=True)  # noqa: N815
     """Is this a know positive sample? Makes use of the tri-state SQL bool `None`, `True`, or
     `False`."""
 
-    typeID: int = Column(Integer, ForeignKey("sampleType.id"), index=True)  # noqa: N815
+    typeID: Mapped[int] = mapped_column(  # noqa: N815
+        Integer,
+        ForeignKey("sampleType.id"),
+        index=True,
+        nullable=True,
+    )
     """Refers to :class:`SampleType`."""
 
-    type: relationship = relationship("SampleType", back_populates="samples")
+    type: Mapped["SampleType"] = relationship("SampleType", back_populates="samples")
     """One-to-Many relationship referencing the type of this sample."""
 
-    takenByID: int = Column(Integer, ForeignKey("user.id"), index=True)  # noqa: N815
+    takenByID: Mapped[int] = mapped_column(  # noqa: N815
+        Integer,
+        ForeignKey("user.id"),
+        index=True,
+        nullable=True,
+    )
     """Refers to the :class:`User` who took the sample."""
 
-    takenBy: relationship = relationship("User", back_populates="samples")  # noqa: N815
+    takenBy: Mapped["User"] = relationship("User", back_populates="samples")  # noqa: N815
     """One-to-Many relationship referencing the user who took this sample."""
 
-    timestamp: datetime.datetime = Column(DateTime)
+    timestamp: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=True)
     """Date and time of the sample taking."""
 
-    measurements: relationship = relationship(
+    measurements: Mapped[list["Measurement"]] = relationship(
         "Measurement",
         back_populates="sample",
         order_by="Measurement.timestamp",
@@ -235,13 +270,17 @@ class SampleType(Base):
 
     __tablename__ = "sampleType"
 
-    id: int = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     """Internal ID, used for cross-references."""
 
-    name: str = Column(String, nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=False)
     """Name of the kind. For example full blood, serum, water, etc."""
 
-    samples: relationship = relationship("Sample", back_populates="type", order_by="Sample.id")
+    samples: Mapped[list["Sample"]] = relationship(
+        "Sample",
+        back_populates="type",
+        order_by="Sample.id",
+    )
     """Many-to-One relationship referencing all samples of this type."""
 
 
@@ -250,19 +289,23 @@ class User(Base):
 
     __tablename__ = "user"
 
-    id: int = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     """Internal ID, used for cross-references."""
 
-    name: str = Column(String, nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=False)
     """Name of the researcher."""
 
-    loginID: str = Column(String)  # noqa: N815
+    loginID: Mapped[str] = mapped_column(String)  # noqa: N815
     """User ID of the researcher, to be used for automatic association."""
 
-    samples: relationship = relationship("Sample", back_populates="takenBy", order_by="Sample.id")
+    samples: Mapped[list["Sample"]] = relationship(
+        "Sample",
+        back_populates="takenBy",
+        order_by="Sample.id",
+    )
     """Many-to-One relationship referencing all samples taken by a user."""
 
-    measurements: relationship = relationship(
+    measurements: Mapped[list["Measurement"]] = relationship(
         "Measurement",
         back_populates="user",
         order_by="Measurement.timestamp",
