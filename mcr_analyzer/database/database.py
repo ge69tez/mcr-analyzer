@@ -3,14 +3,11 @@
 
 from sqlalchemy import URL, create_engine
 from sqlalchemy.orm import (
-    DeclarativeBase,
     Session,
     sessionmaker,  # cSpell:ignore sessionmaker
 )
 
-
-class Base(DeclarativeBase):
-    __allow_unmapped__ = True
+from mcr_analyzer.database.models import Base
 
 
 class _DatabaseSingleton:

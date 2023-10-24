@@ -7,9 +7,11 @@ from sqlalchemy import (
     ForeignKey,
     Text,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-from mcr_analyzer.database.database import Base
+
+class Base(DeclarativeBase):
+    pass
 
 
 class Chip(Base):
