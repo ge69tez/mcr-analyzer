@@ -45,7 +45,6 @@ class Chip(Base):
     """Vertical margin between two adjacent spots: skip N pixels before processing the next spot."""
 
     measurements: Mapped[list["Measurement"]] = relationship(
-        "Measurement",
         back_populates="chip",
         order_by="Measurement.timestamp",
     )
@@ -64,7 +63,6 @@ class Device(Base):
     """Serial number of the device."""
 
     measurements: Mapped[list["Measurement"]] = relationship(
-        "Measurement",
         back_populates="device",
         order_by="Measurement.timestamp",
     )
@@ -82,19 +80,19 @@ class Measurement(Base):
     chipID: Mapped[int] = mapped_column(ForeignKey("chip.id"), index=True)  # noqa: N815
     """Refers to the used :class:`Chip`."""
 
-    chip: Mapped["Chip"] = relationship("Chip", back_populates="measurements")
+    chip: Mapped["Chip"] = relationship(back_populates="measurements")
     """One-to-Many relationship referencing the used chip."""
 
     deviceID: Mapped[int] = mapped_column(ForeignKey("device.id"), index=True)  # noqa: N815
     """Refers to the used :class:`Device`."""
 
-    device: Mapped["Device"] = relationship("Device", back_populates="measurements")
+    device: Mapped["Device"] = relationship(back_populates="measurements")
     """One-to-Many relationship referencing the used device."""
 
     sampleID: Mapped[int] = mapped_column(ForeignKey("sample.id"), index=True)  # noqa: N815
     """Refers to the measured :class:`Sample`."""
 
-    sample: Mapped["Sample"] = relationship("Sample", back_populates="measurements")
+    sample: Mapped["Sample"] = relationship(back_populates="measurements")
     """One-to-Many relationship referencing the analyzed sample."""
 
     image: Mapped[bytes]
@@ -110,7 +108,7 @@ class Measurement(Base):
     userID: Mapped[int | None] = mapped_column(ForeignKey("user.id"), index=True)  # noqa: N815
     """Refers to the :class:`User` who did the measurement."""
 
-    user: Mapped["User"] = relationship("User", back_populates="measurements")
+    user: Mapped["User"] = relationship(back_populates="measurements")
     """One-to-Many relationship referencing the user who did the measurement."""
 
     chipFailure: Mapped[bool] = mapped_column(default=False)  # noqa: N815
@@ -120,7 +118,6 @@ class Measurement(Base):
     """Additional notes."""
 
     results: Mapped[list["Result"]] = relationship(
-        "Result",
         back_populates="measurement",
         order_by="Result.id",
     )
@@ -143,11 +140,7 @@ class Reagent(Base):
     name: Mapped[str]
     """Name of the substance."""
 
-    results: Mapped[list["Result"]] = relationship(
-        "Result",
-        back_populates="reagent",
-        order_by="Result.id",
-    )
+    results: Mapped[list["Result"]] = relationship(back_populates="reagent", order_by="Result.id")
     """Many-to-One relationship referencing the Spots of this substance."""
 
 
@@ -165,7 +158,7 @@ class Result(Base):
     )
     """Reference to the :class:`Measurement` to which the result belongs."""
 
-    measurement: Mapped["Measurement"] = relationship("Measurement", back_populates="results")
+    measurement: Mapped["Measurement"] = relationship(back_populates="results")
     """One-to-Many relationship referencing the measurement which yielded this result."""
 
     row: Mapped[int]
@@ -183,7 +176,7 @@ class Result(Base):
     )
     """Reference to :class:`Reagent`."""
 
-    reagent: Mapped["Reagent"] = relationship("Reagent", back_populates="results")
+    reagent: Mapped["Reagent"] = relationship(back_populates="results")
     """One-to-Many relationship referencing the substance of this spot."""
 
     concentration: Mapped[float | None]
@@ -216,20 +209,19 @@ class Sample(Base):
     )
     """Refers to :class:`SampleType`."""
 
-    type: Mapped["SampleType"] = relationship("SampleType", back_populates="samples")
+    type: Mapped["SampleType"] = relationship(back_populates="samples")
     """One-to-Many relationship referencing the type of this sample."""
 
     takenByID: Mapped[int | None] = mapped_column(ForeignKey("user.id"), index=True)  # noqa: N815
     """Refers to the :class:`User` who took the sample."""
 
-    takenBy: Mapped["User"] = relationship("User", back_populates="samples")  # noqa: N815
+    takenBy: Mapped["User"] = relationship(back_populates="samples")  # noqa: N815
     """One-to-Many relationship referencing the user who took this sample."""
 
     timestamp: Mapped[datetime.datetime | None]
     """Date and time of the sample taking."""
 
     measurements: Mapped[list["Measurement"]] = relationship(
-        "Measurement",
         back_populates="sample",
         order_by="Measurement.timestamp",
     )
@@ -247,11 +239,7 @@ class SampleType(Base):
     name: Mapped[str]
     """Name of the kind. For example full blood, serum, water, etc."""
 
-    samples: Mapped[list["Sample"]] = relationship(
-        "Sample",
-        back_populates="type",
-        order_by="Sample.id",
-    )
+    samples: Mapped[list["Sample"]] = relationship(back_populates="type", order_by="Sample.id")
     """Many-to-One relationship referencing all samples of this type."""
 
 
@@ -269,15 +257,10 @@ class User(Base):
     loginID: Mapped[str]  # noqa: N815
     """User ID of the researcher, to be used for automatic association."""
 
-    samples: Mapped[list["Sample"]] = relationship(
-        "Sample",
-        back_populates="takenBy",
-        order_by="Sample.id",
-    )
+    samples: Mapped[list["Sample"]] = relationship(back_populates="takenBy", order_by="Sample.id")
     """Many-to-One relationship referencing all samples taken by a user."""
 
     measurements: Mapped[list["Measurement"]] = relationship(
-        "Measurement",
         back_populates="user",
         order_by="Measurement.timestamp",
     )
