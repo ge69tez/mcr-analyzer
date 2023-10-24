@@ -9,7 +9,7 @@ import sqlalchemy.exc
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from mcr_analyzer.config import TZ_INFO
-from mcr_analyzer.database.database import Database
+from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement, Result
 
 
@@ -100,7 +100,7 @@ class ExportWidget(QtWidgets.QWidget):
         self.preview_edit.clear()
 
         # Initialize query object
-        db = Database()
+        db = database
         session = db.Session()
         query = session.query(Measurement)
 

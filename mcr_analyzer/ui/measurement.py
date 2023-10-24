@@ -1,7 +1,7 @@
 import numpy as np
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from mcr_analyzer.database.database import Database
+from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement, Result
 from mcr_analyzer.processing.measurement import Measurement as MeasurementProcessor
 from mcr_analyzer.ui.graphics_scene import GraphicsMeasurementScene, GridItem
@@ -113,7 +113,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         if not self.meas_id:
             return
 
-        db = Database()
+        db = database
         session = db.Session()
 
         measurement = (
@@ -214,7 +214,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         if not self.meas_id:
             return
 
-        db = Database()
+        db = database
         session = db.Session()
 
         for result in session.query(Result).filter_by(measurementID=self.meas_id):
@@ -252,7 +252,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         if not self.meas_id:
             return
 
-        db = Database()
+        db = database
         session = db.Session()
 
         measurement = (
@@ -307,7 +307,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         if not self.meas_id:
             return
 
-        db = Database()
+        db = database
         session = db.Session()
 
         note = self.notes.toPlainText()
@@ -324,7 +324,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         if not self.meas_id:
             return
 
-        db = Database()
+        db = database
 
         session = db.Session()
         session.query(Result).filter_by(measurementID=self.meas_id, column=col, row=row).update(

@@ -4,7 +4,7 @@ import numpy as np
 import sqlalchemy
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from mcr_analyzer.database.database import Database
+from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Chip, Device, Measurement, Sample
 from mcr_analyzer.io.image import Image
 from mcr_analyzer.io.importer import FileImporter
@@ -74,7 +74,7 @@ class ImportWidget(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def path_dialog(self):
         """Show folder selection dialog."""
-        db = Database()
+        db = database
         if not db.valid:
             if QtWidgets.QMessageBox.warning(
                 self,
@@ -157,7 +157,7 @@ class ImportWidget(QtWidgets.QWidget):
     @QtCore.pyqtSlot(int, bytes)
     def update_status(self, step, checksum):
         """Slot to be called whenever our thread has calculated a SHA256 sum."""
-        db = Database()
+        db = database
         self.progress_bar.setValue(step + 1)
         # Will be set if we need to calculate results
         measurement_id = None

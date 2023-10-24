@@ -3,7 +3,7 @@ import string
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from mcr_analyzer import utils
-from mcr_analyzer.database.database import Database
+from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement, Result
 
 
@@ -90,7 +90,7 @@ class GridItem(QtWidgets.QGraphicsItem):
     ):
         super().__init__(parent)
         self.meas_id = meas_id
-        db = Database()
+        db = database
         self.session = db.Session()
         self.measurement = (
             self.session.query(Measurement).filter(Measurement.id == self.meas_id).one_or_none()

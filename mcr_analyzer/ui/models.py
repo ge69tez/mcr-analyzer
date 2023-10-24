@@ -7,7 +7,7 @@ import numpy as np
 import sqlalchemy
 from PyQt6 import QtCore, QtGui
 
-from mcr_analyzer.database.database import Database
+from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement, Result
 
 
@@ -73,7 +73,7 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
     def __init__(self, parent: QtCore.QObject | None = None):
         super().__init__(parent)
 
-        self.db = Database()
+        self.db = database
         self.session = self.db.Session()
 
         header_row = ["Date/Time", "Chip", "Sample"]
@@ -228,7 +228,7 @@ class ResultTableModel(QtCore.QAbstractTableModel):
     def __init__(self, id: int, parent: QtCore.QObject | None = None):
         super().__init__(parent)
 
-        self.db = Database()
+        self.db = database
         self.session = self.db.Session()
 
         self.measurement = (

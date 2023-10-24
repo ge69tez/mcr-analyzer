@@ -3,7 +3,7 @@ from pathlib import Path
 from PyQt6 import QtCore, QtWidgets
 
 import mcr_analyzer.utils as util
-from mcr_analyzer.database.database import Database
+from mcr_analyzer.database.database import database
 
 
 class WelcomeWidget(QtWidgets.QWidget):
@@ -60,9 +60,9 @@ class WelcomeWidget(QtWidgets.QWidget):
             file_name.open(mode="w").close()
 
             engine_url = f"sqlite:///{file_name}"
-            db = Database(engine_url)
+            database.configure(engine_url)
 
-            db.create_all()
+            database.create_all()
 
             _update_settings_recent_files(file_name)
 
@@ -80,7 +80,7 @@ class WelcomeWidget(QtWidgets.QWidget):
         )
         if file_name and filter_name:
             engine_url = f"sqlite:///{file_name}"
-            db = Database(engine_url)  # noqa: F841
+            database.configure(engine_url)
 
             _update_settings_recent_files(file_name)
 

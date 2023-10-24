@@ -4,7 +4,7 @@ from pathlib import Path
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 import mcr_analyzer.utils as util
-from mcr_analyzer.database.database import Database
+from mcr_analyzer.database.database import database
 from mcr_analyzer.ui.exporter import ExportWidget
 from mcr_analyzer.ui.importer import ImportWidget
 from mcr_analyzer.ui.measurement import MeasurementWidget
@@ -120,7 +120,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if file_name.exists():
             engine_url = f"sqlite:///{file_name}"
-            db = Database(engine_url)  # noqa: F841
+            database.configure(engine_url)
 
             # Update recent files
             settings = QtCore.QSettings()
@@ -224,7 +224,7 @@ class MainWindow(QtWidgets.QMainWindow):
             path = Path(recent_files[0])
             if path.exists():
                 engine_url = f"sqlite:///{path}"
-                db = Database(engine_url)  # noqa: F841
+                database.configure(engine_url)
                 self.measurement_widget.switch_database()
                 # Only restore the last tab if we can open the database
                 self.tab_widget.setCurrentIndex(settings.value("MainWindow/ActiveTab", 0, int))

@@ -1,6 +1,6 @@
 import numpy as np
 
-from mcr_analyzer.database.database import Database
+from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement as MeasurementModel
 from mcr_analyzer.database.models import Result
 from mcr_analyzer.processing.spot import DeviceBuiltin
@@ -9,7 +9,7 @@ from mcr_analyzer.processing.validator import SpotReaderValidator
 
 class Measurement:
     def __init__(self):
-        self.db = Database()
+        self.db = database
 
     def update_results(self, measurement_id: int):
         with self.db.Session() as session:

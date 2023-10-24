@@ -13,23 +13,16 @@ class Base(DeclarativeBase):
     __allow_unmapped__ = True
 
 
-class Database:
+class _DatabaseSingleton:
     Session: sessionmaker[Session]
 
-    def __new__(cls, _engine_url: str | None = None):
+    def __new__(cls):
         if not hasattr(cls, "_singleton_instance"):
             cls._singleton_instance = super().__new__(cls)
 
             cls._singleton_instance.Session = sessionmaker()
 
         return cls._singleton_instance
-
-    def __init__(self, engine_url: str | None = None):
-        super().__init__()
-
-        if engine_url:
-            engine = create_engine(url=engine_url, connect_args={"timeout": 30})
-            self.Session.configure(bind=engine)
 
     def get_bind(self):
         with self.Session() as session:
@@ -62,4 +55,4 @@ class Database:
             return session.bind is not None
 
 
-database = Database()
+database = _DatabaseSingleton()
