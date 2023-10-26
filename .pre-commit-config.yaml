@@ -50,7 +50,7 @@ repos:
       - id: cspell
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.2
+    rev: v0.1.3
     hooks:
       - id: ruff
         args:
@@ -96,7 +96,7 @@ repos:
       - id: blacken-docs
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: 1.2.0
+    rev: 1.3.0
     hooks:
       - id: pyproject-fmt # cSpell:ignore pyproject
 
@@ -104,13 +104,6 @@ repos:
     rev: v2.5.0
     hooks:
       - id: setup-cfg-fmt
-        additional_dependencies:
-          # - 2023-09-14
-          #   - "ImportError: libstdc++.so.6" # cSpell:ignore libstdc
-          #
-          # - v1.0.1 on Nov 19, 2021
-          #   - 995e596 on Sep 5, 2023
-          - "ukkonen @ git+https://github.com/asottile/ukkonen@995e596" # cSpell:ignore ukkonen
 
   - repo: https://github.com/tox-dev/tox-ini-fmt
     rev: 1.3.1
