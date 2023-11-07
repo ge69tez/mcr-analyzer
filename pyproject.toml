@@ -32,6 +32,7 @@ dependencies = [
 dev = [
   "black",
   "coverage",
+  "mypy",
   "pip-tools",
   "pre-commit",
   "pytest",
@@ -174,6 +175,30 @@ addopts = [
 # - For "pytest-qt"
 #   - https://pytest-qt.readthedocs.io/en/latest/intro.html#requirements
 qt_api = "pyqt6" # cSpell:ignore pyqt
+
+[tool.mypy] # cSpell:ignore mypy
+show_error_codes = true
+warn_unreachable = true
+enable_error_code = [
+  "ignore-without-code",
+  "redundant-expr",
+  "truthy-bool",
+]
+
+strict = true
+ignore_missing_imports = false
+
+[[tool.mypy.overrides]]
+module = [
+  "pytestqt.*", # cSpell:ignore pytestqt
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+  "tests.ui.*",
+]
+disallow_untyped_decorators = false # - 2023-11-06 - @pytest.fixture()
 
 [tool.pre-commit-update]
 dry_run = true

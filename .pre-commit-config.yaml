@@ -112,6 +112,13 @@ repos:
         additional_dependencies:
           - tox>=4.9
 
+  #- repo: https://github.com/pre-commit/mirrors-mypy
+  #  rev: v1.6.1
+  #  hooks:
+  #    - id: mypy # cSpell:ignore mypy
+  #      additional_dependencies:
+  #        - PyQt6-stubs @ git+https://github.com/python-qt-tools/PyQt6-stubs@86d119e # - 2023-07-23
+
   - repo: local
     hooks:
       - id: pytest-check-headless
