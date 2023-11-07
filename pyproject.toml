@@ -1,9 +1,53 @@
 [build-system]
-build-backend = "setuptools.build_meta"
+build-backend = "hatchling.build"
 requires = [
-  "setuptools",
-  "wheel",
+  "hatchling",
 ]
+
+[project]
+name = "mcr-analyzer"
+description = "Analyze and manage MCR measurements"
+readme = "README.rst"
+license = { file = "LICENSE" }
+authors = [{ name = "Martin Knopp", email = "Martin.Knopp@tum.de" }]
+requires-python = ">=3.11"
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Private :: Do Not Upload",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+dynamic = [
+  "version",
+]
+dependencies = [
+  "numpy", # cSpell:ignore numpy
+  "PyQt6",
+  "pytz", # cSpell:ignore pytz
+  "SQLAlchemy",
+]
+[project.optional-dependencies]
+dev = [
+  "black",
+  "coverage",
+  "pip-tools",
+  "pre-commit",
+  "pytest",
+  "pytest-qt",
+  "pytest-sugar",
+  "ruff",
+]
+[project.gui-scripts]
+mcr_analyzer = "mcr_analyzer.__main__:main"
+
+[tool.hatch.version]
+path = "src/mcr_analyzer/__about__.py"
+
+[tool.hatch.envs.default.scripts]
+pip_install__editable = "pip install --editable=."
+mcr_analyzer = "python -m mcr_analyzer"
 
 [tool.black]
 target-version = ["py311"]
