@@ -6,97 +6,109 @@ requires = [
 ]
 
 [tool.black]
-line-length = 100
 target-version = ["py311"]
+line-length = 100
 
 [tool.ruff]
 target-version = "py311"
 line-length = 100
+src = ["src"]
+namespace-packages = ["docs"]
+show-fixes = true
 preview = true
+
+[tool.ruff.lint]
 select = [
-  "F",   # - Pyflakes # cSpell:ignore Pyflakes
-  "W",   # - pycodestyle - Warning
-  "E",   # - pycodestyle - Error # cSpell:ignore pycodestyle
+  "F", # - Pyflakes # cSpell:ignore Pyflakes
+  "W", # - pycodestyle - Warning
+  "E", # - pycodestyle - Error # cSpell:ignore pycodestyle
   "C90", # - mccabe # cSpell:ignore mccabe
-  "I",   # - isort # cSpell:ignore isort
-  "N",   # - pep8-naming
+  "I", # - isort # cSpell:ignore isort
+  "N", # - pep8-naming
   #"D", # - pydocstyle # cSpell:ignore pydocstyle
-  "UP",  # - pyupgrade # cSpell:ignore pyupgrade
+  "UP", # - pyupgrade # cSpell:ignore pyupgrade
   "YTT", # - flake8-2020
   #"ANN", # - flake8-annotations
   "ASYNC", # - flake8-async
-  "S",     # - flake8-bandit
-  "BLE",   # - flake8-blind-except
-  "FBT",   # - flake8-boolean-trap
-  "B",     # - flake8-bugbear
+  "S", # - flake8-bandit
+  "BLE", # - flake8-blind-except
+  "FBT", # - flake8-boolean-trap
+  "B", # - flake8-bugbear
   #"A", # - flake8-builtins # cSpell:ignore builtins
   "COM", # - flake8-commas
   #"CPY", # - flake8-copyright
-  "C4",   # - flake8-comprehensions
-  "DTZ",  # - flake8-datetimez # cSpell:ignore datetimez
-  "T10",  # - flake8-debugger
-  "DJ",   # - flake8-django
-  "EM",   # - flake8-errmsg # cSpell:ignore errmsg
-  "EXE",  # - flake8-executable
-  "FA",   # - flake8-future-annotations
-  "ISC",  # - flake8-implicit-str-concat # cSpell:ignore concat
-  "ICN",  # - flake8-import-conventions
-  "G",    # - flake8-logging-format
-  "INP",  # - flake8-no-pep420
-  "PIE",  # - flake8-pie
-  "T20",  # - flake8-print
-  "PYI",  # - flake8-pyi
-  "PT",   # - flake8-pytest-style
-  "Q",    # - flake8-quotes
-  "RSE",  # - flake8-raise
-  "RET",  # - flake8-return
-  "SLF",  # - flake8-self
+  "C4", # - flake8-comprehensions
+  "DTZ", # - flake8-datetimez # cSpell:ignore datetimez
+  "T10", # - flake8-debugger
+  "DJ", # - flake8-django
+  "EM", # - flake8-errmsg # cSpell:ignore errmsg
+  "EXE", # - flake8-executable
+  "FA", # - flake8-future-annotations
+  "ISC", # - flake8-implicit-str-concat # cSpell:ignore concat
+  "ICN", # - flake8-import-conventions
+  "G", # - flake8-logging-format
+  "INP", # - flake8-no-pep420
+  "PIE", # - flake8-pie
+  "T20", # - flake8-print
+  "PYI", # - flake8-pyi
+  "PT", # - flake8-pytest-style
+  "Q", # - flake8-quotes
+  "RSE", # - flake8-raise
+  "RET", # - flake8-return
+  "SLF", # - flake8-self
   "SLOT", # - flake8-slots
-  "SIM",  # - flake8-simplify
-  "TID",  # - flake8-tidy-imports
-  "TCH",  # - flake8-type-checking
-  "INT",  # - flake8-gettext # cSpell:ignore gettext
-  "ARG",  # - flake8-unused-arguments
-  "PTH",  # - flake8-use-pathlib # cSpell:ignore pathlib
-  "TD",   # - flake8-todos # cSpell:ignore todos
-  "FIX",  # - flake8-fixme
-  "ERA",  # - eradicate
-  "PD",   # - pandas-vet
-  "PGH",  # - pygrep-hooks # cSpell:ignore pygrep
-  "PL",   # - Pylint
-  "TRY",  # - tryceratops # cSpell:ignore tryceratops
-  "FLY",  # - flynt # cSpell:ignore flynt
-  "NPY",  # - NumPy-specific rules
-  "AIR",  # - Airflow
+  "SIM", # - flake8-simplify
+  "TID", # - flake8-tidy-imports
+  "TCH", # - flake8-type-checking
+  "INT", # - flake8-gettext # cSpell:ignore gettext
+  "ARG", # - flake8-unused-arguments
+  "PTH", # - flake8-use-pathlib # cSpell:ignore pathlib
+  "TD", # - flake8-todos # cSpell:ignore todos
+  "FIX", # - flake8-fixme
+  "ERA", # - eradicate
+  "PD", # - pandas-vet
+  "PGH", # - pygrep-hooks # cSpell:ignore pygrep
+  "PL", # - Pylint
+  "TRY", # - tryceratops # cSpell:ignore tryceratops
+  "FLY", # - flynt # cSpell:ignore flynt
+  "NPY", # - NumPy-specific rules
+  "AIR", # - Airflow
   "PERF", # - Perflint # cSpell:ignore Perflint
   "FURB", # - refurb # cSpell:ignore FURB refurb
-  "LOG",  # - flake8-logging
-  "RUF",  # - Ruff-specific rules
+  "LOG", # - flake8-logging
+  "RUF", # - Ruff-specific rules
 ]
-show-fixes = true
 unfixable = [ # cSpell:ignore unfixable
   "ERA", # - eradicate
 ]
 ignore = [
-  "E203",   # - whitespace-before-punctuation
+  "E203", # - whitespace-before-punctuation
   "FBT003", # - boolean-positional-value-in-call - "arg__1" in "QtWidgets.QWidget.setDisabled(arg__1)"
 ]
-namespace-packages = ["docs/"]
 
-[tool.ruff.per-file-ignores]
-"tests/*" = [
-  "PLR6301", # - no-self-use
-  "S101",    # - assert
-]
+[tool.ruff.lint.isort]
+known-first-party = ["mcr_analyzer"]
 
-[tool.ruff.flake8-bugbear]
+[tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = [
   "PyQt6.QtCore.QModelIndex", # - Allow default arguments like "parent: QModelIndex = QModelIndex()".
 ]
 
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+  "PLR6301", # - no-self-use
+  "S101", # - assert
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
 [tool.pre-commit-update]
 dry_run = true
 exclude = [
-  "blacken-docs",            # - 2023-09-26 "pre-commit-update" "v0.0.9": Cannot recognize a tag name pattern change (for example: "blacken-docs" "v1.12.1" -> "1.16.0"
+  "blacken-docs", # - 2023-09-26 "pre-commit-update" "v0.0.9": Cannot recognize a tag name pattern change (for example: "blacken-docs" "v1.12.1" -> "1.16.0"
   "conventional-pre-commit", # - 2023-10-24 - v2.4.0 -> v2.4.0-pre
 ]

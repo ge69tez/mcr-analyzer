@@ -85,6 +85,14 @@ repos:
       - id: requirements-txt-fixer
       - id: trailing-whitespace
 
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.0.3
+    hooks:
+      - id: prettier
+        types_or:
+          - css
+          - javascript
+
   - repo: https://github.com/psf/black-pre-commit-mirror
     rev: 23.10.1
     hooks:
@@ -99,6 +107,8 @@ repos:
     rev: 1.4.1
     hooks:
       - id: pyproject-fmt # cSpell:ignore pyproject
+        additional_dependencies:
+          - tox>=4.9
 
   - repo: https://github.com/asottile/setup-cfg-fmt
     rev: v2.5.0

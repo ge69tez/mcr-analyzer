@@ -3,7 +3,10 @@ ignorePaths:
   - .git/**
   - .github/disabled-workflows/
   - .gitignore
+  - .taplo.toml
+  - cspell.config.yaml
   - docs/
+  - requirements{,-dev}.{txt,in}
 dictionaryDefinitions: []
 dictionaries: []
 words:
