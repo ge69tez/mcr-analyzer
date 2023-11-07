@@ -1,5 +1,6 @@
 """Test module for io.images """
 
+from collections.abc import Generator
 from pathlib import Path
 
 import pytest
@@ -20,17 +21,22 @@ from mcr_analyzer.io.image import Image
         ),
     ],
 )
-def test_file(request, tmp_path_factory):
+def tmp_img(
+    request: pytest.FixtureRequest,
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Generator[Image, None, None]:
     file = tmp_path_factory.mktemp("data").joinpath(f"img.{request.param[0]}")
+
     with Path(file).open("wb") as f:
         f.write(request.param[1])
-    return file
+
+    with Image(file) as img:
+        yield img
 
 
-def test_image_read(test_file):
-    img = Image(test_file)
+def test___image__read(tmp_img: Image) -> None:
     image_width = 5
     image_height = 3
-    assert img.width == image_width
-    assert img.height == image_height
-    assert img.size == (5, 3)
+    assert tmp_img.width == image_width
+    assert tmp_img.height == image_height
+    assert tmp_img.size == (5, 3)

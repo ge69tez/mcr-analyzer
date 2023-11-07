@@ -150,6 +150,31 @@ ban-relative-imports = "all"
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
+[tool.pytest.ini_options]
+minversion = "7" # cSpell:ignore minversion
+pythonpath = "src" # cSpell:ignore pythonpath
+testpaths = [ # cSpell:ignore testpaths
+  "tests",
+]
+
+log_cli_level = "INFO"
+xfail_strict = true # cSpell:ignore xfail
+filterwarnings = [ # cSpell:ignore filterwarnings
+  "error",
+]
+
+addopts = [
+  "-ra",
+  "--strict-config",
+  "--strict-markers",
+  # - https://docs.pytest.org/en/stable/explanation/goodpractices.html#tests-outside-application-code
+  "--import-mode=importlib", # cSpell:ignore addopts importlib
+]
+
+# - For "pytest-qt"
+#   - https://pytest-qt.readthedocs.io/en/latest/intro.html#requirements
+qt_api = "pyqt6" # cSpell:ignore pyqt
+
 [tool.pre-commit-update]
 dry_run = true
 exclude = [

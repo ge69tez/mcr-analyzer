@@ -79,6 +79,8 @@ repos:
       - id: forbid-submodules
       - id: mixed-line-ending
       - id: name-tests-test
+        args:
+          - --pytest-test-first
       - id: no-commit-to-branch
         stages:
           - pre-commit
@@ -109,3 +111,13 @@ repos:
       - id: pyproject-fmt # cSpell:ignore pyproject
         additional_dependencies:
           - tox>=4.9
+
+  - repo: local
+    hooks:
+      - id: pytest-check-headless
+        name: pytest-check-headless
+        language: system
+        pass_filenames: false
+        always_run: true
+        entry: xvfb-run pytest # cSpell:ignore xvfb
+        verbose: true
