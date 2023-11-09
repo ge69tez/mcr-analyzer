@@ -4,7 +4,7 @@
 #
 #    pip-compile --extra=dev --output-file=requirements-dev.txt
 #
-black==23.10.1
+black==23.11.0
     # via mcr-analyzer (pyproject.toml)
 build==1.0.3
     # via pip-tools
@@ -26,7 +26,7 @@ identify==2.5.31
     # via pre-commit
 iniconfig==2.0.0
     # via pytest
-mypy==1.6.1
+mypy==1.7.0
     # via mcr-analyzer (pyproject.toml)
 mypy-extensions==1.0.0
     # via
@@ -34,7 +34,7 @@ mypy-extensions==1.0.0
     #   mypy
 nodeenv==1.8.0
     # via pre-commit
-numpy==1.26.1
+numpy==1.26.2
     # via mcr-analyzer (pyproject.toml)
 packaging==23.2
     # via
@@ -75,7 +75,7 @@ pytz==2023.3.post1
     # via mcr-analyzer (pyproject.toml)
 pyyaml==6.0.1
     # via pre-commit
-ruff==0.1.4
+ruff==0.1.5
     # via mcr-analyzer (pyproject.toml)
 sqlalchemy==2.0.23
     # via mcr-analyzer (pyproject.toml)

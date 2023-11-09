@@ -45,12 +45,12 @@ repos:
           - tomli # cSpell:ignore tomli
 
   - repo: https://github.com/streetsidesoftware/cspell-cli
-    rev: v7.3.2
+    rev: v8.0.0
     hooks:
       - id: cspell
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.4
+    rev: v0.1.5
     hooks:
       - id: ruff
         args:
@@ -88,7 +88,7 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.0.3
+    rev: v3.1.0
     hooks:
       - id: prettier
         types_or:
@@ -96,7 +96,7 @@ repos:
           - javascript
 
   - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 23.10.1
+    rev: 23.11.0
     hooks:
       - id: black
 
@@ -106,7 +106,7 @@ repos:
       - id: blacken-docs
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: 1.4.1
+    rev: 1.5.1
     hooks:
       - id: pyproject-fmt # cSpell:ignore pyproject
         additional_dependencies:

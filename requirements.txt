@@ -6,7 +6,7 @@
 #
 greenlet==3.0.1
     # via sqlalchemy
-numpy==1.26.1
+numpy==1.26.2
     # via mcr-analyzer (pyproject.toml)
 pyqt6==6.6.0
     # via mcr-analyzer (pyproject.toml)
