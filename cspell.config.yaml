@@ -2,6 +2,7 @@ version: "0.2"
 ignorePaths:
   - .git/**
   - .github/disabled-workflows/
+  - .github/workflows/**
   - .gitignore
   - .taplo.toml
   - cspell.config.yaml

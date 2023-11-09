@@ -1,0 +1,13 @@
+changelog:
+  categories:
+    - title: Bug
+      labels:
+        - bug
+
+    - title: Documentation
+      labels:
+        - documentation
+
+    - title: Enhancement
+      labels:
+        - enhancement

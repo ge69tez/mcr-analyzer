@@ -1,0 +1,103 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  pre-commit:
+    strategy:
+      matrix:
+        os:
+          - ubuntu
+
+    outputs:
+      gui-name: ${{ steps.output-gui-name.outputs.gui-name }}
+
+    name: pre-commit-${{ matrix.os }}
+
+    runs-on: ${{ matrix.os }}-latest
+
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: tlambert03/setup-qt-libs@v1
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version-file: pyproject.toml
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - run: |
+          pip install \
+            -r requirements-dev.txt
+
+      - uses: pre-commit/action@v3.0.0
+        env:
+          SKIP: pre-commit-update,no-commit-to-branch
+
+      - name: Run local/output-gui-name
+        id: output-gui-name
+        run: |
+          echo "gui-name=$(
+            hatch project metadata gui-scripts |
+              jq --raw-output 'keys[0]'
+          )" >>"${GITHUB_OUTPUT}"
+
+  release-gui-windows:
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    needs:
+      - pre-commit
+
+    env:
+      APP_EXE_FILE_NAME: ${{ needs.pre-commit.outputs.gui-name }}-${{ github.ref_name }}
+      APP_ENTRY_POINT_SCRIPT_PATH: src/${{ needs.pre-commit.outputs.gui-name }}/__main__.py
+
+    runs-on: windows-latest
+
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: crazy-max/ghaction-upx@v3
+        with:
+          install-only: true
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version-file: pyproject.toml
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - run: |
+          pip install \
+            -r requirements-dev.txt \
+            pyinstaller
+
+      - run: |
+          pyinstaller \
+            --onefile \
+            --name ${{ env.APP_EXE_FILE_NAME }} \
+            --distpath dist \
+            --noconsole \
+            ${{ env.APP_ENTRY_POINT_SCRIPT_PATH }}
+
+      - uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
+          files: dist/${{ env.APP_EXE_FILE_NAME }}.exe
+          fail_on_unmatched_files: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash

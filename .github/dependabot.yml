@@ -6,7 +6,5 @@ updates:
       interval: "weekly"
     commit-message:
       prefix: "ci"
-    labels:
-      - "enhancement"
     assignees:
       - "ge69tez"

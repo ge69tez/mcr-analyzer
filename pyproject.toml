@@ -10,14 +10,13 @@ description = "Analyze and manage MCR measurements"
 readme = "README.rst"
 license = { file = "LICENSE" }
 authors = [{ name = "Martin Knopp", email = "Martin.Knopp@tum.de" }]
-requires-python = ">=3.11"
+requires-python = "==3.11.*"
 classifiers = [
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Private :: Do Not Upload",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
 ]
 dynamic = [
   "version",
@@ -32,6 +31,7 @@ dependencies = [
 dev = [
   "black",
   "coverage",
+  "hatch",
   "mypy",
   "pip-tools",
   "pre-commit",
