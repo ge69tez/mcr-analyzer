@@ -12,11 +12,7 @@ from mcr_analyzer.database.models import Measurement, Result
 
 
 class MeasurementTreeItem:
-    def __init__(
-        self,
-        tree_item_data: list,
-        parent_tree_item: typing.Self | None = None,
-    ):
+    def __init__(self, tree_item_data: list, parent_tree_item: typing.Self | None = None):
         self._tree_item_data = tree_item_data
         self._parent_tree_item = parent_tree_item
         self._child_tree_items: list[MeasurementTreeItem] = []
@@ -81,12 +77,7 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
 
         self._setup_model_data()
 
-    def index(
-        self,
-        row: int,
-        column: int,
-        parent: QtCore.QModelIndex = QtCore.QModelIndex(),
-    ):
+    def index(self, row: int, column: int, parent: QtCore.QModelIndex = QtCore.QModelIndex()):
         if not self.hasIndex(row, column, parent):
             return QtCore.QModelIndex()
 
@@ -109,10 +100,7 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
     def parent(self) -> QtCore.QObject:
         ...
 
-    def parent(
-        self,
-        child: QtCore.QModelIndex = QtCore.QModelIndex(),
-    ):
+    def parent(self, child: QtCore.QModelIndex = QtCore.QModelIndex()):
         if not child.isValid():
             return QtCore.QModelIndex()
 
@@ -141,11 +129,7 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
 
         return parent_tree_item.column_count()
 
-    def data(
-        self,
-        index: QtCore.QModelIndex,
-        role: int = QtCore.Qt.ItemDataRole.DisplayRole,
-    ):
+    def data(self, index: QtCore.QModelIndex, role: int = QtCore.Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
             return None
 
@@ -195,10 +179,7 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
         for day in self.session.query(Measurement).group_by(
             sqlalchemy.func.strftime("%Y-%m-%d", Measurement.timestamp),
         ):
-            date_row_tree_item = MeasurementTreeItem(
-                [str(day.timestamp.date()), None, None],
-                self._root_tree_item,
-            )
+            date_row_tree_item = MeasurementTreeItem([str(day.timestamp.date()), None, None], self._root_tree_item)
 
             self._root_tree_item.append_child_tree_item(date_row_tree_item)
 
@@ -231,9 +212,7 @@ class ResultTableModel(QtCore.QAbstractTableModel):
         self.db = database
         self.session = self.db.Session()
 
-        self.measurement = (
-            self.session.query(Measurement).filter(Measurement.id == id).one_or_none()
-        )
+        self.measurement = self.session.query(Measurement).filter(Measurement.id == id).one_or_none()
         self.chip = self.measurement.chip
         self.results = None
         self.means = None
@@ -256,11 +235,7 @@ class ResultTableModel(QtCore.QAbstractTableModel):
 
         return self.chip.columnCount
 
-    def data(
-        self,
-        index: QtCore.QModelIndex,
-        role: int = QtCore.Qt.ItemDataRole.DisplayRole,
-    ):
+    def data(self, index: QtCore.QModelIndex, role: int = QtCore.Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
             return None
 
@@ -298,17 +273,11 @@ class ResultTableModel(QtCore.QAbstractTableModel):
                 return_value = _get_qtgui_qfont_bold()
 
             case QtCore.Qt.ItemDataRole.ForegroundRole if result:
-                color = (
-                    QtCore.Qt.GlobalColor.darkGreen
-                    if result.valid
-                    else QtCore.Qt.GlobalColor.darkRed
-                )
+                color = QtCore.Qt.GlobalColor.darkGreen if result.valid else QtCore.Qt.GlobalColor.darkRed
                 return_value = QtGui.QBrush(color)
 
             case QtCore.Qt.ItemDataRole.TextAlignmentRole:
-                return_value = (
-                    QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
-                )
+                return_value = QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
 
         return return_value
 
@@ -354,9 +323,7 @@ class ResultTableModel(QtCore.QAbstractTableModel):
     def update(self):
         # Limit DB queries to 500ms
         database_query_limit_in_milliseconds = 500
-        if (
-            time.monotonic() * 1000 - self.last_update <= database_query_limit_in_milliseconds
-        ) and self.cache_valid:
+        if (time.monotonic() * 1000 - self.last_update <= database_query_limit_in_milliseconds) and self.cache_valid:
             return
 
         if not self.cache_valid:

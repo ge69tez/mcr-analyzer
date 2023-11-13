@@ -13,11 +13,7 @@ class Measurement:
 
     def update_results(self, measurement_id: int):
         with self.db.Session() as session:
-            measurement = (
-                session.query(MeasurementModel)
-                .filter(MeasurementModel.id == measurement_id)
-                .one_or_none()
-            )
+            measurement = session.query(MeasurementModel).filter(MeasurementModel.id == measurement_id).one_or_none()
 
             for col in range(measurement.chip.columnCount):
                 col_results = []
@@ -35,13 +31,7 @@ class Measurement:
                         ],
                         # cSpell:ignore frombuffer dtype
                     )
-                    result = self.db.get_or_create(
-                        session,
-                        Result,
-                        measurement=measurement,
-                        row=row,
-                        column=col,
-                    )
+                    result = self.db.get_or_create(session, Result, measurement=measurement, row=row, column=col)
                     result.value = spot.value()
                     session.add(result)
                     col_results.append(result.value)
@@ -49,13 +39,7 @@ class Measurement:
                 validation = validator.validate()
 
                 for row in range(measurement.chip.rowCount):
-                    result = self.db.get_or_create(
-                        session,
-                        Result,
-                        measurement=measurement,
-                        row=row,
-                        column=col,
-                    )
+                    result = self.db.get_or_create(session, Result, measurement=measurement, row=row, column=col)
                     result.valid = validation[row]
                     session.add(result)
             session.commit()

@@ -18,10 +18,7 @@ def main_window(qtbot: QtBot) -> Generator[MainWindow, None, None]:
     main_window.close()
 
 
-def test___main_window__launch(
-    main_window: MainWindow,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test___main_window__launch(main_window: MainWindow, monkeypatch: pytest.MonkeyPatch) -> None:
     exit_calls = []
     exit_code = 1
 

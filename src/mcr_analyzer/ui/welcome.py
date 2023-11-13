@@ -19,9 +19,7 @@ class WelcomeWidget(QtWidgets.QWidget):
         self.text = QtWidgets.QLabel(welcome_msg)
         layout.addWidget(self.text)
         self.new_button = QtWidgets.QPushButton(
-            self.style().standardIcon(
-                QtWidgets.QStyle.StandardPixmap.SP_FileIcon,  # cSpell:ignore Pixmap
-            ),
+            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),  # cSpell:ignore Pixmap
             "Create &new database...",
         )
         self.new_button.setIconSize(QtCore.QSize(48, 48))
@@ -97,7 +95,5 @@ def _update_settings_recent_files(file_name):
 
     settings.setValue(
         "Session/Files",
-        util.simplify_list(
-            recent_files[0 : settings.value("Preferences/MaxRecentFiles", 5)],
-        ),
+        util.simplify_list(recent_files[0 : settings.value("Preferences/MaxRecentFiles", 5)]),
     )

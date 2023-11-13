@@ -2,10 +2,7 @@
 
 
 from sqlalchemy import URL, create_engine
-from sqlalchemy.orm import (
-    Session,
-    sessionmaker,  # cSpell:ignore sessionmaker
-)
+from sqlalchemy.orm import Session, sessionmaker  # cSpell:ignore sessionmaker
 
 from mcr_analyzer.database.models import Base
 
@@ -26,10 +23,7 @@ class _DatabaseSingleton:
             return session.get_bind()
 
     def configure(self, engine_url: URL):
-        engine = create_engine(
-            url=engine_url,
-            connect_args={"timeout": 30},
-        )
+        engine = create_engine(url=engine_url, connect_args={"timeout": 30})
 
         self.Session.configure(bind=engine)
 

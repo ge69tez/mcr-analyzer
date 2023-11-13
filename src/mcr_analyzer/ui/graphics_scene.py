@@ -17,15 +17,7 @@ class GraphicsMeasurementScene(QtWidgets.QGraphicsScene):
 class GraphicsRectTextItem(QtWidgets.QGraphicsRectItem):
     """Draws text on a rectangular background."""
 
-    def __init__(  # noqa: PLR0913
-        self,
-        x: float,
-        y: float,
-        w: float,
-        h: float,
-        t: str,
-        parent,
-    ) -> None:
+    def __init__(self, x: float, y: float, w: float, h: float, t: str, parent) -> None:  # noqa: PLR0913
         super().__init__(x, y, w, h, parent)
         self.text = t
         self.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.white))
@@ -83,18 +75,12 @@ class GraphicsSpotItem(QtWidgets.QGraphicsRectItem):
 class GridItem(QtWidgets.QGraphicsItem):
     """Container class for drawing the measurement grid."""
 
-    def __init__(
-        self,
-        meas_id: int,
-        parent=None,
-    ):
+    def __init__(self, meas_id: int, parent=None):
         super().__init__(parent)
         self.meas_id = meas_id
         db = database
         self.session = db.Session()
-        self.measurement = (
-            self.session.query(Measurement).filter(Measurement.id == self.meas_id).one_or_none()
-        )
+        self.measurement = self.session.query(Measurement).filter(Measurement.id == self.meas_id).one_or_none()
         self.cols = self.measurement.chip.columnCount
         self.rows = self.measurement.chip.rowCount
         self.horizontal_space = self.measurement.chip.spotMarginHorizontal
@@ -114,16 +100,9 @@ class GridItem(QtWidgets.QGraphicsItem):
 
     def boundingRect(self):  # noqa: N802
         width = self.cols * self.size + (self.cols - 1) * self.vertical_space + self.pen_width / 2
-        height = (
-            self.rows * self.size + (self.rows - 1) * self.horizontal_space + self.pen_width / 2
-        )
+        height = self.rows * self.size + (self.rows - 1) * self.horizontal_space + self.pen_width / 2
         # Labels are drawn on the "negative" side of the origin
-        return QtCore.QRectF(
-            -self.pen_width / 2 - 15,
-            -self.pen_width / 2 - 15,
-            width + 15,
-            height + 15,
-        )
+        return QtCore.QRectF(-self.pen_width / 2 - 15, -self.pen_width / 2 - 15, width + 15, height + 15)
 
     def itemChange(self, change, value):  # noqa: N802
         if change == QtWidgets.QGraphicsItem.GraphicsItemChange.ItemPositionChange and self.scene():
@@ -206,9 +185,7 @@ class GridItem(QtWidgets.QGraphicsItem):
 
         # Ensure latest database information
         self.session.commit()
-        self.measurement = (
-            self.session.query(Measurement).filter(Measurement.id == self.meas_id).one_or_none()
-        )
+        self.measurement = self.session.query(Measurement).filter(Measurement.id == self.meas_id).one_or_none()
         self.cols = self.measurement.chip.columnCount
         self.rows = self.measurement.chip.rowCount
         self.horizontal_space = self.measurement.chip.spotMarginHorizontal

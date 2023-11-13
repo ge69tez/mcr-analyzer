@@ -38,9 +38,7 @@ class ExportWidget(QtWidgets.QWidget):
 
         template_group = QtWidgets.QGroupBox("Output template")
         template_layout = QtWidgets.QHBoxLayout()
-        self.template_edit = QtWidgets.QLineEdit(
-            "{timestamp}\t{chip.name}\t{sample.name}\t{sample.note}\t{results}",
-        )
+        self.template_edit = QtWidgets.QLineEdit("{timestamp}\t{chip.name}\t{sample.name}\t{sample.note}\t{results}")
         self.template_edit.setDisabled(True)
         template_layout.addWidget(self.template_edit)
         template_group.setLayout(template_layout)
@@ -55,9 +53,7 @@ class ExportWidget(QtWidgets.QWidget):
         layout.addWidget(preview_group, 1)
 
         self.export_button = QtWidgets.QPushButton(
-            self.style().standardIcon(
-                QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton,  # cSpell:ignore Pixmap
-            ),
+            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton),  # cSpell:ignore Pixmap
             "Export as...",
         )
         self.export_button.clicked.connect(self.clicked_export_button)
@@ -139,18 +135,11 @@ class ExportWidget(QtWidgets.QWidget):
                 measurement_line += f"{escape_csv(measurement.chip.name)}\t"
                 measurement_line += f"{escape_csv(measurement.sample.name)}\t"
 
-                measurement_line += (
-                    '""' if measurement.notes is None else f"{escape_csv(measurement.notes)}"
-                )
+                measurement_line += '""' if measurement.notes is None else f"{escape_csv(measurement.notes)}"
 
                 valid_data = False
                 for col in range(measurement.chip.columnCount):
-                    if (
-                        session.query(Result)
-                        .filter_by(measurement=measurement, column=col, valid=True)
-                        .count()
-                        > 0
-                    ):
+                    if session.query(Result).filter_by(measurement=measurement, column=col, valid=True).count() > 0:
                         valid_data = True
                         values = list(
                             session.query(Result)

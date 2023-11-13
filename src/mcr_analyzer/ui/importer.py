@@ -36,17 +36,12 @@ class ImportWidget(QtWidgets.QWidget):
         self.setLayout(layout)
 
         self.path_button = QtWidgets.QPushButton(
-            self.style().standardIcon(
-                QtWidgets.QStyle.StandardPixmap.SP_DirOpenIcon,  # cSpell:ignore Pixmap
-            ),
+            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DirOpenIcon),  # cSpell:ignore Pixmap
             "Select Folder...",
         )
         self.path_button.setIconSize(QtCore.QSize(48, 48))
         self.path_button.clicked.connect(self.path_dialog)
-        self.path_button.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Preferred,
-            QtWidgets.QSizePolicy.Policy.Preferred,
-        )
+        self.path_button.setSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
         layout.addWidget(self.path_button)
 
         self.import_button = QtWidgets.QPushButton(
@@ -122,13 +117,9 @@ class ImportWidget(QtWidgets.QWidget):
             self.results, self.failed = imp.gather_measurements(path)
 
             for res in self.failed:
-                error_item = QtGui.QStandardItem(
-                    f"Failed to load '{res}', might be a corrupted file.",
-                )
+                error_item = QtGui.QStandardItem(f"Failed to load '{res}', might be a corrupted file.")
 
-                error_item.setIcon(
-                    self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogNoButton),
-                )
+                error_item.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogNoButton))
 
                 measurement = [
                     QtGui.QStandardItem("n. a."),
@@ -165,9 +156,7 @@ class ImportWidget(QtWidgets.QWidget):
         with db.Session() as session:
             try:
                 session.query(Measurement).filter_by(checksum=checksum).one()
-                self.file_model.item(step + len(self.failed), 4).setText(
-                    "Imported previously",
-                )
+                self.file_model.item(step + len(self.failed), 4).setText("Imported previously")
                 self.file_model.item(step + len(self.failed), 4).setIcon(
                     self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogNoButton),
                 )
@@ -189,11 +178,7 @@ class ImportWidget(QtWidgets.QWidget):
                     spotMarginVertical=rslt.meta["Spot margin vertical"],
                 )
 
-                dev = db.get_or_create(
-                    session,
-                    Device,
-                    serial=rslt.meta["Device ID"],
-                )
+                dev = db.get_or_create(session, Device, serial=rslt.meta["Device ID"])
 
                 sample = db.get_or_create(session, Sample, name=rslt.meta["Probe ID"])
 

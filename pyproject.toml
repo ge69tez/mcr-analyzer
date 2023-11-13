@@ -52,11 +52,11 @@ mcr_analyzer = "python -m mcr_analyzer"
 
 [tool.black]
 target-version = ["py311"]
-line-length = 100
+line-length = 120
 
 [tool.ruff]
 target-version = "py311"
-line-length = 100
+line-length = 120
 src = ["src"]
 namespace-packages = ["docs"]
 show-fixes = true

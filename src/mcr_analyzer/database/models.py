@@ -2,11 +2,7 @@
 
 import datetime
 
-from sqlalchemy import (
-    BINARY,
-    ForeignKey,
-    Text,
-)
+from sqlalchemy import BINARY, ForeignKey, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -24,8 +20,7 @@ class Chip(Base):
     """Chip ID assigned by user during measurement."""
 
     rowCount: Mapped[int]  # noqa: N815
-    """Number of rows, typically five. Used for redundancy and error
-    reduction."""
+    """Number of rows, typically five. Used for redundancy and error reduction."""
 
     columnCount: Mapped[int]  # noqa: N815
     """Number of columns. Different anti-bodies or anti-gens."""
@@ -40,16 +35,12 @@ class Chip(Base):
     """Size (in pixels) of a single spot. Side length of the square used for processing."""
 
     spotMarginHorizontal: Mapped[int]  # noqa: N815
-    """Horizontal margin between two adjacent spots: skip N pixels before processing the next
-    spot."""
+    """Horizontal margin between two adjacent spots: skip N pixels before processing the next spot."""
 
     spotMarginVertical: Mapped[int]  # noqa: N815
     """Vertical margin between two adjacent spots: skip N pixels before processing the next spot."""
 
-    measurements: Mapped[list["Measurement"]] = relationship(
-        back_populates="chip",
-        order_by="Measurement.timestamp",
-    )
+    measurements: Mapped[list["Measurement"]] = relationship(back_populates="chip", order_by="Measurement.timestamp")
     """Many-to-One relationship referencing all measurements the chip was used for."""
 
 
@@ -64,10 +55,7 @@ class Device(Base):
     serial: Mapped[str]
     """Serial number of the device."""
 
-    measurements: Mapped[list["Measurement"]] = relationship(
-        back_populates="device",
-        order_by="Measurement.timestamp",
-    )
+    measurements: Mapped[list["Measurement"]] = relationship(back_populates="device", order_by="Measurement.timestamp")
     """Many-to-One relationship referencing all measurements done with this device."""
 
 
@@ -119,19 +107,15 @@ class Measurement(Base):
     notes: Mapped[str | None] = mapped_column(Text)
     """Additional notes."""
 
-    results: Mapped[list["Result"]] = relationship(
-        back_populates="measurement",
-        order_by="Result.id",
-    )
+    results: Mapped[list["Result"]] = relationship(back_populates="measurement", order_by="Result.id")
     """Many-to-One relationship referencing all results of this measurement."""
 
 
 class Reagent(Base):
     """Substance used on a chip.
 
-    This class handles column specific information (for end-users), so depending on what information
-    is more useful, this is about the reagent which should be detected or the reagent which is
-    initially put on the chip.
+    This class handles column specific information (for end-users), so depending on what information is more useful,
+    this is about the reagent which should be detected or the reagent which is initially put on the chip.
     """
 
     __tablename__ = "reagent"
@@ -154,10 +138,7 @@ class Result(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     """Internal ID, used for cross-references."""
 
-    measurementID: Mapped[int] = mapped_column(  # noqa: N815
-        ForeignKey("measurement.id"),
-        index=True,
-    )
+    measurementID: Mapped[int] = mapped_column(ForeignKey("measurement.id"), index=True)  # noqa: N815
     """Reference to the :class:`Measurement` to which the result belongs."""
 
     measurement: Mapped["Measurement"] = relationship(back_populates="results")
@@ -172,10 +153,7 @@ class Result(Base):
     value: Mapped[float | None]
     """Calculated brightness of the spot."""
 
-    reagentID: Mapped[int | None] = mapped_column(  # noqa: N815
-        ForeignKey("reagent.id"),
-        index=True,
-    )
+    reagentID: Mapped[int | None] = mapped_column(ForeignKey("reagent.id"), index=True)  # noqa: N815
     """Reference to :class:`Reagent`."""
 
     reagent: Mapped["Reagent"] = relationship(back_populates="results")
@@ -185,9 +163,8 @@ class Result(Base):
     """Additional concentration information to specify the :attr:`reagent` more precisely."""
 
     valid: Mapped[bool | None]
-    """Is this a valid result which can be used in calculations? Invalid results can be caused by
-    the process (bleeding of nearby results, air bubbles, or dirt) or determination as an outlier
-    (mathematical postprocessing)."""
+    """Is this a valid result which can be used in calculations? Invalid results can be caused by the process (bleeding
+    of nearby results, air bubbles, or dirt) or determination as an outlier (mathematical postprocessing)."""
 
 
 class Sample(Base):
@@ -202,13 +179,9 @@ class Sample(Base):
     """Short description of the sample, entered as Probe ID during measurement."""
 
     knownPositive: Mapped[bool | None]  # noqa: N815
-    """Is this a know positive sample? Makes use of the tri-state SQL bool `None`, `True`, or
-    `False`."""
+    """Is this a know positive sample? Makes use of the tri-state SQL bool `None`, `True`, or `False`."""
 
-    typeID: Mapped[int | None] = mapped_column(  # noqa: N815
-        ForeignKey("sampleType.id"),
-        index=True,
-    )
+    typeID: Mapped[int | None] = mapped_column(ForeignKey("sampleType.id"), index=True)  # noqa: N815
     """Refers to :class:`SampleType`."""
 
     type: Mapped["SampleType"] = relationship(back_populates="samples")
@@ -223,10 +196,7 @@ class Sample(Base):
     timestamp: Mapped[datetime.datetime | None]
     """Date and time of the sample taking."""
 
-    measurements: Mapped[list["Measurement"]] = relationship(
-        back_populates="sample",
-        order_by="Measurement.timestamp",
-    )
+    measurements: Mapped[list["Measurement"]] = relationship(back_populates="sample", order_by="Measurement.timestamp")
     """Many-to-One relationship referencing the measurements done with this sample."""
 
 
@@ -262,8 +232,5 @@ class User(Base):
     samples: Mapped[list["Sample"]] = relationship(back_populates="takenBy", order_by="Sample.id")
     """Many-to-One relationship referencing all samples taken by a user."""
 
-    measurements: Mapped[list["Measurement"]] = relationship(
-        back_populates="user",
-        order_by="Measurement.timestamp",
-    )
+    measurements: Mapped[list["Measurement"]] = relationship(back_populates="user", order_by="Measurement.timestamp")
     """Many-to-One relationship referencing all measurements done by a user."""

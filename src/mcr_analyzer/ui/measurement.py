@@ -50,15 +50,10 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.spot_size = QtWidgets.QSpinBox()
         form_layout.addRow("Spot size:", self.spot_size)
         self.spot_margin_horizontal = QtWidgets.QSpinBox()
-        form_layout.addRow(
-            "Horizontal Spot Distance:",
-            self.spot_margin_horizontal,
-        )
+        form_layout.addRow("Horizontal Spot Distance:", self.spot_margin_horizontal)
         self.spot_margin_vertical = QtWidgets.QSpinBox()
         form_layout.addRow("Vert. Spot Distance:", self.spot_margin_vertical)
-        self.saveGridButton = QtWidgets.QPushButton(
-            "Save grid and calculate results",
-        )
+        self.saveGridButton = QtWidgets.QPushButton("Save grid and calculate results")
         self.saveGridButton.setDisabled(True)
         self.saveGridButton.clicked.connect(self.save_grid)
         form_layout.addRow(self.saveGridButton)
@@ -116,9 +111,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         db = database
         session = db.Session()
 
-        measurement = (
-            session.query(Measurement).filter(Measurement.id == self.meas_id).one_or_none()
-        )
+        measurement = session.query(Measurement).filter(Measurement.id == self.meas_id).one_or_none()
 
         if measurement.user:
             self.measurer.setText(measurement.user.name)
@@ -255,9 +248,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         db = database
         session = db.Session()
 
-        measurement = (
-            session.query(Measurement).filter(Measurement.id == self.meas_id).one_or_none()
-        )
+        measurement = session.query(Measurement).filter(Measurement.id == self.meas_id).one_or_none()
 
         # Disconnect all signals
         try:
@@ -327,9 +318,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         db = database
 
         session = db.Session()
-        session.query(Result).filter_by(measurementID=self.meas_id, column=col, row=row).update(
-            {Result.valid: valid},
-        )
+        session.query(Result).filter_by(measurementID=self.meas_id, column=col, row=row).update({Result.valid: valid})
         session.commit()
 
         # Tell views about change
