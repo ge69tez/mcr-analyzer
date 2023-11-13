@@ -129,8 +129,11 @@ pyqt6-sip==13.6.0
 pytest==7.4.3
     # via
     #   mcr-analyzer (pyproject.toml)
+    #   pytest-cov
     #   pytest-qt
     #   pytest-sugar
+pytest-cov==4.1.0
+    # via mcr-analyzer (pyproject.toml)
 pytest-qt==4.2.0
     # via mcr-analyzer (pyproject.toml)
 pytest-sugar==0.9.7

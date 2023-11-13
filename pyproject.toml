@@ -36,6 +36,7 @@ dev = [
   "pip-tools",
   "pre-commit",
   "pytest",
+  "pytest-cov",
   "pytest-qt",
   "pytest-sugar",
   "ruff",
@@ -170,6 +171,8 @@ addopts = [
   "--strict-markers",
   # - https://docs.pytest.org/en/stable/explanation/goodpractices.html#tests-outside-application-code
   "--import-mode=importlib", # cSpell:ignore addopts importlib
+
+  "--cov=src/mcr_analyzer",
 ]
 
 # - For "pytest-qt"
