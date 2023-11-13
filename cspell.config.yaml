@@ -5,6 +5,7 @@ ignorePaths:
   - .github/workflows/**
   - .gitignore
   - .taplo.toml
+  - assets/**/*.svg
   - cspell.config.yaml
   - docs/
   - requirements{,-dev}.{txt,in}

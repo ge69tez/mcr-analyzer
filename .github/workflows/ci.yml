@@ -38,7 +38,7 @@ jobs:
 
       - uses: pre-commit/action@v3.0.0
         env:
-          SKIP: pre-commit-update,no-commit-to-branch
+          SKIP: pre-commit-update,coverage-badge,no-commit-to-branch
 
       - name: Run local/output-gui-name
         id: output-gui-name

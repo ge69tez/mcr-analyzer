@@ -31,6 +31,7 @@ dependencies = [
 dev = [
   "black",
   "coverage",
+  "coverage-badge",
   "hatch",
   "mypy",
   "pip-tools",

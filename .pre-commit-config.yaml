@@ -128,3 +128,15 @@ repos:
         always_run: true
         entry: xvfb-run pytest # cSpell:ignore xvfb
         verbose: true
+
+  - repo: local
+    hooks:
+      - id: coverage-badge
+        stages:
+          - pre-commit
+        name: coverage-badge
+        language: system
+        pass_filenames: false
+        always_run: true
+        entry: coverage-badge -o assets/coverage.svg -f
+        verbose: true

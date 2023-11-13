@@ -20,11 +20,16 @@ cfgv==3.4.0
     # via pre-commit
 click==8.1.7
     # via
+    #   coverage-badge
+    #   mcr-analyzer (pyproject.toml)
+    #   pytest-cov
+coverage-badge==1.1.0
+    # via
     #   black
     #   hatch
     #   pip-tools
     #   userpath
-coverage==7.3.2
+coverage[toml]==7.3.2
     # via mcr-analyzer (pyproject.toml)
 cryptography==41.0.5
     # via secretstorage
