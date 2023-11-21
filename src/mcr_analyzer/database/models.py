@@ -1,6 +1,7 @@
 """Object Relational Models defining the database."""
 
 import datetime
+from typing import Annotated
 
 from sqlalchemy import BINARY, ForeignKey, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -10,10 +11,13 @@ class Base(DeclarativeBase):
     pass
 
 
+column_type__primary_key = Annotated[int, mapped_column(primary_key=True)]
+
+
 class Chip(Base):
     __tablename__ = "chip"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[column_type__primary_key]
     """Internal ID, used for cross-references."""
 
     name: Mapped[str]
@@ -44,12 +48,15 @@ class Chip(Base):
     """Many-to-One relationship referencing all measurements the chip was used for."""
 
 
+column_type__foreign_key__chip = Annotated[int, mapped_column(ForeignKey(f"{Chip.__tablename__}.id"))]
+
+
 class Device(Base):
     """Information about the MCR device used."""
 
     __tablename__ = "device"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[column_type__primary_key]
     """Internal ID, used for cross-references."""
 
     serial: Mapped[str]
@@ -57,6 +64,9 @@ class Device(Base):
 
     measurements: Mapped[list["Measurement"]] = relationship(back_populates="device", order_by="Measurement.timestamp")
     """Many-to-One relationship referencing all measurements done with this device."""
+
+
+column_type__foreign_key__device = Annotated[int, mapped_column(ForeignKey(f"{Device.__tablename__}.id"))]
 
 
 class Reagent(Base):
@@ -68,7 +78,7 @@ class Reagent(Base):
 
     __tablename__ = "reagent"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[column_type__primary_key]
     """Internal ID, used for cross-references."""
 
     name: Mapped[str]
@@ -78,12 +88,15 @@ class Reagent(Base):
     """Many-to-One relationship referencing the Spots of this substance."""
 
 
+column_type__foreign_key__reagent = Annotated[int, mapped_column(ForeignKey(f"{Reagent.__tablename__}.id"))]
+
+
 class User(Base):
     """Researcher who did the measurement or took the sample."""
 
     __tablename__ = "user"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[column_type__primary_key]
     """Internal ID, used for cross-references."""
 
     name: Mapped[str]
@@ -99,12 +112,15 @@ class User(Base):
     """Many-to-One relationship referencing all measurements done by a user."""
 
 
+column_type__foreign_key__user = Annotated[int, mapped_column(ForeignKey(f"{User.__tablename__}.id"))]
+
+
 class SampleType(Base):
     """Information about the kind of sample."""
 
     __tablename__ = "sampleType"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[column_type__primary_key]
     """Internal ID, used for cross-references."""
 
     name: Mapped[str]
@@ -114,12 +130,15 @@ class SampleType(Base):
     """Many-to-One relationship referencing all samples of this type."""
 
 
+column_type__foreign_key__sample_type = Annotated[int, mapped_column(ForeignKey(f"{SampleType.__tablename__}.id"))]
+
+
 class Sample(Base):
     """Information about the measured sample."""
 
     __tablename__ = "sample"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[column_type__primary_key]
     """Internal ID, used for cross-references."""
 
     name: Mapped[str]
@@ -128,13 +147,13 @@ class Sample(Base):
     knownPositive: Mapped[bool | None]  # noqa: N815
     """Is this a know positive sample? Makes use of the tri-state SQL bool `None`, `True`, or `False`."""
 
-    typeID: Mapped[int | None] = mapped_column(ForeignKey("sampleType.id"))  # noqa: N815
+    typeID: Mapped[column_type__foreign_key__sample_type | None]  # noqa: N815
     """Refers to :class:`SampleType`."""
 
     type: Mapped["SampleType"] = relationship(back_populates="samples")
     """One-to-Many relationship referencing the type of this sample."""
 
-    takenByID: Mapped[int | None] = mapped_column(ForeignKey("user.id"))  # noqa: N815
+    takenByID: Mapped[column_type__foreign_key__user | None]  # noqa: N815
     """Refers to the :class:`User` who took the sample."""
 
     takenBy: Mapped["User"] = relationship(back_populates="samples")  # noqa: N815
@@ -147,27 +166,30 @@ class Sample(Base):
     """Many-to-One relationship referencing the measurements done with this sample."""
 
 
+column_type__foreign_key__sample = Annotated[int, mapped_column(ForeignKey(f"{Sample.__tablename__}.id"))]
+
+
 class Measurement(Base):
     """A single measurement. This is the central table everything is about."""
 
     __tablename__ = "measurement"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[column_type__primary_key]
     """Internal ID, used for cross-references."""
 
-    chipID: Mapped[int] = mapped_column(ForeignKey("chip.id"))  # noqa: N815
+    chipID: Mapped[column_type__foreign_key__chip]  # noqa: N815
     """Refers to the used :class:`Chip`."""
 
     chip: Mapped["Chip"] = relationship(back_populates="measurements")
     """One-to-Many relationship referencing the used chip."""
 
-    deviceID: Mapped[int] = mapped_column(ForeignKey("device.id"))  # noqa: N815
+    deviceID: Mapped[column_type__foreign_key__device]  # noqa: N815
     """Refers to the used :class:`Device`."""
 
     device: Mapped["Device"] = relationship(back_populates="measurements")
     """One-to-Many relationship referencing the used device."""
 
-    sampleID: Mapped[int] = mapped_column(ForeignKey("sample.id"))  # noqa: N815
+    sampleID: Mapped[column_type__foreign_key__sample]  # noqa: N815
     """Refers to the measured :class:`Sample`."""
 
     sample: Mapped["Sample"] = relationship(back_populates="measurements")
@@ -183,7 +205,7 @@ class Measurement(Base):
     timestamp: Mapped[datetime.datetime] = mapped_column(index=True)
     """Date and time of the measurement."""
 
-    userID: Mapped[int | None] = mapped_column(ForeignKey("user.id"))  # noqa: N815
+    userID: Mapped[column_type__foreign_key__user | None]  # noqa: N815
     """Refers to the :class:`User` who did the measurement."""
 
     user: Mapped["User"] = relationship(back_populates="measurements")
@@ -199,15 +221,18 @@ class Measurement(Base):
     """Many-to-One relationship referencing all results of this measurement."""
 
 
+column_type__foreign_key__measurement = Annotated[int, mapped_column(ForeignKey(f"{Measurement.__tablename__}.id"))]
+
+
 class Result(Base):
     """Analysis information about a single spot."""
 
     __tablename__ = "result"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[column_type__primary_key]
     """Internal ID, used for cross-references."""
 
-    measurementID: Mapped[int] = mapped_column(ForeignKey("measurement.id"))  # noqa: N815
+    measurementID: Mapped[column_type__foreign_key__measurement]  # noqa: N815
     """Reference to the :class:`Measurement` to which the result belongs."""
 
     measurement: Mapped["Measurement"] = relationship(back_populates="results")
@@ -222,7 +247,7 @@ class Result(Base):
     value: Mapped[float | None]
     """Calculated brightness of the spot."""
 
-    reagentID: Mapped[int | None] = mapped_column(ForeignKey("reagent.id"))  # noqa: N815
+    reagentID: Mapped[column_type__foreign_key__reagent | None]  # noqa: N815
     """Reference to :class:`Reagent`."""
 
     reagent: Mapped["Reagent"] = relationship(back_populates="results")
