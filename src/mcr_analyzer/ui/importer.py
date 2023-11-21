@@ -186,9 +186,9 @@ class ImportWidget(QtWidgets.QWidget):
                     session,
                     Measurement,
                     checksum=checksum,
-                    chipID=chip.id,
-                    deviceID=dev.id,
-                    sampleID=sample.id,
+                    chip=chip,
+                    device=dev,
+                    sample=sample,
                     image=np.ascontiguousarray(img.data, ">u2"),  # cSpell:ignore ascontiguousarray
                     timestamp=rslt.meta["Date/time"],
                 )
