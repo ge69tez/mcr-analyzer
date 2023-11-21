@@ -59,6 +59,94 @@ class Device(Base):
     """Many-to-One relationship referencing all measurements done with this device."""
 
 
+class Reagent(Base):
+    """Substance used on a chip.
+
+    This class handles column specific information (for end-users), so depending on what information is more useful,
+    this is about the reagent which should be detected or the reagent which is initially put on the chip.
+    """
+
+    __tablename__ = "reagent"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    """Internal ID, used for cross-references."""
+
+    name: Mapped[str]
+    """Name of the substance."""
+
+    results: Mapped[list["Result"]] = relationship(back_populates="reagent", order_by="Result.id")
+    """Many-to-One relationship referencing the Spots of this substance."""
+
+
+class User(Base):
+    """Researcher who did the measurement or took the sample."""
+
+    __tablename__ = "user"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    """Internal ID, used for cross-references."""
+
+    name: Mapped[str]
+    """Name of the researcher."""
+
+    loginID: Mapped[str]  # noqa: N815
+    """User ID of the researcher, to be used for automatic association."""
+
+    samples: Mapped[list["Sample"]] = relationship(back_populates="takenBy", order_by="Sample.id")
+    """Many-to-One relationship referencing all samples taken by a user."""
+
+    measurements: Mapped[list["Measurement"]] = relationship(back_populates="user", order_by="Measurement.timestamp")
+    """Many-to-One relationship referencing all measurements done by a user."""
+
+
+class SampleType(Base):
+    """Information about the kind of sample."""
+
+    __tablename__ = "sampleType"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    """Internal ID, used for cross-references."""
+
+    name: Mapped[str]
+    """Name of the kind. For example full blood, serum, water, etc."""
+
+    samples: Mapped[list["Sample"]] = relationship(back_populates="type", order_by="Sample.id")
+    """Many-to-One relationship referencing all samples of this type."""
+
+
+class Sample(Base):
+    """Information about the measured sample."""
+
+    __tablename__ = "sample"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    """Internal ID, used for cross-references."""
+
+    name: Mapped[str]
+    """Short description of the sample, entered as Probe ID during measurement."""
+
+    knownPositive: Mapped[bool | None]  # noqa: N815
+    """Is this a know positive sample? Makes use of the tri-state SQL bool `None`, `True`, or `False`."""
+
+    typeID: Mapped[int | None] = mapped_column(ForeignKey("sampleType.id"))  # noqa: N815
+    """Refers to :class:`SampleType`."""
+
+    type: Mapped["SampleType"] = relationship(back_populates="samples")
+    """One-to-Many relationship referencing the type of this sample."""
+
+    takenByID: Mapped[int | None] = mapped_column(ForeignKey("user.id"))  # noqa: N815
+    """Refers to the :class:`User` who took the sample."""
+
+    takenBy: Mapped["User"] = relationship(back_populates="samples")  # noqa: N815
+    """One-to-Many relationship referencing the user who took this sample."""
+
+    timestamp: Mapped[datetime.datetime | None]
+    """Date and time of the sample taking."""
+
+    measurements: Mapped[list["Measurement"]] = relationship(back_populates="sample", order_by="Measurement.timestamp")
+    """Many-to-One relationship referencing the measurements done with this sample."""
+
+
 class Measurement(Base):
     """A single measurement. This is the central table everything is about."""
 
@@ -111,25 +199,6 @@ class Measurement(Base):
     """Many-to-One relationship referencing all results of this measurement."""
 
 
-class Reagent(Base):
-    """Substance used on a chip.
-
-    This class handles column specific information (for end-users), so depending on what information is more useful,
-    this is about the reagent which should be detected or the reagent which is initially put on the chip.
-    """
-
-    __tablename__ = "reagent"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    """Internal ID, used for cross-references."""
-
-    name: Mapped[str]
-    """Name of the substance."""
-
-    results: Mapped[list["Result"]] = relationship(back_populates="reagent", order_by="Result.id")
-    """Many-to-One relationship referencing the Spots of this substance."""
-
-
 class Result(Base):
     """Analysis information about a single spot."""
 
@@ -165,72 +234,3 @@ class Result(Base):
     valid: Mapped[bool | None]
     """Is this a valid result which can be used in calculations? Invalid results can be caused by the process (bleeding
     of nearby results, air bubbles, or dirt) or determination as an outlier (mathematical postprocessing)."""
-
-
-class Sample(Base):
-    """Information about the measured sample."""
-
-    __tablename__ = "sample"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    """Internal ID, used for cross-references."""
-
-    name: Mapped[str]
-    """Short description of the sample, entered as Probe ID during measurement."""
-
-    knownPositive: Mapped[bool | None]  # noqa: N815
-    """Is this a know positive sample? Makes use of the tri-state SQL bool `None`, `True`, or `False`."""
-
-    typeID: Mapped[int | None] = mapped_column(ForeignKey("sampleType.id"))  # noqa: N815
-    """Refers to :class:`SampleType`."""
-
-    type: Mapped["SampleType"] = relationship(back_populates="samples")
-    """One-to-Many relationship referencing the type of this sample."""
-
-    takenByID: Mapped[int | None] = mapped_column(ForeignKey("user.id"))  # noqa: N815
-    """Refers to the :class:`User` who took the sample."""
-
-    takenBy: Mapped["User"] = relationship(back_populates="samples")  # noqa: N815
-    """One-to-Many relationship referencing the user who took this sample."""
-
-    timestamp: Mapped[datetime.datetime | None]
-    """Date and time of the sample taking."""
-
-    measurements: Mapped[list["Measurement"]] = relationship(back_populates="sample", order_by="Measurement.timestamp")
-    """Many-to-One relationship referencing the measurements done with this sample."""
-
-
-class SampleType(Base):
-    """Information about the kind of sample."""
-
-    __tablename__ = "sampleType"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    """Internal ID, used for cross-references."""
-
-    name: Mapped[str]
-    """Name of the kind. For example full blood, serum, water, etc."""
-
-    samples: Mapped[list["Sample"]] = relationship(back_populates="type", order_by="Sample.id")
-    """Many-to-One relationship referencing all samples of this type."""
-
-
-class User(Base):
-    """Researcher who did the measurement or took the sample."""
-
-    __tablename__ = "user"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    """Internal ID, used for cross-references."""
-
-    name: Mapped[str]
-    """Name of the researcher."""
-
-    loginID: Mapped[str]  # noqa: N815
-    """User ID of the researcher, to be used for automatic association."""
-
-    samples: Mapped[list["Sample"]] = relationship(back_populates="takenBy", order_by="Sample.id")
-    """Many-to-One relationship referencing all samples taken by a user."""
-
-    measurements: Mapped[list["Measurement"]] = relationship(back_populates="user", order_by="Measurement.timestamp")
-    """Many-to-One relationship referencing all measurements done by a user."""
