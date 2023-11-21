@@ -67,19 +67,19 @@ class Measurement(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     """Internal ID, used for cross-references."""
 
-    chipID: Mapped[int] = mapped_column(ForeignKey("chip.id"), index=True)  # noqa: N815
+    chipID: Mapped[int] = mapped_column(ForeignKey("chip.id"))  # noqa: N815
     """Refers to the used :class:`Chip`."""
 
     chip: Mapped["Chip"] = relationship(back_populates="measurements")
     """One-to-Many relationship referencing the used chip."""
 
-    deviceID: Mapped[int] = mapped_column(ForeignKey("device.id"), index=True)  # noqa: N815
+    deviceID: Mapped[int] = mapped_column(ForeignKey("device.id"))  # noqa: N815
     """Refers to the used :class:`Device`."""
 
     device: Mapped["Device"] = relationship(back_populates="measurements")
     """One-to-Many relationship referencing the used device."""
 
-    sampleID: Mapped[int] = mapped_column(ForeignKey("sample.id"), index=True)  # noqa: N815
+    sampleID: Mapped[int] = mapped_column(ForeignKey("sample.id"))  # noqa: N815
     """Refers to the measured :class:`Sample`."""
 
     sample: Mapped["Sample"] = relationship(back_populates="measurements")
@@ -95,7 +95,7 @@ class Measurement(Base):
     timestamp: Mapped[datetime.datetime] = mapped_column(index=True)
     """Date and time of the measurement."""
 
-    userID: Mapped[int | None] = mapped_column(ForeignKey("user.id"), index=True)  # noqa: N815
+    userID: Mapped[int | None] = mapped_column(ForeignKey("user.id"))  # noqa: N815
     """Refers to the :class:`User` who did the measurement."""
 
     user: Mapped["User"] = relationship(back_populates="measurements")
@@ -138,7 +138,7 @@ class Result(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     """Internal ID, used for cross-references."""
 
-    measurementID: Mapped[int] = mapped_column(ForeignKey("measurement.id"), index=True)  # noqa: N815
+    measurementID: Mapped[int] = mapped_column(ForeignKey("measurement.id"))  # noqa: N815
     """Reference to the :class:`Measurement` to which the result belongs."""
 
     measurement: Mapped["Measurement"] = relationship(back_populates="results")
@@ -153,7 +153,7 @@ class Result(Base):
     value: Mapped[float | None]
     """Calculated brightness of the spot."""
 
-    reagentID: Mapped[int | None] = mapped_column(ForeignKey("reagent.id"), index=True)  # noqa: N815
+    reagentID: Mapped[int | None] = mapped_column(ForeignKey("reagent.id"))  # noqa: N815
     """Reference to :class:`Reagent`."""
 
     reagent: Mapped["Reagent"] = relationship(back_populates="results")
@@ -181,13 +181,13 @@ class Sample(Base):
     knownPositive: Mapped[bool | None]  # noqa: N815
     """Is this a know positive sample? Makes use of the tri-state SQL bool `None`, `True`, or `False`."""
 
-    typeID: Mapped[int | None] = mapped_column(ForeignKey("sampleType.id"), index=True)  # noqa: N815
+    typeID: Mapped[int | None] = mapped_column(ForeignKey("sampleType.id"))  # noqa: N815
     """Refers to :class:`SampleType`."""
 
     type: Mapped["SampleType"] = relationship(back_populates="samples")
     """One-to-Many relationship referencing the type of this sample."""
 
-    takenByID: Mapped[int | None] = mapped_column(ForeignKey("user.id"), index=True)  # noqa: N815
+    takenByID: Mapped[int | None] = mapped_column(ForeignKey("user.id"))  # noqa: N815
     """Refers to the :class:`User` who took the sample."""
 
     takenBy: Mapped["User"] = relationship(back_populates="samples")  # noqa: N815
