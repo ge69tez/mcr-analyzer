@@ -1,11 +1,16 @@
 MCR-Analyzer
 ============
 
-========= =======================================================================
-CI        |ci-badge| |pre-commit-badge| |coverage-badge|
-Package   |python-badge|
-Meta      |license-badge| |hatch-badge| |ruff-badge| |black-badge| |mypy-badge|
-========= =======================================================================
+.. list-table::
+
+   * - CI
+     - |ci-badge| |pre-commit-badge| |coverage-badge|
+
+   * - Package
+     - |python-badge|
+
+   * - Meta
+     - |license-badge| |hatch-badge| |ruff-badge| |black-badge| |mypy-badge|
 
 .. |ci-badge| image:: https://github.com/ge69tez/mcr-analyzer/actions/workflows/ci.yml/badge.svg
    :target: https://github.com/ge69tez/mcr-analyzer/actions/workflows/ci.yml
