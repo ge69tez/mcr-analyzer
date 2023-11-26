@@ -46,7 +46,7 @@ class _DatabaseSingleton:
     def load__sqlite(self, sqlite_file_path: Path | None = None) -> Engine:
         engine_url = _make_url__sqlite(sqlite_file_path)
 
-        engine = create_engine(url=engine_url, connect_args={"timeout": 30})
+        engine = create_engine(url=engine_url)
 
         self.Session.configure(bind=engine)
 

@@ -6,6 +6,7 @@ import typing
 import numpy as np
 import sqlalchemy
 from PyQt6 import QtCore, QtGui
+from sqlalchemy.sql.expression import select
 
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement, Result
@@ -68,9 +69,6 @@ class MeasurementTreeItem:
 class MeasurementTreeModel(QtCore.QAbstractItemModel):
     def __init__(self, parent: QtCore.QObject | None = None):
         super().__init__(parent)
-
-        self.db = database
-        self.session = self.db.Session()
 
         header_row = ["Date/Time", "Chip", "Sample"]
         self._root_tree_item = MeasurementTreeItem(header_row)
@@ -176,44 +174,47 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
         return return_value
 
     def _setup_model_data(self):
-        for day in self.session.query(Measurement).group_by(
-            sqlalchemy.func.strftime("%Y-%m-%d", Measurement.timestamp),
-        ):
-            date_row_tree_item = MeasurementTreeItem([str(day.timestamp.date()), None, None], self._root_tree_item)
-
-            self._root_tree_item.append_child_tree_item(date_row_tree_item)
-
-            for result in (
-                self.session.query(Measurement)
-                .filter(day.timestamp.date() <= Measurement.timestamp)
-                .filter(
-                    # - Before the same day at 23:59:59
-                    Measurement.timestamp
-                    <= datetime.datetime.combine(day.timestamp, datetime.time.max),
-                )
+        with database.Session() as session:
+            for day in session.query(Measurement).group_by(
+                sqlalchemy.func.strftime("%Y-%m-%d", Measurement.timestamp),
             ):
-                date_row_tree_item.append_child_tree_item(
-                    MeasurementTreeItem(
-                        [
-                            result.timestamp.time().strftime("%H:%M:%S"),
-                            result.chip.name,
-                            result.sample.name,
-                            result.id,
-                        ],
-                        date_row_tree_item,
-                    ),
-                )
+                date_row_tree_item = MeasurementTreeItem([str(day.timestamp.date()), None, None], self._root_tree_item)
+
+                self._root_tree_item.append_child_tree_item(date_row_tree_item)
+
+                for result in (
+                    session.query(Measurement)
+                    .filter(day.timestamp.date() <= Measurement.timestamp)
+                    .filter(
+                        # - Before the same day at 23:59:59
+                        Measurement.timestamp
+                        <= datetime.datetime.combine(day.timestamp, datetime.time.max),
+                    )
+                ):
+                    date_row_tree_item.append_child_tree_item(
+                        MeasurementTreeItem(
+                            [
+                                result.timestamp.time().strftime("%H:%M:%S"),
+                                result.chip.name,
+                                result.sample.name,
+                                result.id,
+                            ],
+                            date_row_tree_item,
+                        ),
+                    )
 
 
 class ResultTableModel(QtCore.QAbstractTableModel):
-    def __init__(self, id: int, parent: QtCore.QObject | None = None):
+    def __init__(self, measurement_id: int, parent: QtCore.QObject | None = None):
         super().__init__(parent)
 
-        self.db = database
-        self.session = self.db.Session()
+        with database.Session() as session:
+            statement = select(Measurement).filter(Measurement.id == measurement_id)
+            measurement = session.execute(statement).scalar_one()
+            self.measurement = measurement
 
-        self.measurement = self.session.query(Measurement).filter(Measurement.id == id).one_or_none()
-        self.chip = self.measurement.chip
+            self.chip = measurement.chip
+
         self.results = None
         self.means = None
         self.standard_deviations = None
@@ -327,7 +328,6 @@ class ResultTableModel(QtCore.QAbstractTableModel):
             return
 
         if not self.cache_valid:
-            self.session.expire(self.measurement.chip)
             self.cache_valid = True
 
         row_count = self.chip.rowCount
@@ -340,23 +340,24 @@ class ResultTableModel(QtCore.QAbstractTableModel):
 
         for row in range(row_count):
             for col in range(column_count):
-                self.results[row][col] = (
-                    self.session.query(Result)
-                    .filter_by(measurement=self.measurement, column=col, row=row)
-                    .one_or_none()
-                )
+                with database.Session() as session:
+                    self.results[row][col] = (
+                        session.query(Result).filter_by(measurement=self.measurement, column=col, row=row).one_or_none()
+                    )
 
         for col in range(column_count):
-            values = list(
-                self.session.query(Result)
-                .filter(
-                    Result.measurement == self.measurement,
-                    Result.column == col,
-                    Result.valid.is_(True),
-                    Result.value.isnot(None),  # cSpell:ignore isnot
+            with database.Session() as session:
+                values = list(
+                    session.query(Result)
+                    .filter(
+                        Result.measurement == self.measurement,
+                        Result.column == col,
+                        Result.valid.is_(True),
+                        Result.value.isnot(None),  # cSpell:ignore isnot
+                    )
+                    .values(Result.value),
                 )
-                .values(Result.value),
-            )
+
             self.means[col] = np.mean(values) if values else np.nan
             self.standard_deviations[col] = np.std(values, ddof=1) if values else np.nan
             # cSpell:ignore ddof

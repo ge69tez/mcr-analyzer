@@ -1,6 +1,7 @@
 import string
 
 from PyQt6 import QtCore, QtGui, QtWidgets
+from sqlalchemy.sql.expression import select
 
 from mcr_analyzer import utils
 from mcr_analyzer.database.database import database
@@ -75,17 +76,20 @@ class GraphicsSpotItem(QtWidgets.QGraphicsRectItem):
 class GridItem(QtWidgets.QGraphicsItem):
     """Container class for drawing the measurement grid."""
 
-    def __init__(self, meas_id: int, parent=None):
+    def __init__(self, measurement_id: int, parent=None):
         super().__init__(parent)
-        self.meas_id = meas_id
-        db = database
-        self.session = db.Session()
-        self.measurement = self.session.query(Measurement).filter(Measurement.id == self.meas_id).one_or_none()
-        self.cols = self.measurement.chip.columnCount
-        self.rows = self.measurement.chip.rowCount
-        self.horizontal_space = self.measurement.chip.spotMarginHorizontal
-        self.vertical_space = self.measurement.chip.spotMarginVertical
-        self.size = self.measurement.chip.spotSize
+        self.measurement_id = measurement_id
+
+        with database.Session() as session:
+            statement = select(Measurement).filter(Measurement.id == self.measurement_id)
+            measurement = session.execute(statement).scalar_one()
+            self.measurement = measurement
+
+            self.cols = measurement.chip.columnCount
+            self.rows = measurement.chip.rowCount
+            self.horizontal_space = measurement.chip.spotMarginHorizontal
+            self.vertical_space = measurement.chip.spotMarginVertical
+            self.size = measurement.chip.spotSize
 
         self.spots = []
         self.c_headers = []
@@ -159,11 +163,13 @@ class GridItem(QtWidgets.QGraphicsItem):
                 if self.preview_mode:
                     valid = False
                 else:
-                    res = (
-                        self.session.query(Result.valid)
-                        .filter_by(measurement=self.measurement, column=col, row=row)
-                        .one_or_none()
-                    )
+                    with database.Session() as session:
+                        res = (
+                            session.query(Result.valid)
+                            .filter_by(measurement=self.measurement, column=col, row=row)
+                            .one_or_none()
+                        )
+
                     valid = utils.simplify_list(res) if res else False
                 x = col * (self.size + self.horizontal_space)
                 y = row * (self.size + self.vertical_space)
@@ -184,13 +190,16 @@ class GridItem(QtWidgets.QGraphicsItem):
         self._clear_children()
 
         # Ensure latest database information
-        self.session.commit()
-        self.measurement = self.session.query(Measurement).filter(Measurement.id == self.meas_id).one_or_none()
-        self.cols = self.measurement.chip.columnCount
-        self.rows = self.measurement.chip.rowCount
-        self.horizontal_space = self.measurement.chip.spotMarginHorizontal
-        self.vertical_space = self.measurement.chip.spotMarginVertical
-        self.size = self.measurement.chip.spotSize
+        with database.Session() as session:
+            statement = select(Measurement).filter(Measurement.id == self.measurement_id)
+            measurement = session.execute(statement).scalar_one()
+            self.measurement = measurement
+
+            self.cols = measurement.chip.columnCount
+            self.rows = measurement.chip.rowCount
+            self.horizontal_space = measurement.chip.spotMarginHorizontal
+            self.vertical_space = measurement.chip.spotMarginVertical
+            self.size = measurement.chip.spotSize
 
         self.preview_mode = False
         self._add_children()

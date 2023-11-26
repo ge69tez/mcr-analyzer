@@ -96,8 +96,7 @@ class ExportWidget(QtWidgets.QWidget):
         self.preview_edit.clear()
 
         # Initialize query object
-        db = database
-        session = db.Session()
+        session = database.Session()
         query = session.query(Measurement)
 
         # Apply user filters to query

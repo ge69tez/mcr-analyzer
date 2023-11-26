@@ -8,7 +8,7 @@ from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Chip, Device, Measurement, Sample
 from mcr_analyzer.io.image import Image
 from mcr_analyzer.io.importer import FileImporter
-from mcr_analyzer.processing.measurement import Measurement as MeasurementProcessor
+from mcr_analyzer.processing.measurement import update_results
 
 
 class ImportWidget(QtWidgets.QWidget):
@@ -69,8 +69,7 @@ class ImportWidget(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def path_dialog(self):
         """Show folder selection dialog."""
-        db = database
-        if not db.valid:
+        if not database.valid:
             if QtWidgets.QMessageBox.warning(
                 self,
                 "No database selected",
@@ -148,12 +147,11 @@ class ImportWidget(QtWidgets.QWidget):
     @QtCore.pyqtSlot(int, bytes)
     def update_status(self, step, checksum):
         """Slot to be called whenever our thread has calculated a SHA256 sum."""
-        db = database
         self.progress_bar.setValue(step + 1)
         # Will be set if we need to calculate results
         measurement_id = None
 
-        with db.Session() as session:
+        with database.Session() as session:
             try:
                 session.query(Measurement).filter_by(checksum=checksum).one()
                 self.file_model.item(step + len(self.failed), 4).setText("Imported previously")
@@ -165,7 +163,7 @@ class ImportWidget(QtWidgets.QWidget):
                 rslt = self.results[step]
                 img = Image(rslt.dir.joinpath(rslt.meta["Result image PGM"]))
 
-                chip = db.get_or_create(
+                chip = database.get_or_create(
                     session,
                     Chip,
                     name=rslt.meta["Chip ID"],
@@ -178,11 +176,11 @@ class ImportWidget(QtWidgets.QWidget):
                     spotMarginVertical=rslt.meta["Spot margin vertical"],
                 )
 
-                dev = db.get_or_create(session, Device, serial=rslt.meta["Device ID"])
+                dev = database.get_or_create(session, Device, serial=rslt.meta["Device ID"])
 
-                sample = db.get_or_create(session, Sample, name=rslt.meta["Probe ID"])
+                sample = database.get_or_create(session, Sample, name=rslt.meta["Probe ID"])
 
-                meas = db.get_or_create(
+                meas = database.get_or_create(
                     session,
                     Measurement,
                     checksum=checksum,
@@ -245,5 +243,4 @@ class ResultWorker(QtCore.QRunnable):
         self.measurement_id = measurement_id
 
     def run(self):
-        processor = MeasurementProcessor()
-        processor.update_results(self.measurement_id)
+        update_results(self.measurement_id)
