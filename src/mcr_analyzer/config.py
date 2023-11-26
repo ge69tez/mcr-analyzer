@@ -12,7 +12,11 @@ _TZ_INFO__DE: Final[tzinfo] = pytz.timezone(_TZ_DB__TIME_ZONE__DE)
 TZ_INFO: Final[tzinfo] = _TZ_INFO__DE
 
 
-def setup_qsettings(app: QApplication):  # cSpell:ignore qsettings
+def setup_qsettings(app: QApplication) -> None:  # cSpell:ignore qsettings
     app.setOrganizationName("TranslaTUM")
     app.setOrganizationDomain("www.translatum.tum.de")  # cSpell:ignore translatum
     app.setApplicationName("MCR-Analyzer")
+
+
+SQLITE__DRIVER_NAME = "sqlite"
+SQLITE__FILENAME_EXTENSION = f".{SQLITE__DRIVER_NAME}"

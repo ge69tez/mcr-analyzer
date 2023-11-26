@@ -3,8 +3,9 @@
 import datetime
 from typing import Annotated
 
-from sqlalchemy import BINARY, ForeignKey, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column, relationship
+from sqlalchemy.schema import ForeignKey
+from sqlalchemy.types import BINARY, Text
 
 
 class Base(MappedAsDataclass, DeclarativeBase):
