@@ -11,7 +11,7 @@ from mcr_analyzer.ui.models import MeasurementTreeModel, ResultTableModel
 class MeasurementWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):  # noqa: PLR0915
         super().__init__(parent)
-        self.meas_id = None
+        self.measurement_id = None
         self.model = None
         self.result_model = None
 
@@ -104,81 +104,78 @@ class MeasurementWidget(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot(QtCore.QItemSelection, QtCore.QItemSelection)
     def selection_changed(self, selected, deselected) -> None:  # noqa: ARG002, PLR0915
-        self.meas_id = selected.indexes()[0].internalPointer().data(3)
-        if not self.meas_id:
+        self.measurement_id = selected.indexes()[0].internalPointer().data(3)
+        if not self.measurement_id:
             return
 
-        session = database.Session()
+        with database.Session() as session:
+            measurement = session.query(Measurement).filter(Measurement.id == self.measurement_id).one_or_none()
 
-        measurement = session.query(Measurement).filter(Measurement.id == self.meas_id).one_or_none()
+            if measurement.user:
+                self.measurer.setText(measurement.user.name)
+            else:
+                self.measurer.clear()
 
-        if measurement.user:
-            self.measurer.setText(measurement.user.name)
-        else:
-            self.measurer.clear()
+            self.device.setText(measurement.device.serial)
+            self.timestamp.setText(measurement.timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+            self.chip.setText(measurement.chip.name)
+            self.sample.setText(measurement.sample.name)
 
-        self.device.setText(measurement.device.serial)
-        self.timestamp.setText(measurement.timestamp.strftime("%Y-%m-%d %H:%M:%S"))
-        self.chip.setText(measurement.chip.name)
-        self.sample.setText(measurement.sample.name)
+            # Disconnect all signals
+            try:
+                self.cols.valueChanged.disconnect()
+                self.rows.valueChanged.disconnect()
+                self.spot_size.valueChanged.disconnect()
+                self.spot_margin_horizontal.valueChanged.disconnect()
+                self.spot_margin_vertical.valueChanged.disconnect()
+            except (RuntimeError, TypeError):
+                # Don't fail if they are not connected
+                pass
 
-        # Disconnect all signals
-        try:
-            self.cols.valueChanged.disconnect()
-            self.rows.valueChanged.disconnect()
-            self.spot_size.valueChanged.disconnect()
-            self.spot_margin_horizontal.valueChanged.disconnect()
-            self.spot_margin_vertical.valueChanged.disconnect()
-        except (RuntimeError, TypeError):
-            # Don't fail if they are not connected
-            pass
+            self.cols.setValue(measurement.chip.columnCount)
+            self.rows.setValue(measurement.chip.rowCount)
+            self.spot_size.setValue(measurement.chip.spotSize)
+            self.spot_margin_horizontal.setValue(measurement.chip.spotMarginHorizontal)
+            self.spot_margin_vertical.setValue(measurement.chip.spotMarginVertical)
 
-        self.cols.setValue(measurement.chip.columnCount)
-        self.rows.setValue(measurement.chip.rowCount)
-        self.spot_size.setValue(measurement.chip.spotSize)
-        self.spot_margin_horizontal.setValue(measurement.chip.spotMarginHorizontal)
-        self.spot_margin_vertical.setValue(measurement.chip.spotMarginVertical)
+            # Connect grid related fields
+            self.cols.valueChanged.connect(self.preview_grid)
+            self.rows.valueChanged.connect(self.preview_grid)
+            self.spot_size.valueChanged.connect(self.preview_grid)
+            self.spot_margin_horizontal.valueChanged.connect(self.preview_grid)
+            self.spot_margin_vertical.valueChanged.connect(self.preview_grid)
 
-        # Connect grid related fields
-        self.cols.valueChanged.connect(self.preview_grid)
-        self.rows.valueChanged.connect(self.preview_grid)
-        self.spot_size.valueChanged.connect(self.preview_grid)
-        self.spot_margin_horizontal.valueChanged.connect(self.preview_grid)
-        self.spot_margin_vertical.valueChanged.connect(self.preview_grid)
+            if measurement.notes:
+                self.notes.setPlainText(measurement.notes)
+            else:
+                self.notes.clear()
 
-        if measurement.notes:
-            self.notes.setPlainText(measurement.notes)
-        else:
-            self.notes.clear()
+            img = np.frombuffer(measurement.image, dtype=">u2").reshape(520, 696)  # cSpell:ignore frombuffer dtype
+            # Gamma correction for better visualization
+            # Convert to float (0<=x<=1)
+            img = img / (2**16 - 1)
+            # Gamma correction
+            img = img**0.5
+            # Map to 8 bit range
+            img = img * 255
 
-        img = np.frombuffer(measurement.image, dtype=">u2").reshape(520, 696)
-        # cSpell:ignore frombuffer dtype
-        # Gamma correction for better visualization
-        # Convert to float (0<=x<=1)
-        img = img / (2**16 - 1)
-        # Gamma correction
-        img = img**0.5
-        # Map to 8 bit range
-        img = img * 255
+            q_image = QtGui.QImage(
+                img.astype("uint8"),  # cSpell:ignore astype
+                696,
+                520,
+                QtGui.QImage.Format.Format_Grayscale8,
+            ).convertToFormat(QtGui.QImage.Format.Format_RGB32)
 
-        q_image = QtGui.QImage(
-            img.astype("uint8"),
-            696,
-            520,
-            QtGui.QImage.Format.Format_Grayscale8,
-            # cSpell:ignore astype
-        ).convertToFormat(QtGui.QImage.Format.Format_RGB32)
+            self.result_model = ResultTableModel(self.measurement_id)
+            self.results.setModel(self.result_model)
+            self.results.resizeColumnsToContents()
 
-        self.result_model = ResultTableModel(self.meas_id)
-        self.results.setModel(self.result_model)
-        self.results.resizeColumnsToContents()
+            if self.grid:
+                self.scene.removeItem(self.grid)
 
-        if self.grid:
-            self.scene.removeItem(self.grid)
-
-        self.grid = GridItem(self.meas_id)
-        self.scene.addItem(self.grid)
-        self.grid.setPos(measurement.chip.marginLeft, measurement.chip.marginTop)
+            self.grid = GridItem(self.measurement_id)
+            self.scene.addItem(self.grid)
+            self.grid.setPos(measurement.chip.marginLeft, measurement.chip.marginTop)
 
         self.image.setPixmap(QtGui.QPixmap.fromImage(q_image))
 
@@ -203,28 +200,25 @@ class MeasurementWidget(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot()
     def save_grid(self):
-        if not self.meas_id:
+        if not self.measurement_id:
             return
 
-        session = database.Session()
+        with database.Session() as session, session.begin():
+            for result in session.query(Result).filter_by(measurementID=self.measurement_id):
+                session.delete(result)
 
-        for result in session.query(Result).filter_by(measurementID=self.meas_id):
-            session.delete(result)
+            measurement = session.query(Measurement).filter_by(id=self.measurement_id).one()
 
-        measurement = session.query(Measurement).filter_by(id=self.meas_id).one()
+            chip = measurement.chip
+            chip.columnCount = self.cols.value()
+            chip.rowCount = self.rows.value()
+            chip.marginLeft = int(self.grid.scenePos().x())
+            chip.marginTop = int(self.grid.scenePos().y())
+            chip.spotSize = self.spot_size.value()
+            chip.spotMarginHorizontal = self.spot_margin_horizontal.value()
+            chip.spotMarginVertical = self.spot_margin_vertical.value()
 
-        chip = measurement.chip
-        chip.columnCount = self.cols.value()
-        chip.rowCount = self.rows.value()
-        chip.marginLeft = int(self.grid.scenePos().x())
-        chip.marginTop = int(self.grid.scenePos().y())
-        chip.spotSize = self.spot_size.value()
-        chip.spotMarginHorizontal = self.spot_margin_horizontal.value()
-        chip.spotMarginVertical = self.spot_margin_vertical.value()
-
-        session.commit()
-
-        update_results(self.meas_id)
+        update_results(self.measurement_id)
 
         self.grid.database_view()
 
@@ -239,12 +233,11 @@ class MeasurementWidget(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot()
     def reset_grid(self):
-        if not self.meas_id:
+        if not self.measurement_id:
             return
 
-        session = database.Session()
-
-        measurement = session.query(Measurement).filter(Measurement.id == self.meas_id).one_or_none()
+        with database.Session() as session:
+            measurement = session.query(Measurement).filter(Measurement.id == self.measurement_id).one_or_none()
 
         # Disconnect all signals
         try:
@@ -284,17 +277,15 @@ class MeasurementWidget(QtWidgets.QWidget):
         if x == 0 and y == 0:
             return
 
-        if not self.meas_id:
+        if not self.measurement_id:
             return
 
         self.preview_grid()
 
     @QtCore.pyqtSlot()
     def update_notes(self):
-        if not self.meas_id:
+        if not self.measurement_id:
             return
-
-        session = database.Session()
 
         note = self.notes.toPlainText()
 
@@ -302,17 +293,18 @@ class MeasurementWidget(QtWidgets.QWidget):
         if not note:
             note = None
 
-        session.query(Measurement).filter_by(id=self.meas_id).update({Measurement.notes: note})
-        session.commit()
+        with database.Session() as session, session.begin():
+            session.query(Measurement).filter_by(id=self.measurement_id).update({Measurement.notes: note})
 
     @QtCore.pyqtSlot(int, int, bool)
     def update_validity(self, row, col, valid):
-        if not self.meas_id:
+        if not self.measurement_id:
             return
 
-        session = database.Session()
-        session.query(Result).filter_by(measurementID=self.meas_id, column=col, row=row).update({Result.valid: valid})
-        session.commit()
+        with database.Session() as session, session.begin():
+            session.query(Result).filter_by(measurementID=self.measurement_id, column=col, row=row).update(
+                {Result.valid: valid},
+            )
 
         # Tell views about change
         start = self.result_model.index(row, col)

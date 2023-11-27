@@ -69,7 +69,6 @@ class _DatabaseSingleton:
         if not instance:
             instance = model(**kwargs)
             session.add(instance)
-            session.commit()
         return instance
 
     @property

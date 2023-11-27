@@ -1,7 +1,6 @@
 import hashlib
 
 import numpy as np
-import sqlalchemy
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from mcr_analyzer.database.database import database
@@ -148,21 +147,21 @@ class ImportWidget(QtWidgets.QWidget):
     def update_status(self, step, checksum):
         """Slot to be called whenever our thread has calculated a SHA256 sum."""
         self.progress_bar.setValue(step + 1)
-        # Will be set if we need to calculate results
-        measurement_id = None
 
         with database.Session() as session:
-            try:
-                session.query(Measurement).filter_by(checksum=checksum).one()
-                self.file_model.item(step + len(self.failed), 4).setText("Imported previously")
-                self.file_model.item(step + len(self.failed), 4).setIcon(
-                    self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogNoButton),
-                )
+            exists = session.query(Measurement.id).filter(Measurement.checksum == checksum).first() is not None
 
-            except sqlalchemy.orm.exc.NoResultFound:
-                rslt = self.results[step]
-                img = Image(rslt.dir.joinpath(rslt.meta["Result image PGM"]))
+        if exists:
+            self.file_model.item(step + len(self.failed), 4).setText("Imported previously")
+            self.file_model.item(step + len(self.failed), 4).setIcon(
+                self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogNoButton),
+            )
 
+        else:
+            rslt = self.results[step]
+            img = Image(rslt.dir.joinpath(rslt.meta["Result image PGM"]))
+
+            with database.Session() as session, session.begin():
                 chip = database.get_or_create(
                     session,
                     Chip,
@@ -180,7 +179,7 @@ class ImportWidget(QtWidgets.QWidget):
 
                 sample = database.get_or_create(session, Sample, name=rslt.meta["Probe ID"])
 
-                meas = database.get_or_create(
+                measurement = database.get_or_create(
                     session,
                     Measurement,
                     checksum=checksum,
@@ -191,21 +190,18 @@ class ImportWidget(QtWidgets.QWidget):
                     timestamp=rslt.meta["Date/time"],
                 )
 
-                session.add(meas)
-                session.commit()
-
                 # Store (new) primary key, needs result calculation afterwards
-                measurement_id = meas.id
+                session.flush()
+                measurement_id = measurement.id
 
-                # Update UI
-                self.file_model.item(step + len(self.failed), 4).setText("Import successful")
-                self.file_model.item(step + len(self.failed), 4).setIcon(
-                    self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogYesButton),
-                )
-
-        if measurement_id:
-            result_worker = ResultWorker(meas.id)
+            result_worker = ResultWorker(measurement_id)
             self.thread_pool.start(result_worker)
+
+            # Update UI
+            self.file_model.item(step + len(self.failed), 4).setText("Import successful")
+            self.file_model.item(step + len(self.failed), 4).setIcon(
+                self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogYesButton),
+            )
 
     @QtCore.pyqtSlot()
     def import_post_run(self):
@@ -216,7 +212,7 @@ class ImportWidget(QtWidgets.QWidget):
 class ChecksumWorker(QtCore.QObject):
     """Worker thread for calculating hashes of result images."""
 
-    def __init__(self, results=list, parent=None):
+    def __init__(self, results=list, parent=None) -> None:
         super().__init__(parent)
         self.results = results
 
@@ -224,7 +220,7 @@ class ChecksumWorker(QtCore.QObject):
     progress = QtCore.pyqtSignal(int, bytes)
 
     @QtCore.pyqtSlot()
-    def run(self):
+    def run(self) -> None:
         """Start processing."""
 
         for i, res in enumerate(self.results):
@@ -238,9 +234,9 @@ class ChecksumWorker(QtCore.QObject):
 class ResultWorker(QtCore.QRunnable):
     """Worker thread for calculating spot results of measurements."""
 
-    def __init__(self, measurement_id: int):
+    def __init__(self, measurement_id: int) -> None:
         super().__init__()
         self.measurement_id = measurement_id
 
-    def run(self):
+    def run(self) -> None:
         update_results(self.measurement_id)

@@ -96,62 +96,62 @@ class ExportWidget(QtWidgets.QWidget):
         self.preview_edit.clear()
 
         # Initialize query object
-        session = database.Session()
-        query = session.query(Measurement)
+        with database.Session() as session:
+            query = session.query(Measurement)
 
-        # Apply user filters to query
-        for filter in self.filters:
-            obj, op, value = filter.filter()
-            # DateTime comparisons are hard to get right: eq/ne on a date does
-            # not work as expected, time is always compared as well. Therefore,
-            # always check intervals
-            if obj == Measurement.timestamp:
-                if op is operator.eq:
-                    query = query.filter(
-                        obj >= value,
-                        obj
-                        < datetime.datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=TZ_INFO)
-                        + datetime.timedelta(days=1),
-                    )
-                elif op is operator.ne:
-                    query = query.filter(
-                        (obj < value)
-                        | (
+            # Apply user filters to query
+            for filter in self.filters:
+                obj, op, value = filter.filter()
+                # DateTime comparisons are hard to get right: eq/ne on a date does
+                # not work as expected, time is always compared as well. Therefore,
+                # always check intervals
+                if obj == Measurement.timestamp:
+                    if op is operator.eq:
+                        query = query.filter(
+                            obj >= value,
                             obj
-                            >= datetime.datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=TZ_INFO)
-                            + datetime.timedelta(days=1)
-                        ),
-                    )
+                            < datetime.datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=TZ_INFO)
+                            + datetime.timedelta(days=1),
+                        )
+                    elif op is operator.ne:
+                        query = query.filter(
+                            (obj < value)
+                            | (
+                                obj
+                                >= datetime.datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=TZ_INFO)
+                                + datetime.timedelta(days=1)
+                            ),
+                        )
+                    else:
+                        query = query.filter(op(obj, value))
                 else:
                     query = query.filter(op(obj, value))
-            else:
-                query = query.filter(op(obj, value))
 
-        # Fill preview with results
-        try:
-            for measurement in query:
-                measurement_line = f"{escape_csv(measurement.timestamp)}\t"
-                measurement_line += f"{escape_csv(measurement.chip.name)}\t"
-                measurement_line += f"{escape_csv(measurement.sample.name)}\t"
+            # Fill preview with results
+            try:
+                for measurement in query:
+                    measurement_line = f"{escape_csv(measurement.timestamp)}\t"
+                    measurement_line += f"{escape_csv(measurement.chip.name)}\t"
+                    measurement_line += f"{escape_csv(measurement.sample.name)}\t"
 
-                measurement_line += '""' if measurement.notes is None else f"{escape_csv(measurement.notes)}"
+                    measurement_line += '""' if measurement.notes is None else f"{escape_csv(measurement.notes)}"
 
-                valid_data = False
-                for col in range(measurement.chip.columnCount):
-                    if session.query(Result).filter_by(measurement=measurement, column=col, valid=True).count() > 0:
-                        valid_data = True
-                        values = list(
-                            session.query(Result)
-                            .filter_by(measurement=measurement, column=col, valid=True)
-                            .values(Result.value),
-                        )
-                        measurement_line += f"\t{np.mean(values):.0f}"
+                    valid_data = False
+                    for col in range(measurement.chip.columnCount):
+                        if session.query(Result).filter_by(measurement=measurement, column=col, valid=True).count() > 0:
+                            valid_data = True
+                            values = list(
+                                session.query(Result)
+                                .filter_by(measurement=measurement, column=col, valid=True)
+                                .values(Result.value),
+                            )
+                            measurement_line += f"\t{np.mean(values):.0f}"
 
-                if valid_data:
-                    self.preview_edit.appendPlainText(measurement_line)
+                    if valid_data:
+                        self.preview_edit.appendPlainText(measurement_line)
 
-        except sqlalchemy.exc.UnboundExecutionError:
-            pass
+            except sqlalchemy.exc.UnboundExecutionError:
+                pass
 
 
 class FilterWidget(QtWidgets.QWidget):
