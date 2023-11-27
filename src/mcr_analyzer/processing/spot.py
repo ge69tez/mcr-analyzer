@@ -8,7 +8,7 @@ import numpy as np
 class Spot(metaclass=ABCMeta):
     """Base class defining spot analysis interface."""
 
-    def __init__(self, data: np.ndarray):  # cSpell:ignore ndarray
+    def __init__(self, data: np.ndarray) -> None:  # cSpell:ignore ndarray
         """Initialize spot object.
 
         :param data: (np.ndarray) Pixel data of the spot in question.
@@ -26,4 +26,4 @@ class DeviceBuiltin(Spot):
     def value(self) -> float:
         """Return mean of the 10 brightest pixels."""
         vals = np.sort(self.img, axis=None)
-        return np.mean(vals[-10:])
+        return float(np.mean(vals[-10:]))

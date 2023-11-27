@@ -33,7 +33,7 @@ class SpotReaderValidator(Validator):
         |x - \text{mean}| < \text{cutoff} \times \text{mean}.
     """
 
-    def __init__(self, data, cutoff: float = 0.1):
+    def __init__(self, data: list[float], cutoff: float = 0.1):
         """Initialize Validator object.
 
         :param data: (list) Value array of spot replicates.
@@ -42,7 +42,7 @@ class SpotReaderValidator(Validator):
         super().__init__(data)
         self.cutoff = cutoff
 
-    def validate(self):
+    def validate(self) -> list[bool]:
         """Check replicates' validity.
 
         :return: List of bools whether the spot's value is deemed valid or not.

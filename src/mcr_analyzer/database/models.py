@@ -4,7 +4,7 @@ import datetime
 from typing import Annotated
 
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column, relationship
-from sqlalchemy.schema import ForeignKey
+from sqlalchemy.schema import ForeignKey, UniqueConstraint
 from sqlalchemy.types import BINARY, Text
 
 
@@ -249,6 +249,8 @@ class Result(Base):
     """Analysis information about a single spot."""
 
     __tablename__ = "result"
+
+    __table_args__ = (UniqueConstraint("measurementID", "row", "column"),)
 
     id: Mapped[column_type__primary_key] = mapped_column(init=False)
     """Internal ID, used for cross-references."""

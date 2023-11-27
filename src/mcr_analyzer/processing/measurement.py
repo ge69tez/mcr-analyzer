@@ -6,7 +6,7 @@ from mcr_analyzer.processing.spot import DeviceBuiltin
 from mcr_analyzer.processing.validator import SpotReaderValidator
 
 
-def update_results(measurement_id: int):
+def update_results(measurement_id: int) -> None:
     with database.Session() as session:
         measurement = session.query(Measurement).filter(Measurement.id == measurement_id).one()
 
