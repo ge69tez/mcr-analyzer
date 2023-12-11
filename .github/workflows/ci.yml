@@ -26,7 +26,7 @@ jobs:
 
       - uses: tlambert03/setup-qt-libs@v1
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version-file: pyproject.toml
           cache: pip
@@ -69,7 +69,7 @@ jobs:
         with:
           install-only: true
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version-file: pyproject.toml
           cache: pip
