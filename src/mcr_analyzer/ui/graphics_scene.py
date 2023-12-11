@@ -18,7 +18,7 @@ class GraphicsMeasurementScene(QtWidgets.QGraphicsScene):
 class GraphicsRectTextItem(QtWidgets.QGraphicsRectItem):
     """Draws text on a rectangular background."""
 
-    def __init__(self, x: float, y: float, w: float, h: float, t: str, parent) -> None:  # noqa: PLR0913
+    def __init__(self, x: float, y: float, w: float, h: float, t: str, parent) -> None:  # noqa: PLR0913, PLR0917
         super().__init__(x, y, w, h, parent)
         self.text = t
         self.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.white))
@@ -37,7 +37,7 @@ class GraphicsRectTextItem(QtWidgets.QGraphicsRectItem):
 class GraphicsSpotItem(QtWidgets.QGraphicsRectItem):
     """Draws spot marker and stores associated information."""
 
-    def __init__(  # noqa: PLR0913
+    def __init__(  # noqa: PLR0913, PLR0917
         self,
         x: float,
         y: float,
@@ -176,7 +176,7 @@ class GridItem(QtWidgets.QGraphicsItem):
                 spot = GraphicsSpotItem(x, y, self.size, self.size, col, row, self, valid=valid)
                 self.spots.append(spot)
 
-    def preview_settings(self, cols, rows, horizontal_space, vertical_space, size):  # noqa: PLR0913
+    def preview_settings(self, cols, rows, horizontal_space, vertical_space, size):  # noqa: PLR0913, PLR0917
         self._clear_children()
         self.preview_mode = True
         self.cols = cols
