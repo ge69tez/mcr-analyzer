@@ -22,7 +22,7 @@ class ImportWidget(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.dirs = []
+        self.directory_path = None
         self.file_model = None
         self.import_thread = None
         self.results = None
@@ -77,13 +77,21 @@ class ImportWidget(QtWidgets.QWidget):
                 self.database_missing.emit()
             return
 
+        self.directory_path = self._get_directory_path()
+
+        self.update_filelist()
+        self.measurements_table.show()
+        self.import_button.show()
+
+    def _get_directory_path(self):
+        directory_path = None
+
         dialog = QtWidgets.QFileDialog(self)
         dialog.setFileMode(QtWidgets.QFileDialog.FileMode.Directory)
         if dialog.exec():
-            self.dirs = dialog.selectedFiles()
-            self.measurements_table.show()
-            self.import_button.show()
-            self.update_filelist()
+            directory_path = dialog.selectedFiles()[0]
+
+        return directory_path
 
     @QtCore.pyqtSlot()
     def start_import(self):
@@ -110,8 +118,8 @@ class ImportWidget(QtWidgets.QWidget):
         self.file_model = QtGui.QStandardItemModel(self)
         self.file_model.setHorizontalHeaderLabels(["Date", "Time", "Sample", "Chip", "Status"])
 
-        for path in self.dirs:
-            self.results, self.failed = imp.gather_measurements(path)
+        if self.directory_path is not None:
+            self.results, self.failed = imp.gather_measurements(self.directory_path)
 
             for res in self.failed:
                 error_item = QtGui.QStandardItem(f"Failed to load '{res}', might be a corrupted file.")
