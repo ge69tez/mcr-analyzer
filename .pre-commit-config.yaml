@@ -96,7 +96,7 @@ repos:
           - javascript
 
   - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 23.11.0
+    rev: 23.12.0
     hooks:
       - id: black
 
@@ -139,4 +139,16 @@ repos:
         pass_filenames: false
         always_run: true
         entry: coverage-badge -o assets/coverage.svg -f
+        verbose: true
+
+  - repo: local
+    hooks:
+      - id: scalene-profile
+        name: scalene-profile
+        language: system
+        pass_filenames: false
+        always_run: true
+        entry:
+          xvfb-run python3 -m scalene --no-browser --program-path src --cli --reduced-profile --- -m pytest --no-cov -k
+          test_profile
         verbose: true

@@ -42,6 +42,7 @@ dev = [
   "pytest-qt",
   "pytest-sugar",
   "ruff",
+  "scalene",
   "tqdm", # - https://www.fatiando.org/pooch/latest/progressbars.html?highlight=tqdm # cSpell:ignore tqdm
 ]
 [project.gui-scripts]
@@ -176,6 +177,8 @@ addopts = [
   "--import-mode=importlib", # cSpell:ignore addopts importlib
 
   "--cov=src",
+
+  "--capture=no",
 ]
 
 # - For "pytest-qt"

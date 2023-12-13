@@ -4,7 +4,7 @@ MCR-Analyzer
 .. list-table::
 
    * - CI
-     - |ci-badge| |pre-commit-badge| |coverage-badge|
+     - |ci-badge| |pre-commit-badge| |coverage-badge| |scalene-badge|
 
    * - Package
      - |python-badge|
@@ -20,6 +20,9 @@ MCR-Analyzer
 
 .. |coverage-badge| image:: assets/coverage.svg
    :target: https://github.com/ge69tez/mcr-analyzer/actions/workflows/ci.yml
+
+.. |scalene-badge| image:: https://img.shields.io/badge/profiler-Scalene-4363D8.svg
+   :target: https://github.com/ge69tez/mcr-analyzer/blob/main/.pre-commit-config.yaml
 
 .. |python-badge| image:: https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Fge69tez%2Fmcr-analyzer%2Fmain%2Fpyproject.toml
    :target: https://github.com/ge69tez/mcr-analyzer/blob/main/pyproject.toml
