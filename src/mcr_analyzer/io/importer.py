@@ -11,39 +11,6 @@ import numpy as np
 from mcr_analyzer.config import TZ_INFO
 
 
-class FileImporter:
-    """Collect all measurements in the given path.
-
-    This function handles multi-image measurements by copying their base
-    metadata and delaying each image by one second."""
-
-    @staticmethod
-    def gather_measurements(path):
-        measurements = []
-        failed = []
-        results = Path(path).glob("**/*.rslt")
-
-        for res in results:
-            try:
-                rslt = RsltParser(res)
-            except KeyError:
-                failed.append(res.name)
-                continue
-
-            img = rslt.dir.joinpath(rslt.meta["Result image PGM"])
-            if img.exists():
-                measurements.append(rslt)
-            else:
-                # Check for multi image measurements and mock them as individual
-                base = Path(rslt.meta["Result image PGM"]).stem
-                for i, name in enumerate(sorted(rslt.dir.glob(f"{base}-*.pgm"))):
-                    temp_result = copy.deepcopy(rslt)
-                    temp_result.meta["Result image PGM"] = name.name
-                    temp_result.meta["Date/time"] = rslt.meta["Date/time"] + datetime.timedelta(seconds=i)
-                    measurements.append(temp_result)
-        return measurements, failed
-
-
 class RsltParser:
     """Reads in RSLT file produced by the MCR."""
 
@@ -75,8 +42,7 @@ class RsltParser:
 
     @property
     def results(self):
-        """Two dimensional `numpy.ndarray` with spot results calculated by the MCR."""
-        # cSpell:ignore ndarray
+        """Two dimensional `numpy.ndarray` with spot results calculated by the MCR."""  # cSpell:ignore ndarray
         return self._results
 
     @property
@@ -86,7 +52,7 @@ class RsltParser:
         """
         return self._spots
 
-    def __init__(self, path: str):
+    def __init__(self, path: Path) -> None:
         """Parse file `path` and populate class attributes.
 
         :raises FileNotFoundError: `path` does not exist.
@@ -95,14 +61,14 @@ class RsltParser:
         self._meta = {}
         self._results = None
         self._spots = None
-        self.path = Path(path).resolve()
+        self.path = path
         self.dir = self.path.parent
 
         if not self.path.exists():
-            raise FileNotFoundError(ENOENT, "File does not exist", str(path))
+            raise FileNotFoundError(ENOENT, "File does not exist", str(self.path))
             # cSpell:ignore ENOENT
 
-        with Path(self.path).open(encoding="utf-8") as file:
+        with self.path.open(encoding="utf-8") as file:
             identifier_pattern = re.compile(r"^([^:]+): (.*)$")
 
             # Read in first meta block
@@ -161,17 +127,17 @@ class RsltParser:
             self._meta["Spot margin horizontal"] = int(spot_margin[0])
             self._meta["Spot margin vertical"] = int(spot_margin[1])
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}('{self.path}')"
 
-    def __str__(self):
+    def __str__(self) -> str:
         sample = self.meta["Probe ID"]
         chip = self.meta["Chip ID"]
         date = self.meta["Date/time"]
         return f"MCR-Result (Sample: {sample}, Chip: {chip}, Date: {date})"
 
     @staticmethod
-    def _parse_spot_coordinates(string: str):
+    def _parse_spot_coordinates(string: str) -> tuple[int, int] | None:
         return_value = None
 
         match = re.match(r"X=(\d+)Y=(\d+)", string)
@@ -179,3 +145,35 @@ class RsltParser:
             return_value = int(match.group(1)), int(match.group(2))
 
         return return_value
+
+
+def gather_measurements(path: str) -> tuple[list[RsltParser], list[str]]:
+    """Collect all measurements in the given path.
+
+    This function handles multi-image measurements by copying their base metadata and delaying each image by one
+    second."""
+
+    measurements: list[RsltParser] = []
+    failed: list[str] = []
+    results = Path(path).glob("**/*.rslt")
+
+    for result in results:
+        try:
+            rslt = RsltParser(result)
+        except KeyError:
+            failed.append(result.name)
+            continue
+
+        img = rslt.dir.joinpath(rslt.meta["Result image PGM"])
+        if img.exists():
+            measurements.append(rslt)
+        else:
+            # Check for multi image measurements and mock them as individual
+            base = Path(rslt.meta["Result image PGM"]).stem
+            for i, name in enumerate(sorted(rslt.dir.glob(f"{base}-*.pgm"))):
+                temp_result = copy.deepcopy(rslt)
+                temp_result.meta["Result image PGM"] = name.name
+                temp_result.meta["Date/time"] = rslt.meta["Date/time"] + datetime.timedelta(seconds=i)
+                measurements.append(temp_result)
+
+    return measurements, failed

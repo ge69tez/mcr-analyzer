@@ -13,7 +13,7 @@ class Image:
     has functions for writing all these formats as well.
     """
 
-    def __init__(self, file_pointer=None):
+    def __init__(self, file_pointer=None) -> None:
         """
         Initialize image object using data from *file_pointer*.
 
