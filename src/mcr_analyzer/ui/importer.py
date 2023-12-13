@@ -159,9 +159,10 @@ class ImportWidget(QtWidgets.QWidget):
 
         else:
             rslt = self.results[step]
-            img = Image(rslt.dir.joinpath(rslt.meta["Result image PGM"]))
 
-            with database.Session() as session, session.begin():
+            with Image(
+                rslt.dir.joinpath(rslt.meta["Result image PGM"]),
+            ) as img, database.Session() as session, session.begin():
                 chip = database.get_or_create(
                     session,
                     Chip,
@@ -224,9 +225,9 @@ class ChecksumWorker(QtCore.QObject):
         """Start processing."""
 
         for i, res in enumerate(self.results):
-            img = Image(res.dir.joinpath(res.meta["Result image PGM"]))
-            sha = hashlib.sha256(np.ascontiguousarray(img.data, ">u2"))
-            self.progress.emit(i, sha.digest())
+            with Image(res.dir.joinpath(res.meta["Result image PGM"])) as img:
+                sha = hashlib.sha256(np.ascontiguousarray(img.data, ">u2"))
+                self.progress.emit(i, sha.digest())
 
         self.finished.emit()
 
