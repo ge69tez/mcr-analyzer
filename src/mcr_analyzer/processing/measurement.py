@@ -1,4 +1,5 @@
 import numpy as np
+from sqlalchemy.dialects.sqlite import insert as sqlite_upsert
 
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement, Result
@@ -21,6 +22,9 @@ def update_results(measurement_id: int) -> None:
 
         image = measurement.image
 
+    values = np.zeros((column_count, row_count))
+    valid_values = np.zeros((column_count, row_count), dtype=bool)
+
     for column in range(column_count):
         column_results = []
 
@@ -36,21 +40,27 @@ def update_results(measurement_id: int) -> None:
 
             value = spot.value()
             column_results.append(value)
-
-            with database.Session() as session, session.begin():
-                result = database.get_or_create(session, Result, measurement=measurement, row=row, column=column)
-
-                result.value = value
-
-                session.add(result)
+            values[column][row] = value
 
         validator = SpotReaderValidator(column_results)
-        validation = validator.validate()
+        valid_values[column] = validator.validate()
 
-        for row in range(row_count):
-            with database.Session() as session, session.begin():
-                result = database.get_or_create(session, Result, measurement=measurement, row=row, column=column)
+    list_of_values = [
+        {
+            Result.row: row,
+            Result.column: column,
+            Result.measurementID: measurement_id,
+            Result.value: values[column][row],
+            Result.valid: valid_values[column][row],
+        }
+        for column in range(column_count)
+        for row in range(row_count)
+    ]
 
-                result.valid = validation[row]
-
-                session.add(result)
+    with database.Session() as session, session.begin():
+        statement = sqlite_upsert(Result).values(list_of_values)
+        statement = statement.on_conflict_do_update(
+            index_elements=[Result.row, Result.column, Result.measurementID],
+            set_={Result.value: statement.excluded.value, Result.valid: statement.excluded.valid},
+        )
+        session.execute(statement)
