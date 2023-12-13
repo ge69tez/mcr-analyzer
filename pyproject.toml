@@ -173,7 +173,7 @@ addopts = [
   # - https://docs.pytest.org/en/stable/explanation/goodpractices.html#tests-outside-application-code
   "--import-mode=importlib", # cSpell:ignore addopts importlib
 
-  "--cov=src/mcr_analyzer",
+  "--cov=src",
 ]
 
 # - For "pytest-qt"
