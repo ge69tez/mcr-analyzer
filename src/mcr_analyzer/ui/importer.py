@@ -101,7 +101,6 @@ class ImportWidget(QtWidgets.QWidget):
         self.checksum_worker.finished.connect(self.checksum_worker.deleteLater)
         self.checksum_worker.finished.connect(self.import_thread.deleteLater)
         self.checksum_worker.finished.connect(self.import_post_run)
-        self.thread_pool.reserveThread()
         self.import_thread.start()
 
     def update_filelist(self):
@@ -206,7 +205,7 @@ class ImportWidget(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot()
     def import_post_run(self):
-        self.thread_pool.releaseThread()
+        self.thread_pool.waitForDone()
         self.import_finished.emit()
 
 
