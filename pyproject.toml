@@ -35,12 +35,14 @@ dev = [
   "hatch",
   "mypy",
   "pip-tools",
+  "pooch",
   "pre-commit",
   "pytest",
   "pytest-cov",
   "pytest-qt",
   "pytest-sugar",
   "ruff",
+  "tqdm", # - https://www.fatiando.org/pooch/latest/progressbars.html?highlight=tqdm # cSpell:ignore tqdm
 ]
 [project.gui-scripts]
 mcr_analyzer = "mcr_analyzer.__main__:main"
@@ -194,6 +196,7 @@ ignore_missing_imports = false
 
 [[tool.mypy.overrides]]
 module = [
+  "pooch.*",
   "pytestqt.*", # cSpell:ignore pytestqt
 ]
 ignore_missing_imports = true

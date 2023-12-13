@@ -3,11 +3,12 @@ from pathlib import Path
 from PyQt6 import QtCore, QtWidgets
 
 import mcr_analyzer.utils as util
+from mcr_analyzer.config import SQLITE__FILE_FILTER, SQLITE__FILENAME_EXTENSION
 from mcr_analyzer.database.database import database
 
 
 class WelcomeWidget(QtWidgets.QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         welcome_msg = """<h1>Welcome to MCR-Analyzer</h1>
 
@@ -41,35 +42,25 @@ class WelcomeWidget(QtWidgets.QWidget):
     database_opened = QtCore.pyqtSignal()
 
     @QtCore.pyqtSlot()
-    def clicked_new_button(self):
-        file_name, filter_name = QtWidgets.QFileDialog.getSaveFileName(
-            self,
-            "Store database as",
-            None,
-            "SQLite Database (*.sqlite)",
-        )
+    def clicked_new_button(self) -> None:
+        file_name, filter_name = self._get_save_file_name()
         if file_name and filter_name:
             # Ensure file has an extension
             file_path = Path(file_name)
             if not file_path.exists() and not file_path.suffix:
-                file_path = file_path.with_suffix(".sqlite")
+                file_path = file_path.with_suffix(SQLITE__FILENAME_EXTENSION)
 
             database.create__sqlite(file_path)
 
-            _update_settings_recent_files(file_path)
+            _update_settings_recent_files(str(file_path))
 
             self.database_changed.emit()
 
             self.database_created.emit()
 
     @QtCore.pyqtSlot()
-    def clicked_open_button(self):
-        file_name, filter_name = QtWidgets.QFileDialog.getOpenFileName(
-            self,
-            "Select database",
-            None,
-            "SQLite Database (*.sqlite)",
-        )
+    def clicked_open_button(self) -> None:
+        file_name, filter_name = self._get_open_file_name()
         if file_name and filter_name:
             database.load__sqlite(Path(file_name))
 
@@ -78,12 +69,26 @@ class WelcomeWidget(QtWidgets.QWidget):
             self.database_changed.emit()
             self.database_opened.emit()
 
+    def _get_save_file_name(self) -> tuple[str, str]:
+        return QtWidgets.QFileDialog.getSaveFileName(
+            parent=self,
+            caption="Store database as",
+            filter=SQLITE__FILE_FILTER,
+        )
 
-def _update_settings_recent_files(file_name):
+    def _get_open_file_name(self) -> tuple[str, str]:
+        return QtWidgets.QFileDialog.getOpenFileName(
+            parent=self,
+            caption="Select database",
+            filter=SQLITE__FILE_FILTER,
+        )
+
+
+def _update_settings_recent_files(file_name: str) -> None:
     settings = QtCore.QSettings()
     recent_files = util.ensure_list(settings.value("Session/Files"))
 
-    recent_files.insert(0, str(file_name))
+    recent_files.insert(0, file_name)
     recent_files = util.ensure_list(util.remove_duplicates(recent_files))
 
     settings.setValue(

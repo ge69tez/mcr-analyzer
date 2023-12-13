@@ -20,3 +20,5 @@ def setup_qsettings(app: QApplication) -> None:  # cSpell:ignore qsettings
 
 SQLITE__DRIVER_NAME = "sqlite"
 SQLITE__FILENAME_EXTENSION = f".{SQLITE__DRIVER_NAME}"
+
+SQLITE__FILE_FILTER = f"SQLite Database (*{SQLITE__FILENAME_EXTENSION})"

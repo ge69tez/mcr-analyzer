@@ -19,7 +19,7 @@ def test___database___make_url__sqlite(tmp_sqlite_file_path: Path) -> None:
     assert str(_make_url__sqlite(tmp_sqlite_file_path)) == f"{_url__sqlite__in_memory}/{tmp_sqlite_file_path}"
 
 
-def test___database__database__create_new_sqlite(tmp_sqlite_file_path: Path) -> None:
+def test___database__create_new_sqlite(tmp_sqlite_file_path: Path) -> None:
     engine = database.create__sqlite()
 
     assert str(engine) == f"Engine({_url__sqlite__in_memory})"
