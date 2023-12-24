@@ -17,7 +17,10 @@ class ImportWidget(QtWidgets.QWidget):
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self.directory_path: str | None = None
+
         self.file_model = QtGui.QStandardItemModel(self)
+        self.file_model.setHorizontalHeaderLabels(["Date", "Time", "Sample", "Chip", "Status"])
+
         self.results: list[RsltParser] = []
         self.failed: list[str] = []
         self.checksum_worker = ChecksumWorker()
@@ -71,6 +74,8 @@ class ImportWidget(QtWidgets.QWidget):
         self.measurements_table.show()
         self.import_button.show()
 
+        self.progress_bar.hide()
+
     def _get_directory_path(self) -> str | None:
         directory_path = None
 
@@ -92,7 +97,7 @@ class ImportWidget(QtWidgets.QWidget):
         self.checksum_worker.run(self.results)
 
     def update_filelist(self) -> None:
-        self.file_model.setHorizontalHeaderLabels(["Date", "Time", "Sample", "Chip", "Status"])
+        self.file_model.removeRows(0, self.file_model.rowCount())
 
         if self.directory_path is not None:
             self.results, self.failed = gather_measurements(self.directory_path)

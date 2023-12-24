@@ -62,7 +62,10 @@ class MeasurementTreeItem:
     def get_child_tree_items(self):
         return self._child_tree_items
 
-    def get_tree_item_data(self):
+    def clear_child_tree_items(self) -> None:
+        self._child_tree_items.clear()
+
+    def get_tree_item_data(self) -> list[str]:
         return self._tree_item_data
 
 
@@ -168,7 +171,9 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
 
         return return_value
 
-    def _setup_model_data(self):
+    def _setup_model_data(self) -> None:
+        self._root_tree_item.clear_child_tree_items()
+
         with database.Session() as session:
             for day in session.query(Measurement).group_by(sqlalchemy.func.strftime("%Y-%m-%d", Measurement.timestamp)):
                 date_row_tree_item = MeasurementTreeItem([str(day.timestamp.date()), None, None], self._root_tree_item)
