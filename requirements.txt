@@ -4,7 +4,7 @@
 #
 #    pip-compile
 #
-greenlet==3.0.2
+greenlet==3.0.3
     # via sqlalchemy
 numpy==1.26.2
     # via mcr-analyzer (pyproject.toml)
