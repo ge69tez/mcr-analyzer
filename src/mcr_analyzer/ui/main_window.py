@@ -12,7 +12,7 @@ from mcr_analyzer.ui.welcome import WelcomeWidget
 
 
 class MainWindow(QtWidgets.QMainWindow):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
         self.setWindowTitle("MCR-Analyzer")

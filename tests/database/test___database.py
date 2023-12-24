@@ -1,16 +1,9 @@
 from pathlib import Path
 
-import pytest
-
-from mcr_analyzer.config import SQLITE__DRIVER_NAME, SQLITE__FILENAME_EXTENSION
+from mcr_analyzer.config import SQLITE__DRIVER_NAME
 from mcr_analyzer.database.database import _make_url__sqlite, database
 
 _url__sqlite__in_memory = f"{SQLITE__DRIVER_NAME}://"
-
-
-@pytest.fixture()
-def tmp_sqlite_file_path(tmp_path: Path) -> Path:
-    return tmp_path.joinpath(f"tmp{SQLITE__FILENAME_EXTENSION}")
 
 
 def test___database___make_url__sqlite(tmp_sqlite_file_path: Path) -> None:

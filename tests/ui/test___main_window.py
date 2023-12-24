@@ -5,15 +5,10 @@ import pytest
 from pooch import Unzip, retrieve
 from pytestqt.qtbot import QtBot  # cSpell:ignore pytestqt qtbot
 
-from mcr_analyzer.config import SQLITE__FILE_FILTER, SQLITE__FILENAME_EXTENSION
+from mcr_analyzer.config import SQLITE__FILE_FILTER
 from mcr_analyzer.ui.importer import ImportWidget
 from mcr_analyzer.ui.main_window import MainWindow
 from mcr_analyzer.ui.welcome import WelcomeWidget
-
-
-@pytest.fixture()
-def tmp_sqlite_file_path(tmp_path: Path) -> Path:
-    return tmp_path.joinpath(f"tmp{SQLITE__FILENAME_EXTENSION}")
 
 
 @pytest.fixture()
@@ -41,7 +36,7 @@ SAMPLE_RESULTS__ZIP = f"{SAMPLE_RESULTS__BASE_NAME}.zip"
 SAMPLE_RESULTS__ZIP__URL = f"{BASE_URL}{SAMPLE_RESULTS__ZIP}"
 
 
-@pytest.fixture(autouse=True)  # cSpell:ignore autouse
+@pytest.fixture(scope="session", autouse=True)  # cSpell:ignore autouse
 def _fetch_sample_results() -> None:
     retrieve(
         path=DATA__DIR,

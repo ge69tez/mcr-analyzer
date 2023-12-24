@@ -211,9 +211,9 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = [
-  "tests.ui.*",
+  "tests.*",
 ]
-disallow_untyped_decorators = false # - 2023-11-06 - @pytest.fixture()
+disallow_untyped_decorators = false # - 2023-12-16 - @pytest.fixture() - GitHub Actions
 
 [tool.pre-commit-update]
 dry_run = true
