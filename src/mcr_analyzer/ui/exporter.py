@@ -70,10 +70,7 @@ class ExportWidget(QtWidgets.QWidget):
         settings = QtCore.QSettings()
         last_export = settings.value("Session/LastExport")
         file_name, filter_name = QtWidgets.QFileDialog.getSaveFileName(
-            self,
-            "Save result as",
-            last_export,
-            "Tab Separated Values (*.csv *.tsv *.txt)",
+            self, "Save result as", last_export, "Tab Separated Values (*.csv *.tsv *.txt)"
         )
 
         if file_name and filter_name:
@@ -120,7 +117,7 @@ class ExportWidget(QtWidgets.QWidget):
                                 obj
                                 >= datetime.datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=TZ_INFO)
                                 + datetime.timedelta(days=1)
-                            ),
+                            )
                         )
                     else:
                         query = query.filter(op(obj, value))
@@ -143,7 +140,7 @@ class ExportWidget(QtWidgets.QWidget):
                             values = list(
                                 session.query(Result)
                                 .filter_by(measurement=measurement, column=col, valid=True)
-                                .values(Result.value),
+                                .values(Result.value)
                             )
                             measurement_line += f"\t{np.mean(values):.0f}"
 

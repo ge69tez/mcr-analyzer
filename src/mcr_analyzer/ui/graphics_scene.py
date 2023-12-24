@@ -28,9 +28,7 @@ class GraphicsRectTextItem(QtWidgets.QGraphicsRectItem):
         super().paint(painter, option, widget)
         painter.setPen(QtCore.Qt.GlobalColor.black)
         painter.drawText(
-            option.rect,
-            QtCore.Qt.AlignmentFlag.AlignHCenter | QtCore.Qt.AlignmentFlag.AlignVCenter,
-            self.text,
+            option.rect, QtCore.Qt.AlignmentFlag.AlignHCenter | QtCore.Qt.AlignmentFlag.AlignVCenter, self.text
         )
 
 
@@ -38,16 +36,7 @@ class GraphicsSpotItem(QtWidgets.QGraphicsRectItem):
     """Draws spot marker and stores associated information."""
 
     def __init__(  # noqa: PLR0913, PLR0917
-        self,
-        x: float,
-        y: float,
-        w: float,
-        h: float,
-        col: int,
-        row: int,
-        parent,
-        *,
-        valid: bool,
+        self, x: float, y: float, w: float, h: float, col: int, row: int, parent, *, valid: bool
     ) -> None:
         super().__init__(x, y, w, h, parent)
         self.col = col
@@ -138,24 +127,14 @@ class GridItem(QtWidgets.QGraphicsItem):
         # Row labels: letters
         for row in range(self.rows):
             head = GraphicsRectTextItem(
-                -15,
-                row * (self.size + self.vertical_space),
-                12,
-                self.size,
-                string.ascii_uppercase[row],
-                self,
+                -15, row * (self.size + self.vertical_space), 12, self.size, string.ascii_uppercase[row], self
             )
             self.r_headers.append(head)
 
         for col in range(self.cols):
             # Column labels
             head = GraphicsRectTextItem(
-                col * (self.size + self.horizontal_space),
-                -15,
-                self.size,
-                12,
-                str(col + 1),
-                self,
+                col * (self.size + self.horizontal_space), -15, self.size, 12, str(col + 1), self
             )
             self.c_headers.append(head)
 

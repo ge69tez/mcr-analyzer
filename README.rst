@@ -10,7 +10,7 @@ MCR-Analyzer
      - |python-badge|
 
    * - Meta
-     - |license-badge| |hatch-badge| |ruff-badge| |black-badge| |mypy-badge|
+     - |license-badge| |hatch-badge| |ruff-badge| |mypy-badge|
 
 .. |ci-badge| image:: https://github.com/ge69tez/mcr-analyzer/actions/workflows/ci.yml/badge.svg
    :target: https://github.com/ge69tez/mcr-analyzer/actions/workflows/ci.yml
@@ -35,9 +35,6 @@ MCR-Analyzer
 
 .. |ruff-badge| image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json
    :target: https://github.com/astral-sh/ruff
-
-.. |black-badge| image:: https://img.shields.io/badge/code%20style-Black-000000.svg
-   :target: https://github.com/psf/black
 
 .. |mypy-badge| image:: https://img.shields.io/badge/types-mypy-blue.svg
    :target: https://github.com/python/mypy

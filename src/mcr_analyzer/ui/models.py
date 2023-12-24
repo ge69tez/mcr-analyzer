@@ -90,13 +90,11 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
         return return_value
 
     @typing.overload
-    def parent(self, child: QtCore.QModelIndex) -> QtCore.QModelIndex:
-        ...
+    def parent(self, child: QtCore.QModelIndex) -> QtCore.QModelIndex: ...
 
     @typing.overload
     # - https://www.riverbankcomputing.com/static/Docs/PyQt6/api/qtcore/qabstractitemmodel.html#parent
-    def parent(self) -> QtCore.QObject:
-        ...
+    def parent(self) -> QtCore.QObject: ...
 
     def parent(self, child: QtCore.QModelIndex = QtCore.QModelIndex()):
         if not child.isValid():
@@ -141,10 +139,7 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
         return return_value
 
     def headerData(  # noqa: N802
-        self,
-        section: int,
-        orientation: QtCore.Qt.Orientation,
-        role: int = QtCore.Qt.ItemDataRole.DisplayRole,
+        self, section: int, orientation: QtCore.Qt.Orientation, role: int = QtCore.Qt.ItemDataRole.DisplayRole
     ):
         return_value: typing.Any = None
 
@@ -175,9 +170,7 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
 
     def _setup_model_data(self):
         with database.Session() as session:
-            for day in session.query(Measurement).group_by(
-                sqlalchemy.func.strftime("%Y-%m-%d", Measurement.timestamp),
-            ):
+            for day in session.query(Measurement).group_by(sqlalchemy.func.strftime("%Y-%m-%d", Measurement.timestamp)):
                 date_row_tree_item = MeasurementTreeItem([str(day.timestamp.date()), None, None], self._root_tree_item)
 
                 self._root_tree_item.append_child_tree_item(date_row_tree_item)
@@ -187,8 +180,7 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
                     .filter(day.timestamp.date() <= Measurement.timestamp)
                     .filter(
                         # - Before the same day at 23:59:59
-                        Measurement.timestamp
-                        <= datetime.datetime.combine(day.timestamp, datetime.time.max),
+                        Measurement.timestamp <= datetime.datetime.combine(day.timestamp, datetime.time.max)
                     )
                 ):
                     date_row_tree_item.append_child_tree_item(
@@ -200,7 +192,7 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
                                 result.id,
                             ],
                             date_row_tree_item,
-                        ),
+                        )
                     )
 
 
@@ -283,10 +275,7 @@ class ResultTableModel(QtCore.QAbstractTableModel):
         return return_value
 
     def headerData(  # noqa: N802
-        self,
-        section: int,
-        orientation: QtCore.Qt.Orientation,
-        role: int = QtCore.Qt.ItemDataRole.DisplayRole,
+        self, section: int, orientation: QtCore.Qt.Orientation, role: int = QtCore.Qt.ItemDataRole.DisplayRole
     ):
         row_index_max = self.chip.rowCount - 1
 
@@ -355,7 +344,7 @@ class ResultTableModel(QtCore.QAbstractTableModel):
                         Result.valid.is_(True),
                         Result.value.isnot(None),  # cSpell:ignore isnot
                     )
-                    .values(Result.value),
+                    .values(Result.value)
                 )
 
             self.means[col] = np.mean(values) if values else np.nan

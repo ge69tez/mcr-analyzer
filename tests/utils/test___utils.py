@@ -16,9 +16,7 @@ class TestEnsureList:
         assert utils.ensure_list(None) == []
 
     def test___str(self):
-        assert utils.ensure_list("abc") == [
-            "abc",
-        ]
+        assert utils.ensure_list("abc") == ["abc"]
 
 
 class TestRemoveDuplicates:

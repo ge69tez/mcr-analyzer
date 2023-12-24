@@ -79,7 +79,7 @@ class RsltParser:
 
             # Post-process results (map to corresponding types)
             self._meta["Date/time"] = datetime.datetime.strptime(self._meta["Date/time"], "%Y-%m-%d %H:%M").replace(
-                tzinfo=TZ_INFO,
+                tzinfo=TZ_INFO
             )
 
             if self._meta["Dark frame image PGM"] == "Do not store PGM file for dark frame any more":

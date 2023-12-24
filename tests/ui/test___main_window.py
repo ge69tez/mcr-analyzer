@@ -54,10 +54,7 @@ def _fetch_sample_results() -> None:
 
 
 def test_profile(
-    qtbot: QtBot,
-    monkeypatch: pytest.MonkeyPatch,
-    main_window: MainWindow,
-    tmp_sqlite_file_path: Path,
+    qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, main_window: MainWindow, tmp_sqlite_file_path: Path
 ) -> None:
     monkeypatch.setattr(WelcomeWidget, "_get_save_file_name", lambda _: (tmp_sqlite_file_path, SQLITE__FILE_FILTER))
     monkeypatch.setattr(ImportWidget, "_get_directory_path", lambda _: SAMPLE_RESULTS__DIR)

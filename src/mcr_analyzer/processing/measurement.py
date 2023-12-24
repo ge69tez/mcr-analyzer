@@ -24,9 +24,8 @@ def update_results(measurement_id: int) -> None:
                 y = measurement.chip.marginTop + row * (measurement.chip.spotSize + measurement.chip.spotMarginVertical)
                 spot = DeviceBuiltin(
                     np.frombuffer(measurement.image, dtype=">u2").reshape(520, 696)[  # cSpell:ignore frombuffer dtype
-                        y : y + measurement.chip.spotSize,
-                        x : x + measurement.chip.spotSize,
-                    ],
+                        y : y + measurement.chip.spotSize, x : x + measurement.chip.spotSize
+                    ]
                 )
 
                 value = spot.value()

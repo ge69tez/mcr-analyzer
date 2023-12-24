@@ -128,8 +128,7 @@ class MainWindow(QtWidgets.QMainWindow):
             recent_files = util.ensure_list(util.remove_duplicates(recent_files))
 
             settings.setValue(
-                "Session/Files",
-                util.simplify_list(recent_files[0 : settings.value("Preferences/MaxRecentFiles", 5)]),
+                "Session/Files", util.simplify_list(recent_files[0 : settings.value("Preferences/MaxRecentFiles", 5)])
             )
             self.measurement_widget.switch_database()
             self.switch_to_measurement()

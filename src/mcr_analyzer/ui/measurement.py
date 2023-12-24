@@ -302,9 +302,9 @@ class MeasurementWidget(QtWidgets.QWidget):
             return
 
         with database.Session() as session, session.begin():
-            session.query(Result).filter_by(measurementID=self.measurement_id, column=col, row=row).update(
-                {Result.valid: valid},
-            )
+            session.query(Result).filter_by(measurementID=self.measurement_id, column=col, row=row).update({
+                Result.valid: valid
+            })
 
         # Tell views about change
         start = self.result_model.index(row, col)

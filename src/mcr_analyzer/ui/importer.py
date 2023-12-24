@@ -36,8 +36,7 @@ class ImportWidget(QtWidgets.QWidget):
         layout.addWidget(self.path_button)
 
         self.import_button = QtWidgets.QPushButton(
-            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton),
-            "Import into Database",
+            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton), "Import into Database"
         )
         self.import_button.setIconSize(QtCore.QSize(48, 48))
         self.import_button.clicked.connect(self.start_import)
@@ -48,7 +47,7 @@ class ImportWidget(QtWidgets.QWidget):
         self.measurements_table.verticalHeader().hide()
         self.measurements_table.horizontalHeader().setStretchLastSection(True)
         self.measurements_table.horizontalHeader().setSectionResizeMode(
-            QtWidgets.QHeaderView.ResizeMode.ResizeToContents,
+            QtWidgets.QHeaderView.ResizeMode.ResizeToContents
         )
         self.measurements_table.hide()
         layout.addWidget(self.measurements_table)
@@ -61,9 +60,7 @@ class ImportWidget(QtWidgets.QWidget):
     def path_dialog(self) -> None:
         if not database.valid:
             if QtWidgets.QMessageBox.warning(
-                self,
-                "No database selected",
-                "You need to open or create a database first.",
+                self, "No database selected", "You need to open or create a database first."
             ):
                 self.database_missing.emit()
             return
@@ -139,14 +136,14 @@ class ImportWidget(QtWidgets.QWidget):
         if exists:
             self.file_model.item(step + len(self.failed), 4).setText("Imported previously")
             self.file_model.item(step + len(self.failed), 4).setIcon(
-                self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogNoButton),
+                self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogNoButton)
             )
 
         else:
             rslt = self.results[step]
 
             with Image(
-                rslt.dir.joinpath(rslt.meta["Result image PGM"]),
+                rslt.dir.joinpath(rslt.meta["Result image PGM"])
             ) as img, database.Session() as session, session.begin():
                 chip = database.get_or_create(
                     session,
@@ -185,7 +182,7 @@ class ImportWidget(QtWidgets.QWidget):
             # Update UI
             self.file_model.item(step + len(self.failed), 4).setText("Import successful")
             self.file_model.item(step + len(self.failed), 4).setIcon(
-                self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogYesButton),
+                self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogYesButton)
             )
 
 

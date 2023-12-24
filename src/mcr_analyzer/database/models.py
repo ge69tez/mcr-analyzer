@@ -46,9 +46,7 @@ class Chip(Base):
     """Vertical margin between two adjacent spots: skip N pixels before processing the next spot."""
 
     measurements: Mapped[list["Measurement"]] = relationship(
-        back_populates="chip",
-        order_by="Measurement.timestamp",
-        default_factory=list,
+        back_populates="chip", order_by="Measurement.timestamp", default_factory=list
     )
     """Many-to-One relationship referencing all measurements the chip was used for."""
 
@@ -68,9 +66,7 @@ class Device(Base):
     """Serial number of the device."""
 
     measurements: Mapped[list["Measurement"]] = relationship(
-        back_populates="device",
-        order_by="Measurement.timestamp",
-        default_factory=list,
+        back_populates="device", order_by="Measurement.timestamp", default_factory=list
     )
     """Many-to-One relationship referencing all measurements done with this device."""
 
@@ -118,9 +114,7 @@ class User(Base):
     """Many-to-One relationship referencing all samples taken by a user."""
 
     measurements: Mapped[list["Measurement"]] = relationship(
-        back_populates="user",
-        order_by="Measurement.timestamp",
-        default_factory=list,
+        back_populates="user", order_by="Measurement.timestamp", default_factory=list
     )
     """Many-to-One relationship referencing all measurements done by a user."""
 
@@ -176,9 +170,7 @@ class Sample(Base):
     """One-to-Many relationship referencing the user who took this sample."""
 
     measurements: Mapped[list["Measurement"]] = relationship(
-        back_populates="sample",
-        order_by="Measurement.timestamp",
-        default_factory=list,
+        back_populates="sample", order_by="Measurement.timestamp", default_factory=list
     )
     """Many-to-One relationship referencing the measurements done with this sample."""
 
@@ -235,9 +227,7 @@ class Measurement(Base):
     """One-to-Many relationship referencing the user who did the measurement."""
 
     results: Mapped[list["Result"]] = relationship(
-        back_populates="measurement",
-        order_by="Result.id",
-        default_factory=list,
+        back_populates="measurement", order_by="Result.id", default_factory=list
     )
     """Many-to-One relationship referencing all results of this measurement."""
 

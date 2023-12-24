@@ -29,7 +29,6 @@ dependencies = [
 ]
 [project.optional-dependencies]
 dev = [
-  "black",
   "coverage",
   "coverage-badge",
   "hatch",
@@ -55,12 +54,7 @@ path = "src/mcr_analyzer/__about__.py"
 pip_install__editable = "pip install --editable=."
 mcr_analyzer = "python -m mcr_analyzer"
 
-[tool.black]
-target-version = ["py311"]
-line-length = 120
-
 [tool.ruff]
-target-version = "py311"
 line-length = 120
 src = ["src"]
 namespace-packages = ["docs"]
@@ -132,11 +126,18 @@ unfixable = [ # cSpell:ignore unfixable
   "ERA", # - eradicate
 ]
 ignore = [
+  # - warning: The following rules may cause conflicts when used with the formatter:
+  "COM812", # - missing-trailing-comma
+  "ISC001", # - single-line-implicit-string-concatenation
+  #
   "E203", # - whitespace-before-punctuation
   "FBT003", # - boolean-positional-value-in-call - "arg__1" in "QtWidgets.QWidget.setDisabled(arg__1)"
 ]
 
 [tool.ruff.lint.isort]
+# - warning: The isort option `isort.split-on-trailing-comma` is incompatible with the formatter `format.skip-magic-trailing-comma=true` option.
+split-on-trailing-comma = false
+
 known-first-party = ["mcr_analyzer"]
 
 [tool.ruff.lint.flake8-bugbear]
@@ -155,6 +156,11 @@ ban-relative-imports = "all"
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.ruff.format]
+preview = true
+docstring-code-format = true
+skip-magic-trailing-comma = true
 
 [tool.pytest.ini_options]
 minversion = "7" # cSpell:ignore minversion
@@ -186,7 +192,6 @@ addopts = [
 qt_api = "pyqt6" # cSpell:ignore pyqt
 
 [tool.mypy] # cSpell:ignore mypy
-show_error_codes = true
 warn_unreachable = true
 enable_error_code = [
   "ignore-without-code",

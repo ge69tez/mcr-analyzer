@@ -6,8 +6,6 @@
 #
 anyio==4.2.0
     # via httpx
-black==23.12.1
-    # via mcr-analyzer (pyproject.toml)
 build==1.0.3
     # via pip-tools
 certifi==2023.11.17
@@ -23,7 +21,6 @@ charset-normalizer==3.3.2
     # via requests
 click==8.1.7
     # via
-    #   black
     #   hatch
     #   pip-tools
     #   userpath
@@ -91,16 +88,13 @@ more-itertools==10.1.0
 mypy==1.8.0
     # via mcr-analyzer (pyproject.toml)
 mypy-extensions==1.0.0
-    # via
-    #   black
-    #   mypy
+    # via mypy
 nodeenv==1.8.0
     # via pre-commit
 numpy==1.26.2
     # via mcr-analyzer (pyproject.toml)
 packaging==23.2
     # via
-    #   black
     #   build
     #   hatch
     #   hatchling
@@ -108,16 +102,13 @@ packaging==23.2
     #   pytest
     #   pytest-sugar
 pathspec==0.12.1
-    # via
-    #   black
-    #   hatchling
+    # via hatchling
 pexpect==4.9.0
     # via hatch
 pip-tools==7.3.0
     # via mcr-analyzer (pyproject.toml)
 platformdirs==4.1.0
     # via
-    #   black
     #   hatch
     #   pooch
     #   virtualenv

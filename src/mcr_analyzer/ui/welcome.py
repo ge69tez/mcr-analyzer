@@ -28,8 +28,7 @@ class WelcomeWidget(QtWidgets.QWidget):
         layout.addWidget(self.new_button)
 
         self.open_button = QtWidgets.QPushButton(
-            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogOpenButton),
-            "&Open existing database...",
+            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogOpenButton), "&Open existing database..."
         )
         self.open_button.setIconSize(QtCore.QSize(48, 48))
         self.open_button.clicked.connect(self.clicked_open_button)
@@ -71,17 +70,11 @@ class WelcomeWidget(QtWidgets.QWidget):
 
     def _get_save_file_name(self) -> tuple[str, str]:
         return QtWidgets.QFileDialog.getSaveFileName(
-            parent=self,
-            caption="Store database as",
-            filter=SQLITE__FILE_FILTER,
+            parent=self, caption="Store database as", filter=SQLITE__FILE_FILTER
         )
 
     def _get_open_file_name(self) -> tuple[str, str]:
-        return QtWidgets.QFileDialog.getOpenFileName(
-            parent=self,
-            caption="Select database",
-            filter=SQLITE__FILE_FILTER,
-        )
+        return QtWidgets.QFileDialog.getOpenFileName(parent=self, caption="Select database", filter=SQLITE__FILE_FILTER)
 
 
 def _update_settings_recent_files(file_name: str) -> None:
@@ -92,6 +85,5 @@ def _update_settings_recent_files(file_name: str) -> None:
     recent_files = util.ensure_list(util.remove_duplicates(recent_files))
 
     settings.setValue(
-        "Session/Files",
-        util.simplify_list(recent_files[0 : settings.value("Preferences/MaxRecentFiles", 5)]),
+        "Session/Files", util.simplify_list(recent_files[0 : settings.value("Preferences/MaxRecentFiles", 5)])
     )
