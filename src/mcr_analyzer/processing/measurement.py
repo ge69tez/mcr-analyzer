@@ -8,56 +8,46 @@ from mcr_analyzer.processing.validator import SpotReaderValidator
 
 
 def update_results(measurement_id: int) -> None:
-    with database.Session() as session:
+    with database.Session() as session, database.Session() as session, session.begin():
         measurement = session.query(Measurement).filter(Measurement.id == measurement_id).one()
 
-        chip = measurement.chip
-        column_count = chip.columnCount
-        row_count = chip.rowCount
-        margin_left = chip.marginLeft
-        margin_top = chip.marginTop
-        spot_size = chip.spotSize
-        spot_margin_horizontal = chip.spotMarginHorizontal
-        spot_margin_vertical = chip.spotMarginVertical
+        values = np.zeros((measurement.chip.columnCount, measurement.chip.rowCount))
+        valid_values = np.zeros((measurement.chip.columnCount, measurement.chip.rowCount), dtype=bool)
 
-        image = measurement.image
+        for column in range(measurement.chip.columnCount):
+            column_results = []
 
-    values = np.zeros((column_count, row_count))
-    valid_values = np.zeros((column_count, row_count), dtype=bool)
+            for row in range(measurement.chip.rowCount):
+                x = measurement.chip.marginLeft + column * (
+                    measurement.chip.spotSize + measurement.chip.spotMarginHorizontal
+                )
+                y = measurement.chip.marginTop + row * (measurement.chip.spotSize + measurement.chip.spotMarginVertical)
+                spot = DeviceBuiltin(
+                    np.frombuffer(measurement.image, dtype=">u2").reshape(520, 696)[  # cSpell:ignore frombuffer dtype
+                        y : y + measurement.chip.spotSize,
+                        x : x + measurement.chip.spotSize,
+                    ],
+                )
 
-    for column in range(column_count):
-        column_results = []
+                value = spot.value()
+                column_results.append(value)
+                values[column][row] = value
 
-        for row in range(row_count):
-            x = margin_left + column * (spot_size + spot_margin_horizontal)
-            y = margin_top + row * (spot_size + spot_margin_vertical)
-            spot = DeviceBuiltin(
-                np.frombuffer(image, dtype=">u2").reshape(520, 696)[  # cSpell:ignore frombuffer dtype
-                    y : y + spot_size,
-                    x : x + spot_size,
-                ],
-            )
+            validator = SpotReaderValidator(column_results)
+            valid_values[column] = validator.validate()
 
-            value = spot.value()
-            column_results.append(value)
-            values[column][row] = value
+        list_of_values = [
+            {
+                Result.row: row,
+                Result.column: column,
+                Result.measurementID: measurement_id,
+                Result.value: values[column][row],
+                Result.valid: valid_values[column][row],
+            }
+            for column in range(measurement.chip.columnCount)
+            for row in range(measurement.chip.rowCount)
+        ]
 
-        validator = SpotReaderValidator(column_results)
-        valid_values[column] = validator.validate()
-
-    list_of_values = [
-        {
-            Result.row: row,
-            Result.column: column,
-            Result.measurementID: measurement_id,
-            Result.value: values[column][row],
-            Result.valid: valid_values[column][row],
-        }
-        for column in range(column_count)
-        for row in range(row_count)
-    ]
-
-    with database.Session() as session, session.begin():
         statement = sqlite_upsert(Result).values(list_of_values)
         statement = statement.on_conflict_do_update(
             index_elements=[Result.row, Result.column, Result.measurementID],
