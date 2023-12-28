@@ -227,7 +227,7 @@ class MeasurementWidget(QtWidgets.QWidget):
 
         self.resetGridButton.setDisabled(True)
 
-        self.result_model.invalidate_cache()
+        self.result_model.update()
 
         self.results.setEnabled(True)
         self.results.resizeColumnsToContents()

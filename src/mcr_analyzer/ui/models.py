@@ -1,6 +1,5 @@
 import datetime
 import string
-import time
 import typing
 
 import numpy as np
@@ -218,11 +217,7 @@ class ResultTableModel(QtCore.QAbstractTableModel):
 
             self.chip = measurement.chip
 
-        self.results = None
-        self.means = None
-        self.standard_deviations = None
-        self.cache_valid = True
-        self.last_update = 0
+        self.update()
 
     def rowCount(self, parent: QtCore.QModelIndex = QtCore.QModelIndex()):  # noqa: N802, ARG002
         # - 2 additional rows:
@@ -241,10 +236,6 @@ class ResultTableModel(QtCore.QAbstractTableModel):
         column_index = index.column()
 
         row_index_max = self.chip.rowCount - 1
-
-        # Refresh results
-        #
-        self.update()
 
         result = None
 
@@ -309,21 +300,7 @@ class ResultTableModel(QtCore.QAbstractTableModel):
 
         return return_value
 
-    def invalidate_cache(self):
-        self.beginResetModel()
-        self.cache_valid = False
-        self.update()
-        self.endResetModel()
-
     def update(self):
-        # Limit DB queries to 500ms
-        database_query_limit_in_milliseconds = 500
-        if (time.monotonic() * 1000 - self.last_update <= database_query_limit_in_milliseconds) and self.cache_valid:
-            return
-
-        if not self.cache_valid:
-            self.cache_valid = True
-
         row_count = self.chip.rowCount
         column_count = self.chip.columnCount
 
@@ -361,8 +338,6 @@ class ResultTableModel(QtCore.QAbstractTableModel):
                 self.standard_deviations[col] = (
                     np.std(values, ddof=1) if values_not_empty else np.nan  # cSpell:ignore ddof
                 )
-
-        self.last_update = time.monotonic() * 1000
 
 
 def _get_qtgui_qfont_bold():  # cSpell:ignore qtgui qfont
