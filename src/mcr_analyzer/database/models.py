@@ -196,8 +196,8 @@ class Measurement(Base):
     """Refers to the measured :class:`Sample`."""
 
     image: Mapped[bytes]
-    """Raw 16-bit image data, big endian. (Numpy's ``>u2`` datatype, for compatibility with `netpbm
-    <http://netpbm.sourceforge.net/doc/pgm.html>`_). """  # cSpell:ignore netpbm
+    """Raw 16-bit image data, big endian. (Numpy's ``>u2`` datatype, for compatibility with `Netpbm
+    <https://netpbm.sourceforge.net/doc/pgm.html>`_). """  # cSpell:ignore netpbm
 
     checksum: Mapped[bytes] = mapped_column(BINARY(32))
     """SHA256 hash of the raw 16-bit image data. Used for duplicate detection."""
