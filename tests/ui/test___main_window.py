@@ -73,3 +73,7 @@ def test_profile(
                 main_window.import_widget.import_button.click()
 
             assert main_window.import_widget.file_model.item(SAMPLE_RESULTS__COUNT - 1, 4).text() == status
+
+            main_window.export_widget.update_preview()
+            qtbot.waitUntil(lambda: len(main_window.export_widget.preview_edit.toPlainText().splitlines()) > 0)
+            assert len(main_window.export_widget.preview_edit.toPlainText().splitlines()) == SAMPLE_RESULTS__COUNT

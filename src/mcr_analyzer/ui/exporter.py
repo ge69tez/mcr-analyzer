@@ -61,9 +61,8 @@ class ExportWidget(QtWidgets.QWidget):
 
         self.setLayout(layout)
 
-    def showEvent(self, event: QtGui.QShowEvent):  # noqa: N802
+    def showEvent(self, event: QtGui.QShowEvent):  # noqa: N802, ARG002
         self.update_preview()
-        event.accept()
 
     @QtCore.pyqtSlot()
     def clicked_export_button(self):
