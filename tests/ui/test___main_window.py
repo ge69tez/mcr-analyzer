@@ -54,15 +54,22 @@ def test_profile(
     monkeypatch.setattr(WelcomeWidget, "_get_save_file_name", lambda _: (tmp_sqlite_file_path, SQLITE__FILE_FILTER))
     monkeypatch.setattr(ImportWidget, "_get_directory_path", lambda _: SAMPLE_RESULTS__DIR)
 
-    with qtbot.waitSignal(main_window.welcome_widget.database_created):
-        main_window.welcome_widget.new_button.click()
+    # - Idempotence test
+    for _ in range(2):
+        with qtbot.waitSignal(main_window.welcome_widget.database_created):
+            main_window.welcome_widget.new_button.click()
 
-    main_window.import_widget.path_button.click()
+        for status in ["Import successful", "Imported previously"]:
+            main_window.import_widget.path_button.click()
 
-    qtbot.waitUntil(main_window.import_widget.import_button.isVisible)
+            qtbot.waitUntil(main_window.import_widget.import_button.isVisible)
 
-    model = main_window.import_widget.measurements_table.model()
-    assert model.rowCount() == SAMPLE_RESULTS__COUNT
+            model = main_window.import_widget.measurements_table.model()
+            assert model.rowCount() == SAMPLE_RESULTS__COUNT
 
-    with qtbot.waitSignal(main_window.import_widget.import_finished, timeout=None):
-        main_window.import_widget.import_button.click()
+            assert main_window.import_widget.file_model.rowCount() == SAMPLE_RESULTS__COUNT
+
+            with qtbot.waitSignal(main_window.import_widget.import_finished, timeout=None):
+                main_window.import_widget.import_button.click()
+
+            assert main_window.import_widget.file_model.item(SAMPLE_RESULTS__COUNT - 1, 4).text() == status

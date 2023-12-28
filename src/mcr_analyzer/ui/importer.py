@@ -25,6 +25,8 @@ class ImportWidget(QtWidgets.QWidget):
         self.results: list[RsltParser] = []
         self.failed: list[str] = []
         self.checksum_worker = ChecksumWorker()
+        self.checksum_worker.progress.connect(self.update_status)
+        self.checksum_worker.finished.connect(self.import_finished.emit)
         self.setWindowTitle("Import measurements")
 
         layout = QtWidgets.QVBoxLayout()
@@ -93,8 +95,6 @@ class ImportWidget(QtWidgets.QWidget):
         self.progress_bar.setMaximum(len(self.results))
         self.progress_bar.show()
 
-        self.checksum_worker.progress.connect(self.update_status)
-        self.checksum_worker.finished.connect(self.import_finished.emit)
         self.checksum_worker.run(self.results)
 
     def update_filelist(self) -> None:

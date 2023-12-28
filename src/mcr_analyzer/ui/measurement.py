@@ -264,6 +264,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.spot_size.valueChanged.connect(self.preview_grid)
         self.spot_margin_horizontal.valueChanged.connect(self.preview_grid)
         self.spot_margin_vertical.valueChanged.connect(self.preview_grid)
+
         self.grid.database_view()
         self.saveGridButton.setDisabled(True)
         self.resetGridButton.setDisabled(True)
