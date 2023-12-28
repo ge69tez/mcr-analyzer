@@ -4,9 +4,8 @@ import time
 import typing
 
 import numpy as np
-import sqlalchemy
 from PyQt6 import QtCore, QtGui
-from sqlalchemy.sql.expression import select
+from sqlalchemy.sql.expression import func, select
 
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement, Result
@@ -175,26 +174,32 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
         self._root_tree_item.clear_child_tree_items()
 
         with database.Session() as session:
-            for day in session.query(Measurement).group_by(sqlalchemy.func.strftime("%Y-%m-%d", Measurement.timestamp)):
-                date_row_tree_item = MeasurementTreeItem([str(day.timestamp.date()), None, None], self._root_tree_item)
+            statement = select(Measurement.timestamp).group_by(func.strftime("%Y-%m-%d", Measurement.timestamp))
+            timestamps = session.execute(statement).scalars()
+            for timestamp in timestamps:
+                date = timestamp.date()
+                date_row_tree_item = MeasurementTreeItem([str(date), None, None], self._root_tree_item)
 
                 self._root_tree_item.append_child_tree_item(date_row_tree_item)
 
-                for result in (
-                    session.query(Measurement)
-                    .filter(day.timestamp.date() <= Measurement.timestamp)
-                    .filter(
+                statement = (
+                    select(Measurement)
+                    .where(date <= Measurement.timestamp)
+                    .where(
                         # - Before the same day at 23:59:59
-                        Measurement.timestamp <= datetime.datetime.combine(day.timestamp, datetime.time.max)
+                        Measurement.timestamp <= datetime.datetime.combine(date, datetime.time.max)
                     )
-                ):
+                )
+                measurements = session.execute(statement).scalars()
+
+                for measurement in measurements:
                     date_row_tree_item.append_child_tree_item(
                         MeasurementTreeItem(
                             [
-                                result.timestamp.time().strftime("%H:%M:%S"),
-                                result.chip.name,
-                                result.sample.name,
-                                result.id,
+                                measurement.timestamp.time().strftime("%H:%M:%S"),
+                                measurement.chip.name,
+                                measurement.sample.name,
+                                measurement.id,
                             ],
                             date_row_tree_item,
                         )
@@ -205,10 +210,11 @@ class ResultTableModel(QtCore.QAbstractTableModel):
     def __init__(self, measurement_id: int, parent: QtCore.QObject | None = None):
         super().__init__(parent)
 
+        self.measurement_id = measurement_id
+
         with database.Session() as session:
-            statement = select(Measurement).filter(Measurement.id == measurement_id)
+            statement = select(Measurement).where(Measurement.id == measurement_id)
             measurement = session.execute(statement).scalar_one()
-            self.measurement = measurement
 
             self.chip = measurement.chip
 
@@ -219,18 +225,12 @@ class ResultTableModel(QtCore.QAbstractTableModel):
         self.last_update = 0
 
     def rowCount(self, parent: QtCore.QModelIndex = QtCore.QModelIndex()):  # noqa: N802, ARG002
-        if not self.measurement:
-            return 0
-
         # - 2 additional rows:
         #   - Mean
         #   - Standard deviation
         return self.chip.rowCount + 2
 
     def columnCount(self, parent: QtCore.QModelIndex = QtCore.QModelIndex()):  # noqa: N802, ARG002
-        if not self.measurement:
-            return 0
-
         return self.chip.columnCount
 
     def data(self, index: QtCore.QModelIndex, role: int = QtCore.Qt.ItemDataRole.DisplayRole):
@@ -327,34 +327,40 @@ class ResultTableModel(QtCore.QAbstractTableModel):
         row_count = self.chip.rowCount
         column_count = self.chip.columnCount
 
-        self.results = np.empty([row_count, column_count], dtype=object)  # cSpell:ignore dtype
+        self.results = np.empty([row_count, column_count], dtype=Result)  # cSpell:ignore dtype
 
         self.means = np.empty([column_count])
         self.standard_deviations = np.empty([column_count])
 
-        for row in range(row_count):
+        with database.Session() as session:
             for col in range(column_count):
-                with database.Session() as session:
-                    self.results[row][col] = (
-                        session.query(Result).filter_by(measurement=self.measurement, column=col, row=row).one_or_none()
+                for row in range(row_count):
+                    statement = (
+                        select(Result)
+                        .where(Result.measurementID == self.measurement_id)
+                        .where(Result.column == col)
+                        .where(Result.row == row)
                     )
 
-        for col in range(column_count):
-            with database.Session() as session:
-                values = list(
-                    session.query(Result)
-                    .filter(
-                        Result.measurement == self.measurement,
-                        Result.column == col,
-                        Result.valid.is_(True),
-                        Result.value.isnot(None),  # cSpell:ignore isnot
-                    )
-                    .values(Result.value)
+                    result = session.execute(statement).scalar_one()
+
+                    self.results[row][col] = result
+
+                statement = (
+                    select(Result.value)
+                    .where(Result.measurementID == self.measurement_id)
+                    .where(Result.column == col)
+                    .where(Result.valid.is_(True))
+                    .where(Result.value.is_not(None))
                 )
 
-            self.means[col] = np.mean(values) if values else np.nan
-            self.standard_deviations[col] = np.std(values, ddof=1) if values else np.nan
-            # cSpell:ignore ddof
+                values = session.execute(statement).scalars().all()
+
+                values_not_empty = len(values) > 0
+                self.means[col] = np.mean(values) if values_not_empty else np.nan
+                self.standard_deviations[col] = (
+                    np.std(values, ddof=1) if values_not_empty else np.nan  # cSpell:ignore ddof
+                )
 
         self.last_update = time.monotonic() * 1000
 

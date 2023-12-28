@@ -1,11 +1,12 @@
 import numpy as np
 from PyQt6 import QtCore, QtGui, QtWidgets
+from sqlalchemy.sql.expression import select
 
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement, Result
 from mcr_analyzer.processing.measurement import update_results
 from mcr_analyzer.ui.graphics_scene import GraphicsMeasurementScene, GridItem
-from mcr_analyzer.ui.models import MeasurementTreeModel, ResultTableModel
+from mcr_analyzer.ui.models import MeasurementTreeItem, MeasurementTreeModel, ResultTableModel
 
 
 class MeasurementWidget(QtWidgets.QWidget):
@@ -103,13 +104,16 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.tree.selectionModel().selectionChanged.connect(self.selection_changed)
 
     @QtCore.pyqtSlot(QtCore.QItemSelection, QtCore.QItemSelection)
-    def selection_changed(self, selected, deselected) -> None:  # noqa: ARG002, PLR0915
-        self.measurement_id = selected.indexes()[0].internalPointer().data(3)
-        if not self.measurement_id:
+    def selection_changed(self, selected: QtCore.QItemSelection, deselected: QtCore.QItemSelection) -> None:  # noqa: ARG002, PLR0915
+        model_index = selected.indexes()[0]
+        measurement_tree_item: MeasurementTreeItem = model_index.internalPointer()
+        self.measurement_id: int | None = measurement_tree_item.data(3)
+
+        if self.measurement_id is None:
             return
 
         with database.Session() as session:
-            measurement = session.query(Measurement).filter(Measurement.id == self.measurement_id).one_or_none()
+            measurement = session.execute(select(Measurement).where(Measurement.id == self.measurement_id)).scalar_one()
 
             if measurement.user:
                 self.measurer.setText(measurement.user.name)
@@ -180,7 +184,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.image.setPixmap(QtGui.QPixmap.fromImage(q_image))
 
         # Store date of last used measurement for expanding tree on next launch
-        parent_index = selected.indexes()[0].parent()
+        parent_index = model_index.parent()
         if parent_index.isValid:
             settings = QtCore.QSettings()
             settings.setValue("Session/SelectedDate", parent_index.data())
@@ -200,14 +204,11 @@ class MeasurementWidget(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot()
     def save_grid(self):
-        if not self.measurement_id:
+        if self.measurement_id is None:
             return
 
         with database.Session() as session, session.begin():
-            for result in session.query(Result).filter_by(measurementID=self.measurement_id):
-                session.delete(result)
-
-            measurement = session.query(Measurement).filter_by(id=self.measurement_id).one()
+            measurement = session.execute(select(Measurement).where(Measurement.id == self.measurement_id)).scalar_one()
 
             chip = measurement.chip
             chip.columnCount = self.cols.value()
@@ -233,11 +234,8 @@ class MeasurementWidget(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot()
     def reset_grid(self):
-        if not self.measurement_id:
+        if self.measurement_id is None:
             return
-
-        with database.Session() as session:
-            measurement = session.query(Measurement).filter(Measurement.id == self.measurement_id).one_or_none()
 
         # Disconnect all signals
         try:
@@ -249,11 +247,16 @@ class MeasurementWidget(QtWidgets.QWidget):
         except TypeError:
             pass
 
-        self.cols.setValue(measurement.chip.columnCount)
-        self.rows.setValue(measurement.chip.rowCount)
-        self.spot_size.setValue(measurement.chip.spotSize)
-        self.spot_margin_horizontal.setValue(measurement.chip.spotMarginHorizontal)
-        self.spot_margin_vertical.setValue(measurement.chip.spotMarginVertical)
+        with database.Session() as session:
+            measurement = session.execute(select(Measurement).where(Measurement.id == self.measurement_id)).scalar_one()
+
+            self.cols.setValue(measurement.chip.columnCount)
+            self.rows.setValue(measurement.chip.rowCount)
+            self.spot_size.setValue(measurement.chip.spotSize)
+            self.spot_margin_horizontal.setValue(measurement.chip.spotMarginHorizontal)
+            self.spot_margin_vertical.setValue(measurement.chip.spotMarginVertical)
+
+            self.grid.setPos(measurement.chip.marginLeft, measurement.chip.marginTop)
 
         # Connect grid related fields
         self.cols.valueChanged.connect(self.preview_grid)
@@ -261,7 +264,6 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.spot_size.valueChanged.connect(self.preview_grid)
         self.spot_margin_horizontal.valueChanged.connect(self.preview_grid)
         self.spot_margin_vertical.valueChanged.connect(self.preview_grid)
-        self.grid.setPos(measurement.chip.marginLeft, measurement.chip.marginTop)
         self.grid.database_view()
         self.saveGridButton.setDisabled(True)
         self.resetGridButton.setDisabled(True)
@@ -277,34 +279,40 @@ class MeasurementWidget(QtWidgets.QWidget):
         if x == 0 and y == 0:
             return
 
-        if not self.measurement_id:
+        if self.measurement_id is None:
             return
 
         self.preview_grid()
 
     @QtCore.pyqtSlot()
     def update_notes(self):
-        if not self.measurement_id:
+        if self.measurement_id is None:
             return
 
-        note = self.notes.toPlainText()
+        notes = self.notes.toPlainText()
 
-        # Set column to NULL if text is empty
-        if not note:
-            note = None
+        if notes == "":
+            notes = None
 
         with database.Session() as session, session.begin():
-            session.query(Measurement).filter_by(id=self.measurement_id).update({Measurement.notes: note})
+            measurement = session.execute(select(Measurement).where(Measurement.id == self.measurement_id)).scalar_one()
+            measurement.notes = notes
 
     @QtCore.pyqtSlot(int, int, bool)
     def update_validity(self, row, col, valid):
-        if not self.measurement_id:
+        if self.measurement_id is None:
             return
 
         with database.Session() as session, session.begin():
-            session.query(Result).filter_by(measurementID=self.measurement_id, column=col, row=row).update({
-                Result.valid: valid
-            })
+            statement = (
+                select(Result)
+                .where(Result.measurementID == self.measurement_id)
+                .where(Result.column == col)
+                .where(Result.row == row)
+            )
+            result = session.execute(statement).scalar_one()
+
+            result.valid = valid
 
         # Tell views about change
         start = self.result_model.index(row, col)

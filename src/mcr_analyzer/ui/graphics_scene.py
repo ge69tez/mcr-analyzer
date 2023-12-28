@@ -3,7 +3,6 @@ import string
 from PyQt6 import QtCore, QtGui, QtWidgets
 from sqlalchemy.sql.expression import select
 
-from mcr_analyzer import utils
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement, Result
 
@@ -70,7 +69,7 @@ class GridItem(QtWidgets.QGraphicsItem):
         self.measurement_id = measurement_id
 
         with database.Session() as session:
-            statement = select(Measurement).filter(Measurement.id == self.measurement_id)
+            statement = select(Measurement).where(Measurement.id == self.measurement_id)
             measurement = session.execute(statement).scalar_one()
             self.measurement = measurement
 
@@ -143,13 +142,15 @@ class GridItem(QtWidgets.QGraphicsItem):
                     valid = False
                 else:
                     with database.Session() as session:
-                        res = (
-                            session.query(Result.valid)
-                            .filter_by(measurement=self.measurement, column=col, row=row)
-                            .one_or_none()
+                        statement = (
+                            select(Result.valid)
+                            .where(Result.measurement == self.measurement)
+                            .where(Result.column == col)
+                            .where(Result.row == row)
                         )
+                        res = session.execute(statement).scalar_one_or_none()
 
-                    valid = utils.simplify_list(res) if res else False
+                    valid = res if res is not None else False
                 x = col * (self.size + self.horizontal_space)
                 y = row * (self.size + self.vertical_space)
                 spot = GraphicsSpotItem(x, y, self.size, self.size, col, row, self, valid=valid)
@@ -170,7 +171,7 @@ class GridItem(QtWidgets.QGraphicsItem):
 
         # Ensure latest database information
         with database.Session() as session:
-            statement = select(Measurement).filter(Measurement.id == self.measurement_id)
+            statement = select(Measurement).where(Measurement.id == self.measurement_id)
             measurement = session.execute(statement).scalar_one()
             self.measurement = measurement
 

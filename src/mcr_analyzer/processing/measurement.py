@@ -1,5 +1,6 @@
 import numpy as np
 from sqlalchemy.dialects.sqlite import insert as sqlite_upsert
+from sqlalchemy.sql.expression import select
 
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement, Result
@@ -9,7 +10,7 @@ from mcr_analyzer.processing.validator import SpotReaderValidator
 
 def update_results(measurement_id: int) -> None:
     with database.Session() as session, database.Session() as session, session.begin():
-        measurement = session.query(Measurement).filter(Measurement.id == measurement_id).one()
+        measurement = session.execute(select(Measurement).where(Measurement.id == measurement_id)).scalar_one()
 
         values = np.zeros((measurement.chip.columnCount, measurement.chip.rowCount))
         valid_values = np.zeros((measurement.chip.columnCount, measurement.chip.rowCount), dtype=bool)

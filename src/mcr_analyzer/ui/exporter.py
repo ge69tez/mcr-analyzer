@@ -5,8 +5,8 @@ import re
 from pathlib import Path
 
 import numpy as np
-import sqlalchemy.exc
 from PyQt6 import QtCore, QtGui, QtWidgets
+from sqlalchemy.sql.expression import or_, select
 
 from mcr_analyzer.config import TZ_INFO
 from mcr_analyzer.database.database import database
@@ -94,7 +94,7 @@ class ExportWidget(QtWidgets.QWidget):
 
         # Initialize query object
         with database.Session() as session:
-            query = session.query(Measurement)
+            statement = select(Measurement)
 
             # Apply user filters to query
             for filter in self.filters:
@@ -104,51 +104,48 @@ class ExportWidget(QtWidgets.QWidget):
                 # always check intervals
                 if obj == Measurement.timestamp:
                     if op is operator.eq:
-                        query = query.filter(
-                            obj >= value,
+                        statement = statement.where(obj >= value).where(
                             obj
                             < datetime.datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=TZ_INFO)
-                            + datetime.timedelta(days=1),
+                            + datetime.timedelta(days=1)
                         )
                     elif op is operator.ne:
-                        query = query.filter(
-                            (obj < value)
-                            | (
+                        statement = statement.where(
+                            or_(
+                                obj < value,
                                 obj
                                 >= datetime.datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=TZ_INFO)
-                                + datetime.timedelta(days=1)
+                                + datetime.timedelta(days=1),
                             )
                         )
                     else:
-                        query = query.filter(op(obj, value))
+                        statement = statement.where(op(obj, value))
                 else:
-                    query = query.filter(op(obj, value))
+                    statement = statement.where(op(obj, value))
 
-            # Fill preview with results
-            try:
-                for measurement in query:
-                    measurement_line = f"{escape_csv(measurement.timestamp)}\t"
-                    measurement_line += f"{escape_csv(measurement.chip.name)}\t"
-                    measurement_line += f"{escape_csv(measurement.sample.name)}\t"
+            for measurement in session.execute(statement).scalars():
+                measurement_line = f"{escape_csv(measurement.timestamp)}\t"
+                measurement_line += f"{escape_csv(measurement.chip.name)}\t"
+                measurement_line += f"{escape_csv(measurement.sample.name)}\t"
 
-                    measurement_line += '""' if measurement.notes is None else f"{escape_csv(measurement.notes)}"
+                measurement_line += '""' if measurement.notes is None else f"{escape_csv(measurement.notes)}"
 
-                    valid_data = False
-                    for col in range(measurement.chip.columnCount):
-                        if session.query(Result).filter_by(measurement=measurement, column=col, valid=True).count() > 0:
-                            valid_data = True
-                            values = list(
-                                session.query(Result)
-                                .filter_by(measurement=measurement, column=col, valid=True)
-                                .values(Result.value)
-                            )
-                            measurement_line += f"\t{np.mean(values):.0f}"
+                for col in range(measurement.chip.columnCount):
+                    statement = (
+                        select(Result.value)
+                        .where(Result.measurement == measurement)
+                        .where(Result.column == col)
+                        .where(Result.valid.is_(True))
+                        .where(Result.value.is_not(None))
+                    )
 
-                    if valid_data:
-                        self.preview_edit.appendPlainText(measurement_line)
+                    values = session.execute(statement).scalars().all()
 
-            except sqlalchemy.exc.UnboundExecutionError:
-                pass
+                    if len(values) > 0:
+                        mean = f"\t{np.mean(values):.0f}"
+                        measurement_line += mean
+
+                self.preview_edit.appendPlainText(measurement_line)
 
 
 class FilterWidget(QtWidgets.QWidget):

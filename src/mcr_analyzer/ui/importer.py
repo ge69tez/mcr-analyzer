@@ -2,6 +2,7 @@ import hashlib
 
 import numpy as np
 from PyQt6 import QtCore, QtGui, QtWidgets
+from sqlalchemy.sql.expression import select
 
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Chip, Device, Measurement, Sample
@@ -136,7 +137,8 @@ class ImportWidget(QtWidgets.QWidget):
         self.progress_bar.setValue(step + 1)
 
         with database.Session() as session:
-            exists = session.query(Measurement.id).filter(Measurement.checksum == checksum).first() is not None
+            statement = select(Measurement).where(Measurement.checksum == checksum)
+            exists = session.execute(select(statement.exists())).scalar_one()
 
         if exists:
             self.file_model.item(step + len(self.failed), 4).setText("Imported previously")

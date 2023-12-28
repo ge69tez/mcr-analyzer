@@ -5,6 +5,7 @@ from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.engine import URL, Engine
 from sqlalchemy.orm import Session, sessionmaker  # cSpell:ignore sessionmaker
+from sqlalchemy.sql.expression import select
 
 from mcr_analyzer.config import SQLITE__DRIVER_NAME
 from mcr_analyzer.database.models import Base
@@ -64,8 +65,8 @@ class _DatabaseSingleton:
 
     @staticmethod
     def get_or_create(session, model, **kwargs):
-        instance = session.query(model).filter_by(**kwargs).one_or_none()
-        if not instance:
+        instance = session.execute(select(model).filter_by(**kwargs)).scalar_one_or_none()
+        if instance is None:
             instance = model(**kwargs)
             session.add(instance)
         return instance

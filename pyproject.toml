@@ -132,6 +132,7 @@ ignore = [
   #
   "E203", # - whitespace-before-punctuation
   "FBT003", # - boolean-positional-value-in-call - "arg__1" in "QtWidgets.QWidget.setDisabled(arg__1)"
+  "PLC1901", # - compare-to-empty-string - High false positive rate
 ]
 
 [tool.ruff.lint.isort]
