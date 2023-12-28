@@ -134,8 +134,6 @@ class ImportWidget(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot(int, bytes)
     def update_status(self, step: int, checksum: bytes) -> None:
-        self.progress_bar.setValue(step + 1)
-
         with database.Session() as session:
             statement = select(Measurement).where(Measurement.checksum == checksum)
             exists = session.execute(select(statement.exists())).scalar_one()
@@ -191,6 +189,8 @@ class ImportWidget(QtWidgets.QWidget):
             self.file_model.item(step + len(self.failed), 4).setIcon(
                 self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogYesButton)
             )
+
+        self.progress_bar.setValue(step + 1)
 
 
 class ChecksumWorker(QtCore.QObject):
