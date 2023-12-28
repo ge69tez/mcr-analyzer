@@ -215,7 +215,10 @@ class ResultTableModel(QtCore.QAbstractTableModel):
             statement = select(Measurement).where(Measurement.id == measurement_id)
             measurement = session.execute(statement).scalar_one()
 
-            self.chip = measurement.chip
+            self.row_count = measurement.chip.rowCount
+            self.column_count = measurement.chip.columnCount
+
+        self.row_index_max = self.row_count - 1
 
         self.update()
 
@@ -223,10 +226,10 @@ class ResultTableModel(QtCore.QAbstractTableModel):
         # - 2 additional rows:
         #   - Mean
         #   - Standard deviation
-        return self.chip.rowCount + 2
+        return self.row_count + 2
 
     def columnCount(self, parent: QtCore.QModelIndex = QtCore.QModelIndex()):  # noqa: N802, ARG002
-        return self.chip.columnCount
+        return self.column_count
 
     def data(self, index: QtCore.QModelIndex, role: int = QtCore.Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
@@ -234,8 +237,6 @@ class ResultTableModel(QtCore.QAbstractTableModel):
 
         row_index = index.row()
         column_index = index.column()
-
-        row_index_max = self.chip.rowCount - 1
 
         result = None
 
@@ -249,16 +250,16 @@ class ResultTableModel(QtCore.QAbstractTableModel):
                 if result:
                     return_value = f"{result.value if result.value else np.nan:5.0f}"
 
-                elif row_index == row_index_max + 1:
+                elif row_index == self.row_index_max + 1:
                     return_value = f"{self.means[column_index]:5.0f}"
 
-                elif row_index == row_index_max + 2:
+                elif row_index == self.row_index_max + 2:
                     return_value = f"{self.standard_deviations[column_index]:5.0f}"
 
             # - Set font bold for 2 additional rows:
             #   - Mean
             #   - Standard deviation
-            case QtCore.Qt.ItemDataRole.FontRole if row_index_max < row_index:
+            case QtCore.Qt.ItemDataRole.FontRole if self.row_index_max < row_index:
                 return_value = _get_qtgui_qfont_bold()
 
             case QtCore.Qt.ItemDataRole.ForegroundRole if result:
@@ -273,8 +274,6 @@ class ResultTableModel(QtCore.QAbstractTableModel):
     def headerData(  # noqa: N802
         self, section: int, orientation: QtCore.Qt.Orientation, role: int = QtCore.Qt.ItemDataRole.DisplayRole
     ):
-        row_index_max = self.chip.rowCount - 1
-
         return_value: typing.Any = None
 
         match role:
@@ -284,34 +283,31 @@ class ResultTableModel(QtCore.QAbstractTableModel):
                         return_value = section + 1
 
                     case QtCore.Qt.Orientation.Vertical:
-                        if section <= row_index_max:
+                        if section <= self.row_index_max:
                             return_value = string.ascii_uppercase[section]
 
-                        elif section == row_index_max + 1:
+                        elif section == self.row_index_max + 1:
                             return_value = "Mean"
 
-                        elif section == row_index_max + 2:
+                        elif section == self.row_index_max + 2:
                             return_value = "Std."
 
             case QtCore.Qt.ItemDataRole.FontRole if (
-                orientation == QtCore.Qt.Orientation.Vertical and row_index_max < section
+                orientation == QtCore.Qt.Orientation.Vertical and self.row_index_max < section
             ):
                 return_value = _get_qtgui_qfont_bold()
 
         return return_value
 
     def update(self):
-        row_count = self.chip.rowCount
-        column_count = self.chip.columnCount
+        self.results = np.empty([self.row_count, self.column_count], dtype=Result)  # cSpell:ignore dtype
 
-        self.results = np.empty([row_count, column_count], dtype=Result)  # cSpell:ignore dtype
-
-        self.means = np.empty([column_count])
-        self.standard_deviations = np.empty([column_count])
+        self.means = np.empty([self.column_count])
+        self.standard_deviations = np.empty([self.column_count])
 
         with database.Session() as session:
-            for col in range(column_count):
-                for row in range(row_count):
+            for col in range(self.column_count):
+                for row in range(self.row_count):
                     statement = (
                         select(Result)
                         .where(Result.measurementID == self.measurement_id)
