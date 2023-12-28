@@ -9,7 +9,7 @@ from mcr_analyzer.processing.validator import SpotReaderValidator
 
 
 def update_results(measurement_id: int) -> None:
-    with database.Session() as session, database.Session() as session, session.begin():
+    with database.Session() as session, session.begin():
         measurement = session.execute(select(Measurement).where(Measurement.id == measurement_id)).scalar_one()
 
         values = np.zeros((measurement.chip.columnCount, measurement.chip.rowCount))
