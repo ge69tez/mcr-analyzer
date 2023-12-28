@@ -25,5 +25,8 @@ class DeviceBuiltin(Spot):
 
     def value(self) -> float:
         """Return mean of the 10 brightest pixels."""
-        vals = np.sort(self.img, axis=None)
-        return float(np.mean(vals[-10:]))
+        values = np.sort(self.img, axis=None)
+        values_top_ten = values[-10:]
+
+        # - Check "values_top_ten.size == 0" to avoid "RuntimeWarning: Mean of empty slice"
+        return np.nan if values_top_ten.size == 0 else float(np.mean(values_top_ten))
