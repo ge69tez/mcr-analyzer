@@ -62,7 +62,7 @@ class Device(Base):
     id: Mapped[column_type__primary_key] = mapped_column(init=False)
     """Internal ID, used for cross-references."""
 
-    serial: Mapped[str]
+    serial: Mapped[str] = mapped_column(unique=True)
     """Serial number of the device."""
 
     measurements: Mapped[list["Measurement"]] = relationship(

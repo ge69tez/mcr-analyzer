@@ -2,6 +2,7 @@ import hashlib
 
 import numpy as np
 from PyQt6 import QtCore, QtGui, QtWidgets
+from sqlalchemy.dialects.sqlite import insert as sqlite_upsert
 from sqlalchemy.sql.expression import select
 
 from mcr_analyzer.database.database import database
@@ -150,9 +151,7 @@ class ImportWidget(QtWidgets.QWidget):
             with Image(
                 rslt.dir.joinpath(rslt.meta["Result image PGM"])
             ) as img, database.Session() as session, session.begin():
-                chip = database.get_or_create(
-                    session,
-                    Chip,
+                chip = Chip(
                     name=rslt.meta["Chip ID"],
                     rowCount=rslt.meta["Y"],
                     columnCount=rslt.meta["X"],
@@ -163,20 +162,24 @@ class ImportWidget(QtWidgets.QWidget):
                     spotMarginVertical=rslt.meta["Spot margin vertical"],
                 )
 
-                dev = database.get_or_create(session, Device, serial=rslt.meta["Device ID"])
+                statement = sqlite_upsert(Device).values([{Device.serial: rslt.meta["Device ID"]}])
+                statement = statement.on_conflict_do_update(
+                    index_elements=[Device.serial], set_={Device.serial: statement.excluded.serial}
+                )
+                device = session.execute(statement.returning(Device)).scalar_one()
 
-                sample = database.get_or_create(session, Sample, name=rslt.meta["Probe ID"])
+                sample = Sample(name=rslt.meta["Probe ID"])
 
-                measurement = database.get_or_create(
-                    session,
-                    Measurement,
+                measurement = Measurement(
                     checksum=checksum,
                     chip=chip,
-                    device=dev,
+                    device=device,
                     sample=sample,
                     image=np.ascontiguousarray(img.data, ">u2"),  # cSpell:ignore ascontiguousarray
                     timestamp=rslt.meta["Date/time"],
                 )
+
+                session.add_all([chip, sample, measurement])
 
                 # Store (new) primary key, needs result calculation afterwards
                 session.flush()
