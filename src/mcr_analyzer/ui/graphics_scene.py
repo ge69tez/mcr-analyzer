@@ -1,4 +1,4 @@
-import string
+from string import ascii_uppercase
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 from sqlalchemy.sql.expression import select
@@ -73,11 +73,11 @@ class GridItem(QtWidgets.QGraphicsItem):
             measurement = session.execute(statement).scalar_one()
             self.measurement = measurement
 
-            self.cols = measurement.chip.columnCount
-            self.rows = measurement.chip.rowCount
-            self.horizontal_space = measurement.chip.spotMarginHorizontal
-            self.vertical_space = measurement.chip.spotMarginVertical
-            self.size = measurement.chip.spotSize
+            self.cols = measurement.chip.column_count
+            self.rows = measurement.chip.row_count
+            self.horizontal_space = measurement.chip.spot_margin_horizontal
+            self.vertical_space = measurement.chip.spot_margin_vertical
+            self.size = measurement.chip.spot_size
 
         self.spots = []
         self.c_headers = []
@@ -126,7 +126,7 @@ class GridItem(QtWidgets.QGraphicsItem):
         # Row labels: letters
         for row in range(self.rows):
             head = GraphicsRectTextItem(
-                -15, row * (self.size + self.vertical_space), 12, self.size, string.ascii_uppercase[row], self
+                -15, row * (self.size + self.vertical_space), 12, self.size, ascii_uppercase[row], self
             )
             self.r_headers.append(head)
 
@@ -175,11 +175,11 @@ class GridItem(QtWidgets.QGraphicsItem):
             measurement = session.execute(statement).scalar_one()
             self.measurement = measurement
 
-            self.cols = measurement.chip.columnCount
-            self.rows = measurement.chip.rowCount
-            self.horizontal_space = measurement.chip.spotMarginHorizontal
-            self.vertical_space = measurement.chip.spotMarginVertical
-            self.size = measurement.chip.spotSize
+            self.cols = measurement.chip.column_count
+            self.rows = measurement.chip.row_count
+            self.horizontal_space = measurement.chip.spot_margin_horizontal
+            self.vertical_space = measurement.chip.spot_margin_vertical
+            self.size = measurement.chip.spot_size
 
         self.preview_mode = False
         self._add_children()

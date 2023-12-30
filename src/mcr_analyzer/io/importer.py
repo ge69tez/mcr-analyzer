@@ -1,8 +1,8 @@
 """Import functions related to MCR measurements."""
 
-import copy
-import datetime
 import re
+from copy import deepcopy
+from datetime import datetime, timedelta
 from errno import ENOENT
 from pathlib import Path
 
@@ -19,7 +19,7 @@ class RsltParser:
         """Dictionary of all meta information.
 
         :Keys:
-            * Date/time (`datetime.datetime`): Date and time of the measurement.
+            * Date/time (`datetime`): Date and time of the measurement.
             * Device ID (`str`): Serial number of the MCR.
             * Probe ID (`str`): User input during measurement.
             * Chip ID (`str`): User input during measurement.
@@ -65,8 +65,7 @@ class RsltParser:
         self.dir = self.path.parent
 
         if not self.path.exists():
-            raise FileNotFoundError(ENOENT, "File does not exist", str(self.path))
-            # cSpell:ignore ENOENT
+            raise FileNotFoundError(ENOENT, "File does not exist", str(self.path))  # cSpell:ignore ENOENT
 
         with self.path.open(encoding="utf-8") as file:
             identifier_pattern = re.compile(r"^([^:]+): (.*)$")
@@ -78,7 +77,7 @@ class RsltParser:
                     self._meta[match.group(1)] = match.group(2)
 
             # Post-process results (map to corresponding types)
-            self._meta["Date/time"] = datetime.datetime.strptime(self._meta["Date/time"], "%Y-%m-%d %H:%M").replace(
+            self._meta["Date/time"] = datetime.strptime(self._meta["Date/time"], "%Y-%m-%d %H:%M").replace(
                 tzinfo=TZ_INFO
             )
 
@@ -171,9 +170,9 @@ def gather_measurements(path: str) -> tuple[list[RsltParser], list[str]]:
             # Check for multi image measurements and mock them as individual
             base = Path(rslt.meta["Result image PGM"]).stem
             for i, name in enumerate(sorted(rslt.dir.glob(f"{base}-*.pgm"))):
-                temp_result = copy.deepcopy(rslt)
+                temp_result = deepcopy(rslt)
                 temp_result.meta["Result image PGM"] = name.name
-                temp_result.meta["Date/time"] = rslt.meta["Date/time"] + datetime.timedelta(seconds=i)
+                temp_result.meta["Date/time"] = rslt.meta["Date/time"] + timedelta(seconds=i)
                 measurements.append(temp_result)
 
     return measurements, failed

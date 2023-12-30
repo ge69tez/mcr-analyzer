@@ -1,6 +1,6 @@
-import datetime
-import string
-import typing
+from datetime import datetime, time
+from string import ascii_uppercase
+from typing import Any, Self, overload
 
 import numpy as np
 from PyQt6 import QtCore, QtGui
@@ -11,18 +11,18 @@ from mcr_analyzer.database.models import Measurement, Result
 
 
 class MeasurementTreeItem:
-    def __init__(self, tree_item_data: list, parent_tree_item: typing.Self | None = None):
+    def __init__(self, tree_item_data: list, parent_tree_item: Self | None = None):
         self._tree_item_data = tree_item_data
         self._parent_tree_item = parent_tree_item
         self._child_tree_items: list[MeasurementTreeItem] = []
 
-    def append_child_tree_item(self, child_tree_item: typing.Self):
+    def append_child_tree_item(self, child_tree_item: Self):
         self.get_child_tree_items().append(child_tree_item)
 
     def get_child_tree_item(self, row: int):
         child_tree_items = self.get_child_tree_items()
 
-        return_value: typing.Self | None = None
+        return_value: Self | None = None
 
         if 0 <= row < len(child_tree_items):
             return_value = child_tree_items[row]
@@ -47,7 +47,7 @@ class MeasurementTreeItem:
     def data(self, column: int):
         child_tree_items = self.get_tree_item_data()
 
-        return_value: typing.Any = None
+        return_value: Any = None
 
         if 0 <= column < len(child_tree_items):
             return_value = child_tree_items[column]
@@ -90,10 +90,10 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
 
         return return_value
 
-    @typing.overload
+    @overload
     def parent(self, child: QtCore.QModelIndex) -> QtCore.QModelIndex: ...
 
-    @typing.overload
+    @overload
     # - https://www.riverbankcomputing.com/static/Docs/PyQt6/api/qtcore/qabstractitemmodel.html#parent
     def parent(self) -> QtCore.QObject: ...
 
@@ -130,7 +130,7 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
         if not index.isValid():
             return None
 
-        return_value: typing.Any = None
+        return_value: Any = None
 
         match role:
             case QtCore.Qt.ItemDataRole.DisplayRole:
@@ -142,7 +142,7 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
     def headerData(  # noqa: N802
         self, section: int, orientation: QtCore.Qt.Orientation, role: int = QtCore.Qt.ItemDataRole.DisplayRole
     ):
-        return_value: typing.Any = None
+        return_value: Any = None
 
         match role:
             case QtCore.Qt.ItemDataRole.DisplayRole:
@@ -186,7 +186,7 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
                     .where(date <= Measurement.timestamp)
                     .where(
                         # - Before the same day at 23:59:59
-                        Measurement.timestamp <= datetime.datetime.combine(date, datetime.time.max)
+                        Measurement.timestamp <= datetime.combine(date, time.max)
                     )
                 )
                 measurements = session.execute(statement).scalars()
@@ -215,8 +215,8 @@ class ResultTableModel(QtCore.QAbstractTableModel):
             statement = select(Measurement).where(Measurement.id == measurement_id)
             measurement = session.execute(statement).scalar_one()
 
-            self.row_count = measurement.chip.rowCount
-            self.column_count = measurement.chip.columnCount
+            self.row_count = measurement.chip.row_count
+            self.column_count = measurement.chip.column_count
 
         self.row_index_max = self.row_count - 1
 
@@ -243,7 +243,7 @@ class ResultTableModel(QtCore.QAbstractTableModel):
         if row_index < self.results.shape[0] and column_index < self.results.shape[1]:
             result = self.results[row_index][column_index]
 
-        return_value: typing.Any = None
+        return_value: Any = None
 
         match role:
             case QtCore.Qt.ItemDataRole.DisplayRole:
@@ -274,7 +274,7 @@ class ResultTableModel(QtCore.QAbstractTableModel):
     def headerData(  # noqa: N802
         self, section: int, orientation: QtCore.Qt.Orientation, role: int = QtCore.Qt.ItemDataRole.DisplayRole
     ):
-        return_value: typing.Any = None
+        return_value: Any = None
 
         match role:
             case QtCore.Qt.ItemDataRole.DisplayRole:
@@ -284,7 +284,7 @@ class ResultTableModel(QtCore.QAbstractTableModel):
 
                     case QtCore.Qt.Orientation.Vertical:
                         if section <= self.row_index_max:
-                            return_value = string.ascii_uppercase[section]
+                            return_value = ascii_uppercase[section]
 
                         elif section == self.row_index_max + 1:
                             return_value = "Mean"
@@ -310,7 +310,7 @@ class ResultTableModel(QtCore.QAbstractTableModel):
                 for row in range(self.row_count):
                     statement = (
                         select(Result)
-                        .where(Result.measurementID == self.measurement_id)
+                        .where(Result.measurement_id == self.measurement_id)
                         .where(Result.column == col)
                         .where(Result.row == row)
                     )
@@ -321,7 +321,7 @@ class ResultTableModel(QtCore.QAbstractTableModel):
 
                 statement = (
                     select(Result.value)
-                    .where(Result.measurementID == self.measurement_id)
+                    .where(Result.measurement_id == self.measurement_id)
                     .where(Result.column == col)
                     .where(Result.valid.is_(True))
                     .where(Result.value.is_not(None))

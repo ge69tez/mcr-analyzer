@@ -1,7 +1,7 @@
-import datetime
-import numbers
 import operator
 import re
+from datetime import datetime, timedelta
+from numbers import Number
 from pathlib import Path
 
 import numpy as np
@@ -104,17 +104,13 @@ class ExportWidget(QtWidgets.QWidget):
                 if obj == Measurement.timestamp:
                     if op is operator.eq:
                         statement = statement.where(obj >= value).where(
-                            obj
-                            < datetime.datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=TZ_INFO)
-                            + datetime.timedelta(days=1)
+                            obj < datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=TZ_INFO) + timedelta(days=1)
                         )
                     elif op is operator.ne:
                         statement = statement.where(
                             or_(
                                 obj < value,
-                                obj
-                                >= datetime.datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=TZ_INFO)
-                                + datetime.timedelta(days=1),
+                                obj >= datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=TZ_INFO) + timedelta(days=1),
                             )
                         )
                     else:
@@ -129,7 +125,7 @@ class ExportWidget(QtWidgets.QWidget):
 
                 measurement_line += '""' if measurement.notes is None else f"{escape_csv(measurement.notes)}"
 
-                for col in range(measurement.chip.columnCount):
+                for col in range(measurement.chip.column_count):
                     statement = (
                         select(Result.value)
                         .where(Result.measurement == measurement)
@@ -212,7 +208,7 @@ def escape_csv(val):
     """
     if val is None:
         return '""'
-    if isinstance(val, numbers.Number):
+    if isinstance(val, Number):
         return val
 
     val = str(val)

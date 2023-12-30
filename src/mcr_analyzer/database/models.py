@@ -1,6 +1,6 @@
 """Object Relational Models defining the database."""
 
-import datetime
+from datetime import datetime
 from typing import Annotated
 
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column, relationship
@@ -24,25 +24,25 @@ class Chip(Base):
     name: Mapped[str]
     """Chip ID assigned by user during measurement."""
 
-    rowCount: Mapped[int]  # noqa: N815
+    row_count: Mapped[int]
     """Number of rows, typically five. Used for redundancy and error reduction."""
 
-    columnCount: Mapped[int]  # noqa: N815
+    column_count: Mapped[int]
     """Number of columns. Different anti-bodies or anti-gens."""
 
-    marginLeft: Mapped[int]  # noqa: N815
+    margin_left: Mapped[int]
     """Distance between left border of the image and first column of spots."""
 
-    marginTop: Mapped[int]  # noqa: N815
+    margin_top: Mapped[int]
     """Distance between top border of the image and first row of spots."""
 
-    spotSize: Mapped[int]  # noqa: N815
+    spot_size: Mapped[int]
     """Size (in pixels) of a single spot. Side length of the square used for processing."""
 
-    spotMarginHorizontal: Mapped[int]  # noqa: N815
+    spot_margin_horizontal: Mapped[int]
     """Horizontal margin between two adjacent spots: skip N pixels before processing the next spot."""
 
-    spotMarginVertical: Mapped[int]  # noqa: N815
+    spot_margin_vertical: Mapped[int]
     """Vertical margin between two adjacent spots: skip N pixels before processing the next spot."""
 
     measurements: Mapped[list["Measurement"]] = relationship(
@@ -107,10 +107,10 @@ class User(Base):
     name: Mapped[str]
     """Name of the researcher."""
 
-    loginID: Mapped[str]  # noqa: N815
+    login_id: Mapped[str]
     """User ID of the researcher, to be used for automatic association."""
 
-    samples: Mapped[list["Sample"]] = relationship(back_populates="takenBy", order_by="Sample.id", default_factory=list)
+    samples: Mapped[list["Sample"]] = relationship(back_populates="user", order_by="Sample.id", default_factory=list)
     """Many-to-One relationship referencing all samples taken by a user."""
 
     measurements: Mapped[list["Measurement"]] = relationship(
@@ -133,8 +133,10 @@ class SampleType(Base):
     name: Mapped[str]
     """Name of the kind. For example full blood, serum, water, etc."""
 
-    samples: Mapped[list["Sample"]] = relationship(back_populates="type", order_by="Sample.id", default_factory=list)
-    """Many-to-One relationship referencing all samples of this type."""
+    samples: Mapped[list["Sample"]] = relationship(
+        back_populates="sample_type", order_by="Sample.id", default_factory=list
+    )
+    """Many-to-One relationship referencing all samples of this sample type."""
 
 
 column_type__foreign_key__sample_type = Annotated[int, mapped_column(ForeignKey(f"{SampleType.__tablename__}.id"))]
@@ -151,22 +153,22 @@ class Sample(Base):
     name: Mapped[str]
     """Short description of the sample, entered as Probe ID during measurement."""
 
-    knownPositive: Mapped[bool | None] = mapped_column(default=None)  # noqa: N815
+    known_positive: Mapped[bool | None] = mapped_column(default=None)
     """Is this a know positive sample? Makes use of the tri-state SQL bool `None`, `True`, or `False`."""
 
-    typeID: Mapped[column_type__foreign_key__sample_type | None] = mapped_column(init=False)  # noqa: N815
+    sample_type_id: Mapped[column_type__foreign_key__sample_type | None] = mapped_column(init=False)
     """Refers to :class:`SampleType`."""
 
-    takenByID: Mapped[column_type__foreign_key__user | None] = mapped_column(init=False)  # noqa: N815
+    user_id: Mapped[column_type__foreign_key__user | None] = mapped_column(init=False)
     """Refers to the :class:`User` who took the sample."""
 
-    timestamp: Mapped[datetime.datetime | None] = mapped_column(default=None)
+    timestamp: Mapped[datetime | None] = mapped_column(default=None)
     """Date and time of the sample taking."""
 
-    type: Mapped["SampleType"] = relationship(back_populates="samples", default=None)
+    sample_type: Mapped["SampleType"] = relationship(back_populates="samples", default=None)
     """One-to-Many relationship referencing the type of this sample."""
 
-    takenBy: Mapped["User"] = relationship(back_populates="samples", default=None)  # noqa: N815
+    user: Mapped["User"] = relationship(back_populates="samples", default=None)
     """One-to-Many relationship referencing the user who took this sample."""
 
     measurements: Mapped[list["Measurement"]] = relationship(
@@ -186,13 +188,13 @@ class Measurement(Base):
     id: Mapped[column_type__primary_key] = mapped_column(init=False)
     """Internal ID, used for cross-references."""
 
-    chipID: Mapped[column_type__foreign_key__chip] = mapped_column(init=False)  # noqa: N815
+    chip_id: Mapped[column_type__foreign_key__chip] = mapped_column(init=False)
     """Refers to the used :class:`Chip`."""
 
-    deviceID: Mapped[column_type__foreign_key__device] = mapped_column(init=False)  # noqa: N815
+    device_id: Mapped[column_type__foreign_key__device] = mapped_column(init=False)
     """Refers to the used :class:`Device`."""
 
-    sampleID: Mapped[column_type__foreign_key__sample] = mapped_column(init=False)  # noqa: N815
+    sample_id: Mapped[column_type__foreign_key__sample] = mapped_column(init=False)
     """Refers to the measured :class:`Sample`."""
 
     image: Mapped[bytes]
@@ -202,13 +204,13 @@ class Measurement(Base):
     checksum: Mapped[bytes] = mapped_column(BINARY(32))
     """SHA256 hash of the raw 16-bit image data. Used for duplicate detection."""
 
-    timestamp: Mapped[datetime.datetime] = mapped_column(index=True)
+    timestamp: Mapped[datetime] = mapped_column(index=True)
     """Date and time of the measurement."""
 
-    userID: Mapped[column_type__foreign_key__user | None] = mapped_column(init=False)  # noqa: N815
+    user_id: Mapped[column_type__foreign_key__user | None] = mapped_column(init=False)
     """Refers to the :class:`User` who did the measurement."""
 
-    chipFailure: Mapped[bool] = mapped_column(default=False)  # noqa: N815
+    chip_failure: Mapped[bool] = mapped_column(default=False)
     """Was there a failure during measurement (leaky chip). Defaults to `False`."""
 
     notes: Mapped[str | None] = mapped_column(Text, default=None)
@@ -240,12 +242,12 @@ class Result(Base):
 
     __tablename__ = "result"
 
-    __table_args__ = (UniqueConstraint("measurementID", "row", "column"),)
+    __table_args__ = (UniqueConstraint("measurement_id", "row", "column"),)
 
     id: Mapped[column_type__primary_key] = mapped_column(init=False)
     """Internal ID, used for cross-references."""
 
-    measurementID: Mapped[column_type__foreign_key__measurement] = mapped_column(init=False)  # noqa: N815
+    measurement_id: Mapped[column_type__foreign_key__measurement] = mapped_column(init=False)
     """Reference to the :class:`Measurement` to which the result belongs."""
 
     row: Mapped[int]
@@ -257,7 +259,7 @@ class Result(Base):
     value: Mapped[float | None] = mapped_column(default=None)
     """Calculated brightness of the spot."""
 
-    reagentID: Mapped[column_type__foreign_key__reagent | None] = mapped_column(init=False)  # noqa: N815
+    reagent_id: Mapped[column_type__foreign_key__reagent | None] = mapped_column(init=False)
     """Reference to :class:`Reagent`."""
 
     concentration: Mapped[float | None] = mapped_column(default=None)

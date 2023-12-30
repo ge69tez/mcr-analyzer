@@ -153,13 +153,13 @@ class ImportWidget(QtWidgets.QWidget):
             ) as img, database.Session() as session, session.begin():
                 chip = Chip(
                     name=rslt.meta["Chip ID"],
-                    rowCount=rslt.meta["Y"],
-                    columnCount=rslt.meta["X"],
-                    marginLeft=rslt.meta["Margin left"],
-                    marginTop=rslt.meta["Margin top"],
-                    spotSize=rslt.meta["Spot size"],
-                    spotMarginHorizontal=rslt.meta["Spot margin horizontal"],
-                    spotMarginVertical=rslt.meta["Spot margin vertical"],
+                    row_count=rslt.meta["Y"],
+                    column_count=rslt.meta["X"],
+                    margin_left=rslt.meta["Margin left"],
+                    margin_top=rslt.meta["Margin top"],
+                    spot_size=rslt.meta["Spot size"],
+                    spot_margin_horizontal=rslt.meta["Spot margin horizontal"],
+                    spot_margin_vertical=rslt.meta["Spot margin vertical"],
                 )
 
                 statement = sqlite_upsert(Device).values([{Device.serial: rslt.meta["Device ID"]}])

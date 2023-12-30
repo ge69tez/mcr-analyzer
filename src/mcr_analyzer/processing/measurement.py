@@ -12,20 +12,22 @@ def update_results(measurement_id: int) -> None:
     with database.Session() as session, session.begin():
         measurement = session.execute(select(Measurement).where(Measurement.id == measurement_id)).scalar_one()
 
-        values = np.zeros((measurement.chip.columnCount, measurement.chip.rowCount))
-        valid_values = np.zeros((measurement.chip.columnCount, measurement.chip.rowCount), dtype=bool)
+        values = np.zeros((measurement.chip.column_count, measurement.chip.row_count))
+        valid_values = np.zeros((measurement.chip.column_count, measurement.chip.row_count), dtype=bool)
 
-        for column in range(measurement.chip.columnCount):
+        for column in range(measurement.chip.column_count):
             column_results = []
 
-            for row in range(measurement.chip.rowCount):
-                x = measurement.chip.marginLeft + column * (
-                    measurement.chip.spotSize + measurement.chip.spotMarginHorizontal
+            for row in range(measurement.chip.row_count):
+                x = measurement.chip.margin_left + column * (
+                    measurement.chip.spot_size + measurement.chip.spot_margin_horizontal
                 )
-                y = measurement.chip.marginTop + row * (measurement.chip.spotSize + measurement.chip.spotMarginVertical)
+                y = measurement.chip.margin_top + row * (
+                    measurement.chip.spot_size + measurement.chip.spot_margin_vertical
+                )
                 spot = DeviceBuiltin(
                     np.frombuffer(measurement.image, dtype=">u2").reshape(520, 696)[  # cSpell:ignore frombuffer dtype
-                        y : y + measurement.chip.spotSize, x : x + measurement.chip.spotSize
+                        y : y + measurement.chip.spot_size, x : x + measurement.chip.spot_size
                     ]
                 )
 
@@ -40,17 +42,17 @@ def update_results(measurement_id: int) -> None:
             {
                 Result.row: row,
                 Result.column: column,
-                Result.measurementID: measurement_id,
+                Result.measurement_id: measurement_id,
                 Result.value: values[column][row],
                 Result.valid: valid_values[column][row],
             }
-            for column in range(measurement.chip.columnCount)
-            for row in range(measurement.chip.rowCount)
+            for column in range(measurement.chip.column_count)
+            for row in range(measurement.chip.row_count)
         ]
 
         statement = sqlite_upsert(Result).values(list_of_values)
         statement = statement.on_conflict_do_update(
-            index_elements=[Result.row, Result.column, Result.measurementID],
+            index_elements=[Result.row, Result.column, Result.measurement_id],
             set_={Result.value: statement.excluded.value, Result.valid: statement.excluded.valid},
         )
         session.execute(statement)

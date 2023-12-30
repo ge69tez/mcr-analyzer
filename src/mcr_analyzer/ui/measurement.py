@@ -136,11 +136,11 @@ class MeasurementWidget(QtWidgets.QWidget):
                 # Don't fail if they are not connected
                 pass
 
-            self.cols.setValue(measurement.chip.columnCount)
-            self.rows.setValue(measurement.chip.rowCount)
-            self.spot_size.setValue(measurement.chip.spotSize)
-            self.spot_margin_horizontal.setValue(measurement.chip.spotMarginHorizontal)
-            self.spot_margin_vertical.setValue(measurement.chip.spotMarginVertical)
+            self.cols.setValue(measurement.chip.column_count)
+            self.rows.setValue(measurement.chip.row_count)
+            self.spot_size.setValue(measurement.chip.spot_size)
+            self.spot_margin_horizontal.setValue(measurement.chip.spot_margin_horizontal)
+            self.spot_margin_vertical.setValue(measurement.chip.spot_margin_vertical)
 
             # Connect grid related fields
             self.cols.valueChanged.connect(self.preview_grid)
@@ -179,7 +179,7 @@ class MeasurementWidget(QtWidgets.QWidget):
 
             self.grid = GridItem(self.measurement_id)
             self.scene.addItem(self.grid)
-            self.grid.setPos(measurement.chip.marginLeft, measurement.chip.marginTop)
+            self.grid.setPos(measurement.chip.margin_left, measurement.chip.margin_top)
 
         self.image.setPixmap(QtGui.QPixmap.fromImage(q_image))
 
@@ -211,13 +211,13 @@ class MeasurementWidget(QtWidgets.QWidget):
             measurement = session.execute(select(Measurement).where(Measurement.id == self.measurement_id)).scalar_one()
 
             chip = measurement.chip
-            chip.columnCount = self.cols.value()
-            chip.rowCount = self.rows.value()
-            chip.marginLeft = int(self.grid.scenePos().x())
-            chip.marginTop = int(self.grid.scenePos().y())
-            chip.spotSize = self.spot_size.value()
-            chip.spotMarginHorizontal = self.spot_margin_horizontal.value()
-            chip.spotMarginVertical = self.spot_margin_vertical.value()
+            chip.column_count = self.cols.value()
+            chip.row_count = self.rows.value()
+            chip.margin_left = int(self.grid.scenePos().x())
+            chip.margin_top = int(self.grid.scenePos().y())
+            chip.spot_size = self.spot_size.value()
+            chip.spot_margin_horizontal = self.spot_margin_horizontal.value()
+            chip.spot_margin_vertical = self.spot_margin_vertical.value()
 
         update_results(self.measurement_id)
 
@@ -250,13 +250,13 @@ class MeasurementWidget(QtWidgets.QWidget):
         with database.Session() as session:
             measurement = session.execute(select(Measurement).where(Measurement.id == self.measurement_id)).scalar_one()
 
-            self.cols.setValue(measurement.chip.columnCount)
-            self.rows.setValue(measurement.chip.rowCount)
-            self.spot_size.setValue(measurement.chip.spotSize)
-            self.spot_margin_horizontal.setValue(measurement.chip.spotMarginHorizontal)
-            self.spot_margin_vertical.setValue(measurement.chip.spotMarginVertical)
+            self.cols.setValue(measurement.chip.column_count)
+            self.rows.setValue(measurement.chip.row_count)
+            self.spot_size.setValue(measurement.chip.spot_size)
+            self.spot_margin_horizontal.setValue(measurement.chip.spot_margin_horizontal)
+            self.spot_margin_vertical.setValue(measurement.chip.spot_margin_vertical)
 
-            self.grid.setPos(measurement.chip.marginLeft, measurement.chip.marginTop)
+            self.grid.setPos(measurement.chip.margin_left, measurement.chip.margin_top)
 
         # Connect grid related fields
         self.cols.valueChanged.connect(self.preview_grid)
@@ -307,7 +307,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         with database.Session() as session, session.begin():
             statement = (
                 select(Result)
-                .where(Result.measurementID == self.measurement_id)
+                .where(Result.measurement_id == self.measurement_id)
                 .where(Result.column == col)
                 .where(Result.row == row)
             )
