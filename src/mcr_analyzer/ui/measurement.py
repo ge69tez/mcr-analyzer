@@ -1,5 +1,22 @@
 import numpy as np
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtCore import QItemSelection, QModelIndex, QSettings, Qt, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QImage, QPixmap
+from PyQt6.QtWidgets import (
+    QFormLayout,
+    QGraphicsPixmapItem,
+    QGraphicsView,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLineEdit,
+    QPlainTextEdit,
+    QPushButton,
+    QSpinBox,
+    QTableView,
+    QTreeView,
+    QVBoxLayout,
+    QWidget,
+)
 from sqlalchemy.sql.expression import select
 
 from mcr_analyzer.database.database import database
@@ -9,63 +26,63 @@ from mcr_analyzer.ui.graphics_scene import GraphicsMeasurementScene, GridItem
 from mcr_analyzer.ui.models import MeasurementTreeItem, MeasurementTreeModel, ResultTableModel
 
 
-class MeasurementWidget(QtWidgets.QWidget):
+class MeasurementWidget(QWidget):
     def __init__(self, parent=None):  # noqa: PLR0915
         super().__init__(parent)
         self.measurement_id = None
         self.model = None
         self.result_model = None
 
-        layout = QtWidgets.QHBoxLayout()
+        layout = QHBoxLayout()
         self.setLayout(layout)
 
-        self.tree = QtWidgets.QTreeView()
-        self.tree.header().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+        self.tree = QTreeView()
+        self.tree.header().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         layout.addWidget(self.tree)
 
-        group_box = QtWidgets.QGroupBox("Record data")
-        form_layout = QtWidgets.QFormLayout()
+        group_box = QGroupBox("Record data")
+        form_layout = QFormLayout()
         group_box.setLayout(form_layout)
-        self.measurer = QtWidgets.QLineEdit()
+        self.measurer = QLineEdit()
         form_layout.addRow("Measured by:", self.measurer)
-        self.device = QtWidgets.QLineEdit()
+        self.device = QLineEdit()
         self.device.setReadOnly(True)
         form_layout.addRow("Device:", self.device)
-        self.timestamp = QtWidgets.QLineEdit()
+        self.timestamp = QLineEdit()
         self.timestamp.setReadOnly(True)
         form_layout.addRow("Date/Time:", self.timestamp)
-        self.chip = QtWidgets.QLineEdit()
+        self.chip = QLineEdit()
         form_layout.addRow("Chip ID:", self.chip)
-        self.sample = QtWidgets.QLineEdit()
+        self.sample = QLineEdit()
         form_layout.addRow("Sample ID:", self.sample)
         self.notes = StatefulPlainTextEdit()
         self.notes.setPlaceholderText("Please enter additional notes here.")
         self.notes.setMinimumWidth(250)
         self.notes.editing_finished.connect(self.update_notes)
         form_layout.addRow("Notes:", self.notes)
-        form_layout.setRowWrapPolicy(QtWidgets.QFormLayout.RowWrapPolicy.WrapLongRows)
-        self.cols = QtWidgets.QSpinBox()
+        form_layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        self.cols = QSpinBox()
         form_layout.addRow("Number of Columns:", self.cols)
-        self.rows = QtWidgets.QSpinBox()
+        self.rows = QSpinBox()
         form_layout.addRow("Number of Rows:", self.rows)
-        self.spot_size = QtWidgets.QSpinBox()
+        self.spot_size = QSpinBox()
         form_layout.addRow("Spot size:", self.spot_size)
-        self.spot_margin_horizontal = QtWidgets.QSpinBox()
+        self.spot_margin_horizontal = QSpinBox()
         form_layout.addRow("Horizontal Spot Distance:", self.spot_margin_horizontal)
-        self.spot_margin_vertical = QtWidgets.QSpinBox()
+        self.spot_margin_vertical = QSpinBox()
         form_layout.addRow("Vert. Spot Distance:", self.spot_margin_vertical)
-        self.saveGridButton = QtWidgets.QPushButton("Save grid and calculate results")
+        self.saveGridButton = QPushButton("Save grid and calculate results")
         self.saveGridButton.setDisabled(True)
         self.saveGridButton.clicked.connect(self.save_grid)
         form_layout.addRow(self.saveGridButton)
-        self.resetGridButton = QtWidgets.QPushButton("Reset grid")
+        self.resetGridButton = QPushButton("Reset grid")
         self.resetGridButton.setDisabled(True)
         self.resetGridButton.clicked.connect(self.reset_grid)
         form_layout.addRow(self.resetGridButton)
         layout.addWidget(group_box)
 
-        group_box = QtWidgets.QGroupBox("Visualization")
-        v_layout = QtWidgets.QVBoxLayout()
+        group_box = QGroupBox("Visualization")
+        v_layout = QVBoxLayout()
         group_box.setLayout(v_layout)
         # Visualization via multi-layered GraphicsScene
         # Size to MCR image; might need to become non-static in future devices
@@ -75,26 +92,26 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.scene.changed_validity.connect(self.update_validity)
         self.scene.moved_grid.connect(self.update_grid_position)
         # Container for measurement image
-        self.image = QtWidgets.QGraphicsPixmapItem()  # cSpell:ignore Pixmap
+        self.image = QGraphicsPixmapItem()  # cSpell:ignore Pixmap
         self.scene.addItem(self.image)
-        self.view = QtWidgets.QGraphicsView(self.scene)
+        self.view = QGraphicsView(self.scene)
         self.view.centerOn(meas_width / 2, meas_height / 2)
         self.grid = None
 
         # Scale result table twice as much as image
         v_layout.addWidget(self.view, 1)
-        self.results = QtWidgets.QTableView()
+        self.results = QTableView()
         v_layout.addWidget(self.results, 2)
 
         layout.addWidget(group_box)
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def refresh_database(self):
         self.model.refresh_model()
 
         self._expand_rows_with_selected_date()
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def switch_database(self):
         self.model = MeasurementTreeModel()
         self.tree.setModel(self.model)
@@ -103,8 +120,8 @@ class MeasurementWidget(QtWidgets.QWidget):
 
         self.tree.selectionModel().selectionChanged.connect(self.selection_changed)
 
-    @QtCore.pyqtSlot(QtCore.QItemSelection, QtCore.QItemSelection)
-    def selection_changed(self, selected: QtCore.QItemSelection, deselected: QtCore.QItemSelection) -> None:  # noqa: ARG002, PLR0915
+    @pyqtSlot(QItemSelection, QItemSelection)
+    def selection_changed(self, selected: QItemSelection, deselected: QItemSelection) -> None:  # noqa: ARG002, PLR0915
         model_index = selected.indexes()[0]
         measurement_tree_item: MeasurementTreeItem = model_index.internalPointer()
         self.measurement_id: int | None = measurement_tree_item.data(3)
@@ -163,12 +180,12 @@ class MeasurementWidget(QtWidgets.QWidget):
             # Map to 8 bit range
             img = img * 255
 
-            q_image = QtGui.QImage(
+            q_image = QImage(
                 img.astype("uint8"),  # cSpell:ignore astype
                 696,
                 520,
-                QtGui.QImage.Format.Format_Grayscale8,
-            ).convertToFormat(QtGui.QImage.Format.Format_RGB32)
+                QImage.Format.Format_Grayscale8,
+            ).convertToFormat(QImage.Format.Format_RGB32)
 
             self.result_model = ResultTableModel(self.measurement_id)
             self.results.setModel(self.result_model)
@@ -181,15 +198,15 @@ class MeasurementWidget(QtWidgets.QWidget):
             self.scene.addItem(self.grid)
             self.grid.setPos(measurement.chip.margin_left, measurement.chip.margin_top)
 
-        self.image.setPixmap(QtGui.QPixmap.fromImage(q_image))
+        self.image.setPixmap(QPixmap.fromImage(q_image))
 
         # Store date of last used measurement for expanding tree on next launch
         parent_index = model_index.parent()
         if parent_index.isValid:
-            settings = QtCore.QSettings()
+            settings = QSettings()
             settings.setValue("Session/SelectedDate", parent_index.data())
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def preview_grid(self):
         self.results.setDisabled(True)
         self.saveGridButton.setEnabled(True)
@@ -202,7 +219,7 @@ class MeasurementWidget(QtWidgets.QWidget):
             self.spot_size.value(),
         )
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def save_grid(self):
         if self.measurement_id is None:
             return
@@ -232,7 +249,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.results.setEnabled(True)
         self.results.resizeColumnsToContents()
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def reset_grid(self):
         if self.measurement_id is None:
             return
@@ -270,7 +287,7 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.resetGridButton.setDisabled(True)
         self.results.setEnabled(True)
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def update_grid_position(self):
         """Filters out additional events before activating grid preview."""
         x = int(self.grid.scenePos().x())
@@ -285,7 +302,7 @@ class MeasurementWidget(QtWidgets.QWidget):
 
         self.preview_grid()
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def update_notes(self):
         if self.measurement_id is None:
             return
@@ -299,7 +316,7 @@ class MeasurementWidget(QtWidgets.QWidget):
             measurement = session.execute(select(Measurement).where(Measurement.id == self.measurement_id)).scalar_one()
             measurement.notes = notes
 
-    @QtCore.pyqtSlot(int, int, bool)
+    @pyqtSlot(int, int, bool)
     def update_validity(self, row, col, valid):
         if self.measurement_id is None:
             return
@@ -322,16 +339,16 @@ class MeasurementWidget(QtWidgets.QWidget):
         self.result_model.dataChanged.emit(start, end)
 
     def _expand_rows_with_selected_date(self):
-        settings = QtCore.QSettings()
+        settings = QSettings()
         current_date = settings.value("Session/SelectedDate", None)
         if current_date:
-            root = self.model.index(0, 0, QtCore.QModelIndex())
-            matches = self.model.match(root, QtCore.Qt.ItemDataRole.DisplayRole, current_date)
+            root = self.model.index(0, 0, QModelIndex())
+            matches = self.model.match(root, Qt.ItemDataRole.DisplayRole, current_date)
             for idx in matches:
                 self.tree.expand(idx)
 
 
-class StatefulPlainTextEdit(QtWidgets.QPlainTextEdit):
+class StatefulPlainTextEdit(QPlainTextEdit):
     def __init__(self):
         super().__init__()
         self._content = None
@@ -341,14 +358,14 @@ class StatefulPlainTextEdit(QtWidgets.QPlainTextEdit):
             self._content = self.toPlainText()
             self.editing_finished.emit()
 
-    editing_finished = QtCore.pyqtSignal()
+    editing_finished = pyqtSignal()
 
     def focusInEvent(self, event):  # noqa: N802
-        if event.reason() != QtCore.Qt.FocusReason.PopupFocusReason:
+        if event.reason() != Qt.FocusReason.PopupFocusReason:
             self._content = self.toPlainText()
         super().focusInEvent(event)
 
     def focusOutEvent(self, event):  # noqa: N802
-        if event.reason() != QtCore.Qt.FocusReason.PopupFocusReason:
+        if event.reason() != Qt.FocusReason.PopupFocusReason:
             self.check_changes()
         super().focusOutEvent(event)

@@ -1,7 +1,20 @@
 import hashlib
 
 import numpy as np
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtCore import QObject, QSize, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QStandardItem, QStandardItemModel
+from PyQt6.QtWidgets import (
+    QFileDialog,
+    QHeaderView,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QSizePolicy,
+    QStyle,
+    QTableView,
+    QVBoxLayout,
+    QWidget,
+)
 from sqlalchemy.dialects.sqlite import insert as sqlite_upsert
 from sqlalchemy.sql.expression import select
 
@@ -12,15 +25,15 @@ from mcr_analyzer.io.importer import RsltParser, gather_measurements
 from mcr_analyzer.processing.measurement import update_results
 
 
-class ImportWidget(QtWidgets.QWidget):
-    database_missing = QtCore.pyqtSignal()
-    import_finished = QtCore.pyqtSignal()
+class ImportWidget(QWidget):
+    database_missing = pyqtSignal()
+    import_finished = pyqtSignal()
 
-    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.directory_path: str | None = None
 
-        self.file_model = QtGui.QStandardItemModel(self)
+        self.file_model = QStandardItemModel(self)
         self.file_model.setHorizontalHeaderLabels(["Date", "Time", "Sample", "Chip", "Status"])
 
         self.results: list[RsltParser] = []
@@ -30,45 +43,41 @@ class ImportWidget(QtWidgets.QWidget):
         self.checksum_worker.finished.connect(self.import_finished.emit)
         self.setWindowTitle("Import measurements")
 
-        layout = QtWidgets.QVBoxLayout()
+        layout = QVBoxLayout()
         self.setLayout(layout)
 
-        self.path_button = QtWidgets.QPushButton(
-            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DirOpenIcon),  # cSpell:ignore Pixmap
+        self.path_button = QPushButton(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_DirOpenIcon),  # cSpell:ignore Pixmap
             "Select Folder...",
         )
-        self.path_button.setIconSize(QtCore.QSize(48, 48))
+        self.path_button.setIconSize(QSize(48, 48))
         self.path_button.clicked.connect(self.path_dialog)
-        self.path_button.setSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        self.path_button.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         layout.addWidget(self.path_button)
 
-        self.import_button = QtWidgets.QPushButton(
-            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton), "Import into Database"
+        self.import_button = QPushButton(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton), "Import into Database"
         )
-        self.import_button.setIconSize(QtCore.QSize(48, 48))
+        self.import_button.setIconSize(QSize(48, 48))
         self.import_button.clicked.connect(self.start_import)
         self.import_button.hide()
         layout.addWidget(self.import_button)
 
-        self.measurements_table = QtWidgets.QTableView()
+        self.measurements_table = QTableView()
         self.measurements_table.verticalHeader().hide()
         self.measurements_table.horizontalHeader().setStretchLastSection(True)
-        self.measurements_table.horizontalHeader().setSectionResizeMode(
-            QtWidgets.QHeaderView.ResizeMode.ResizeToContents
-        )
+        self.measurements_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.measurements_table.hide()
         layout.addWidget(self.measurements_table)
 
-        self.progress_bar = QtWidgets.QProgressBar()
+        self.progress_bar = QProgressBar()
         self.progress_bar.hide()
         layout.addWidget(self.progress_bar)
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def path_dialog(self) -> None:
         if not database.valid:
-            if QtWidgets.QMessageBox.warning(
-                self, "No database selected", "You need to open or create a database first."
-            ):
+            if QMessageBox.warning(self, "No database selected", "You need to open or create a database first."):
                 self.database_missing.emit()
             return
 
@@ -83,14 +92,14 @@ class ImportWidget(QtWidgets.QWidget):
     def _get_directory_path(self) -> str | None:
         directory_path = None
 
-        dialog = QtWidgets.QFileDialog(self)
-        dialog.setFileMode(QtWidgets.QFileDialog.FileMode.Directory)
+        dialog = QFileDialog(self)
+        dialog.setFileMode(QFileDialog.FileMode.Directory)
         if dialog.exec():
             directory_path = dialog.selectedFiles()[0]
 
         return directory_path
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def start_import(self) -> None:
         self.import_button.hide()
         self.progress_bar.setMaximum(len(self.results))
@@ -105,15 +114,15 @@ class ImportWidget(QtWidgets.QWidget):
             self.results, self.failed = gather_measurements(self.directory_path)
 
             for fail in self.failed:
-                error_item = QtGui.QStandardItem(f"Failed to load '{fail}', might be a corrupted file.")
+                error_item = QStandardItem(f"Failed to load '{fail}', might be a corrupted file.")
 
-                error_item.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogNoButton))
+                error_item.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_DialogNoButton))
 
                 measurement = [
-                    QtGui.QStandardItem("n. a."),
-                    QtGui.QStandardItem("n. a."),
-                    QtGui.QStandardItem("n. a."),
-                    QtGui.QStandardItem("n. a."),
+                    QStandardItem("n. a."),
+                    QStandardItem("n. a."),
+                    QStandardItem("n. a."),
+                    QStandardItem("n. a."),
                     error_item,
                 ]
 
@@ -121,11 +130,11 @@ class ImportWidget(QtWidgets.QWidget):
 
             for result in self.results:
                 measurement = [
-                    QtGui.QStandardItem(f"{result.meta['Date/time'].strftime('%Y-%m-%d')}"),
-                    QtGui.QStandardItem(f"{result.meta['Date/time'].strftime('%H:%M:%S')}"),
-                    QtGui.QStandardItem(f"{result.meta['Probe ID']}"),
-                    QtGui.QStandardItem(f"{result.meta['Chip ID']}"),
-                    QtGui.QStandardItem(""),
+                    QStandardItem(f"{result.meta['Date/time'].strftime('%Y-%m-%d')}"),
+                    QStandardItem(f"{result.meta['Date/time'].strftime('%H:%M:%S')}"),
+                    QStandardItem(f"{result.meta['Probe ID']}"),
+                    QStandardItem(f"{result.meta['Chip ID']}"),
+                    QStandardItem(""),
                 ]
                 self.file_model.appendRow(measurement)
 
@@ -133,7 +142,7 @@ class ImportWidget(QtWidgets.QWidget):
 
         self.progress_bar.setValue(0)
 
-    @QtCore.pyqtSlot(int, bytes)
+    @pyqtSlot(int, bytes)
     def update_status(self, step: int, checksum: bytes) -> None:
         with database.Session() as session:
             statement = select(Measurement).where(Measurement.checksum == checksum)
@@ -142,7 +151,7 @@ class ImportWidget(QtWidgets.QWidget):
         if exists:
             self.file_model.item(step + len(self.failed), 4).setText("Imported previously")
             self.file_model.item(step + len(self.failed), 4).setIcon(
-                self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogNoButton)
+                self.style().standardIcon(QStyle.StandardPixmap.SP_DialogNoButton)
             )
 
         else:
@@ -190,17 +199,17 @@ class ImportWidget(QtWidgets.QWidget):
             # Update UI
             self.file_model.item(step + len(self.failed), 4).setText("Import successful")
             self.file_model.item(step + len(self.failed), 4).setIcon(
-                self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogYesButton)
+                self.style().standardIcon(QStyle.StandardPixmap.SP_DialogYesButton)
             )
 
         self.progress_bar.setValue(step + 1)
 
 
-class ChecksumWorker(QtCore.QObject):
-    finished = QtCore.pyqtSignal()
-    progress = QtCore.pyqtSignal(int, bytes)
+class ChecksumWorker(QObject):
+    finished = pyqtSignal()
+    progress = pyqtSignal(int, bytes)
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def run(self, results: list[RsltParser]) -> None:
         for i, result in enumerate(results):
             with Image(result.dir.joinpath(result.meta["Result image PGM"])) as img:

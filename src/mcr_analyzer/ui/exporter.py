@@ -5,7 +5,20 @@ from numbers import Number
 from pathlib import Path
 
 import numpy as np
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtCore import QSettings, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QShowEvent
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QFileDialog,
+    QGroupBox,
+    QHBoxLayout,
+    QLineEdit,
+    QPlainTextEdit,
+    QPushButton,
+    QStyle,
+    QVBoxLayout,
+    QWidget,
+)
 from sqlalchemy.sql.expression import or_, select
 
 from mcr_analyzer.config import TZ_INFO
@@ -13,18 +26,18 @@ from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement, Result
 
 
-class ExportWidget(QtWidgets.QWidget):
+class ExportWidget(QWidget):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.filters = []
-        layout = QtWidgets.QVBoxLayout()
+        layout = QVBoxLayout()
 
-        filter_group = QtWidgets.QGroupBox("Filter selection")
-        filter_layout = QtWidgets.QVBoxLayout()
+        filter_group = QGroupBox("Filter selection")
+        filter_layout = QVBoxLayout()
         self.filters.append(FilterWidget())
 
-        add_layout = QtWidgets.QHBoxLayout()
-        add_button = QtWidgets.QPushButton("+")
+        add_layout = QHBoxLayout()
+        add_button = QPushButton("+")
         add_layout.addWidget(add_button)
         add_layout.addStretch()
 
@@ -36,24 +49,24 @@ class ExportWidget(QtWidgets.QWidget):
         filter_group.setLayout(filter_layout)
         layout.addWidget(filter_group)
 
-        template_group = QtWidgets.QGroupBox("Output template")
-        template_layout = QtWidgets.QHBoxLayout()
-        self.template_edit = QtWidgets.QLineEdit("{timestamp}\t{chip.name}\t{sample.name}\t{sample.note}\t{results}")
+        template_group = QGroupBox("Output template")
+        template_layout = QHBoxLayout()
+        self.template_edit = QLineEdit("{timestamp}\t{chip.name}\t{sample.name}\t{sample.note}\t{results}")
         self.template_edit.setDisabled(True)
         template_layout.addWidget(self.template_edit)
         template_group.setLayout(template_layout)
         layout.addWidget(template_group)
 
-        preview_group = QtWidgets.QGroupBox("Preview")
-        preview_layout = QtWidgets.QHBoxLayout()
-        self.preview_edit = QtWidgets.QPlainTextEdit()
+        preview_group = QGroupBox("Preview")
+        preview_layout = QHBoxLayout()
+        self.preview_edit = QPlainTextEdit()
         self.preview_edit.setReadOnly(True)
         preview_layout.addWidget(self.preview_edit)
         preview_group.setLayout(preview_layout)
         layout.addWidget(preview_group, 1)
 
-        self.export_button = QtWidgets.QPushButton(
-            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogSaveButton),  # cSpell:ignore Pixmap
+        self.export_button = QPushButton(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton),  # cSpell:ignore Pixmap
             "Export as...",
         )
         self.export_button.clicked.connect(self.clicked_export_button)
@@ -61,14 +74,14 @@ class ExportWidget(QtWidgets.QWidget):
 
         self.setLayout(layout)
 
-    def showEvent(self, event: QtGui.QShowEvent):  # noqa: N802, ARG002
+    def showEvent(self, event: QShowEvent):  # noqa: N802, ARG002
         self.update_preview()
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def clicked_export_button(self):
-        settings = QtCore.QSettings()
+        settings = QSettings()
         last_export = settings.value("Session/LastExport")
-        file_name, filter_name = QtWidgets.QFileDialog.getSaveFileName(
+        file_name, filter_name = QFileDialog.getSaveFileName(
             self, "Save result as", last_export, "Tab Separated Values (*.csv *.tsv *.txt)"
         )
 
@@ -87,7 +100,7 @@ class ExportWidget(QtWidgets.QWidget):
     def add_filter(self, cmp, comparator, value):
         self.filters.append((comparator, cmp, value))
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def update_preview(self):
         self.preview_edit.clear()
 
@@ -143,18 +156,18 @@ class ExportWidget(QtWidgets.QWidget):
                 self.preview_edit.appendPlainText(measurement_line)
 
 
-class FilterWidget(QtWidgets.QWidget):
+class FilterWidget(QWidget):
     """Widget grouping object, comparator operation and value entry"""
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        layout = QtWidgets.QHBoxLayout()
-        self.target = QtWidgets.QComboBox()
+        layout = QHBoxLayout()
+        self.target = QComboBox()
         self.target.addItem("Date", Measurement.timestamp)
         layout.addWidget(self.target)
         self.target.currentIndexChanged.connect(self._user_changed_settings)
 
-        self.comparator = QtWidgets.QComboBox()
+        self.comparator = QComboBox()
         self.comparator.addItem("<", "lt")
         self.comparator.addItem("<=", "le")
         self.comparator.addItem("==", "eq")
@@ -165,18 +178,18 @@ class FilterWidget(QtWidgets.QWidget):
         layout.addWidget(self.comparator)
         self.comparator.currentIndexChanged.connect(self._user_changed_settings)
 
-        self.value = QtWidgets.QLineEdit("2021-03-17")
+        self.value = QLineEdit("2021-03-17")
         layout.addWidget(self.value)
         self.value.editingFinished.connect(self._user_changed_settings)
 
         self.setLayout(layout)
 
-    filter_updated = QtCore.pyqtSignal()
+    filter_updated = pyqtSignal()
 
     def __str__(self):
         return f"{self.target.currentData()}, {self.comparator.currentData()}, {self.value.text()}"
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def _user_changed_settings(self):
         """Slot whenever the user interacted with the filter settings."""
         self.filter_updated.emit()

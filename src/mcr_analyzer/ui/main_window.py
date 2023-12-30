@@ -1,7 +1,9 @@
 import contextlib
 from pathlib import Path
 
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtCore import QByteArray, QSettings, QSize, pyqtSlot
+from PyQt6.QtGui import QAction, QCloseEvent, QKeySequence
+from PyQt6.QtWidgets import QMainWindow, QMessageBox, QTabWidget
 
 import mcr_analyzer.utils as util
 from mcr_analyzer.database.database import database
@@ -11,13 +13,13 @@ from mcr_analyzer.ui.measurement import MeasurementWidget
 from mcr_analyzer.ui.welcome import WelcomeWidget
 
 
-class MainWindow(QtWidgets.QMainWindow):
+class MainWindow(QMainWindow):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
         self.setWindowTitle("MCR-Analyzer")
 
-        self.tab_widget = QtWidgets.QTabWidget(self)
+        self.tab_widget = QTabWidget(self)
         self.setCentralWidget(self.tab_widget)
 
         self.welcome_widget = WelcomeWidget()
@@ -45,29 +47,29 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.restore_settings()
 
-    def closeEvent(self, event: QtGui.QCloseEvent):  # noqa: N802
+    def closeEvent(self, event: QCloseEvent):  # noqa: N802
         self.save_settings()
         event.accept()
 
     def sizeHint(self):  # noqa: N802, PLR6301
-        return QtCore.QSize(1700, 900)
+        return QSize(1700, 900)
 
     def create_actions(self):
-        self.about_action = QtGui.QAction("&About", self)
+        self.about_action = QAction("&About", self)
         self.about_action.triggered.connect(self.show_about_dialog)
 
-        self.new_action = QtGui.QAction("Create &new database...", self)
-        self.new_action.setShortcut(QtGui.QKeySequence.StandardKey.New)
+        self.new_action = QAction("Create &new database...", self)
+        self.new_action.setShortcut(QKeySequence.StandardKey.New)
         self.new_action.setStatusTip("Create a new MCR-Analyzer database.")
         self.new_action.triggered.connect(self.welcome_widget.clicked_new_button)
 
-        self.open_action = QtGui.QAction("&Open existing database...", self)
-        self.open_action.setShortcut(QtGui.QKeySequence.StandardKey.Open)
+        self.open_action = QAction("&Open existing database...", self)
+        self.open_action.setShortcut(QKeySequence.StandardKey.Open)
         self.open_action.setStatusTip("Open an existing MCR-Analyzer database.")
         self.open_action.triggered.connect(self.welcome_widget.clicked_open_button)
 
-        self.quit_action = QtGui.QAction("&Quit", self)
-        self.quit_action.setShortcut(QtGui.QKeySequence.StandardKey.Quit)
+        self.quit_action = QAction("&Quit", self)
+        self.quit_action.setShortcut(QKeySequence.StandardKey.Quit)
         self.quit_action.setStatusTip("Terminate the application.")
         self.quit_action.triggered.connect(self.close)
 
@@ -90,10 +92,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def create_status_bar(self):
         self.statusBar()
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def update_recent_files(self):
         self.recent_menu.clear()
-        settings = QtCore.QSettings()
+        settings = QSettings()
         recent_files = util.ensure_list(settings.value("Session/Files"))
 
         if recent_files:
@@ -104,7 +106,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 except (KeyError, RuntimeError, ValueError):
                     menu_entry = str(path)
 
-                action = QtGui.QAction(menu_entry, self.recent_menu)
+                action = QAction(menu_entry, self.recent_menu)
                 action.setData(str(path))
                 action.triggered.connect(self.open_recent_file)
                 self.recent_menu.addAction(action)
@@ -114,7 +116,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.recent_menu.setEnabled(True)
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def open_recent_file(self):
         file_name = Path(self.sender().data())
 
@@ -122,7 +124,7 @@ class MainWindow(QtWidgets.QMainWindow):
             database.load__sqlite(file_name)
 
             # Update recent files
-            settings = QtCore.QSettings()
+            settings = QSettings()
             recent_files = util.ensure_list(settings.value("Session/Files"))
             recent_files.insert(0, str(file_name))
             recent_files = util.ensure_list(util.remove_duplicates(recent_files))
@@ -135,33 +137,33 @@ class MainWindow(QtWidgets.QMainWindow):
 
         else:
             # Update recent files
-            settings = QtCore.QSettings()
+            settings = QSettings()
             recent_files = util.ensure_list(settings.value("Session/Files"))
 
             with contextlib.suppress(ValueError):
                 recent_files.remove(str(file_name))
             settings.setValue("Session/Files", util.simplify_list(recent_files))
 
-            QtWidgets.QMessageBox.warning(self, "File not found", file_name)
+            QMessageBox.warning(self, "File not found", file_name)
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def switch_to_import(self):
         """Slot to show the import widget."""
         self.tab_widget.setCurrentWidget(self.import_widget)
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def switch_to_measurement(self):
         """Slot to show the measurement widget."""
         self.tab_widget.setCurrentWidget(self.measurement_widget)
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def switch_to_welcome(self):
         """Slot to show the welcome widget."""
         self.tab_widget.setCurrentWidget(self.welcome_widget)
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def show_about_dialog(self):
-        QtWidgets.QMessageBox.about(
+        QMessageBox.about(
             self,
             f"About {self.windowTitle()}",
             """
@@ -187,7 +189,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
 
     def save_settings(self):
-        settings = QtCore.QSettings()
+        settings = QSettings()
         settings.beginGroup("MainWindow")
         settings.setValue("ActiveTab", self.tab_widget.currentIndex())
         settings.setValue("Geometry", self.saveGeometry())
@@ -195,10 +197,10 @@ class MainWindow(QtWidgets.QMainWindow):
         settings.endGroup()
 
     def restore_settings(self) -> None:
-        settings = QtCore.QSettings()
+        settings = QSettings()
         settings.beginGroup("MainWindow")
-        geometry: QtCore.QByteArray = settings.value("Geometry")
-        window_state: QtCore.QByteArray = settings.value("WindowState")
+        geometry: QByteArray = settings.value("Geometry")
+        window_state: QByteArray = settings.value("WindowState")
         settings.endGroup()
 
         if geometry:

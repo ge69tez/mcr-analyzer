@@ -3,7 +3,8 @@ from string import ascii_uppercase
 from typing import Any, Self, overload
 
 import numpy as np
-from PyQt6 import QtCore, QtGui
+from PyQt6.QtCore import QAbstractItemModel, QAbstractTableModel, QModelIndex, QObject, Qt
+from PyQt6.QtGui import QBrush, QFont
 from sqlalchemy.sql.expression import func, select
 
 from mcr_analyzer.database.database import database
@@ -67,8 +68,8 @@ class MeasurementTreeItem:
         return self._tree_item_data
 
 
-class MeasurementTreeModel(QtCore.QAbstractItemModel):
-    def __init__(self, parent: QtCore.QObject | None = None):
+class MeasurementTreeModel(QAbstractItemModel):
+    def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
 
         header_row = ["Date/Time", "Chip", "Sample"]
@@ -76,11 +77,11 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
 
         self._setup_model_data()
 
-    def index(self, row: int, column: int, parent: QtCore.QModelIndex = QtCore.QModelIndex()):
+    def index(self, row: int, column: int, parent: QModelIndex = QModelIndex()):
         if not self.hasIndex(row, column, parent):
-            return QtCore.QModelIndex()
+            return QModelIndex()
 
-        return_value = QtCore.QModelIndex()
+        return_value = QModelIndex()
 
         parent_tree_item = self._get_tree_item(parent)
         if parent_tree_item:
@@ -91,17 +92,17 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
         return return_value
 
     @overload
-    def parent(self, child: QtCore.QModelIndex) -> QtCore.QModelIndex: ...
+    def parent(self, child: QModelIndex) -> QModelIndex: ...
 
     @overload
     # - https://www.riverbankcomputing.com/static/Docs/PyQt6/api/qtcore/qabstractitemmodel.html#parent
-    def parent(self) -> QtCore.QObject: ...
+    def parent(self) -> QObject: ...
 
-    def parent(self, child: QtCore.QModelIndex = QtCore.QModelIndex()):
+    def parent(self, child: QModelIndex = QModelIndex()):
         if not child.isValid():
-            return QtCore.QModelIndex()
+            return QModelIndex()
 
-        return_value = QtCore.QModelIndex()
+        return_value = QModelIndex()
 
         child_tree_item = self._get_tree_item(child)
         if child_tree_item:
@@ -111,7 +112,7 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
 
         return return_value
 
-    def rowCount(self, parent: QtCore.QModelIndex = QtCore.QModelIndex()):  # noqa: N802
+    def rowCount(self, parent: QModelIndex = QModelIndex()):  # noqa: N802
         return_value = 0
 
         if parent.column() <= 0:
@@ -121,33 +122,33 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
 
         return return_value
 
-    def columnCount(self, parent: QtCore.QModelIndex = QtCore.QModelIndex()):  # noqa: N802
+    def columnCount(self, parent: QModelIndex = QModelIndex()):  # noqa: N802
         parent_tree_item = self._get_tree_item(parent)
 
         return parent_tree_item.column_count()
 
-    def data(self, index: QtCore.QModelIndex, role: int = QtCore.Qt.ItemDataRole.DisplayRole):
+    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
             return None
 
         return_value: Any = None
 
         match role:
-            case QtCore.Qt.ItemDataRole.DisplayRole:
+            case Qt.ItemDataRole.DisplayRole:
                 tree_item = self._get_tree_item(index)
                 return_value = tree_item.data(index.column())
 
         return return_value
 
     def headerData(  # noqa: N802
-        self, section: int, orientation: QtCore.Qt.Orientation, role: int = QtCore.Qt.ItemDataRole.DisplayRole
+        self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole
     ):
         return_value: Any = None
 
         match role:
-            case QtCore.Qt.ItemDataRole.DisplayRole:
+            case Qt.ItemDataRole.DisplayRole:
                 match orientation:
-                    case QtCore.Qt.Orientation.Horizontal:
+                    case Qt.Orientation.Horizontal:
                         return_value = self._root_tree_item.data(section)
 
         return return_value
@@ -159,7 +160,7 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
 
         self.endResetModel()
 
-    def _get_tree_item(self, index: QtCore.QModelIndex) -> MeasurementTreeItem:
+    def _get_tree_item(self, index: QModelIndex) -> MeasurementTreeItem:
         return_value: MeasurementTreeItem = self._root_tree_item
 
         if index.isValid():
@@ -205,8 +206,8 @@ class MeasurementTreeModel(QtCore.QAbstractItemModel):
                     )
 
 
-class ResultTableModel(QtCore.QAbstractTableModel):
-    def __init__(self, measurement_id: int, parent: QtCore.QObject | None = None):
+class ResultTableModel(QAbstractTableModel):
+    def __init__(self, measurement_id: int, parent: QObject | None = None):
         super().__init__(parent)
 
         self.measurement_id = measurement_id
@@ -222,16 +223,16 @@ class ResultTableModel(QtCore.QAbstractTableModel):
 
         self.update()
 
-    def rowCount(self, parent: QtCore.QModelIndex = QtCore.QModelIndex()):  # noqa: N802, ARG002
+    def rowCount(self, parent: QModelIndex = QModelIndex()):  # noqa: N802, ARG002
         # - 2 additional rows:
         #   - Mean
         #   - Standard deviation
         return self.row_count + 2
 
-    def columnCount(self, parent: QtCore.QModelIndex = QtCore.QModelIndex()):  # noqa: N802, ARG002
+    def columnCount(self, parent: QModelIndex = QModelIndex()):  # noqa: N802, ARG002
         return self.column_count
 
-    def data(self, index: QtCore.QModelIndex, role: int = QtCore.Qt.ItemDataRole.DisplayRole):
+    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
             return None
 
@@ -246,7 +247,7 @@ class ResultTableModel(QtCore.QAbstractTableModel):
         return_value: Any = None
 
         match role:
-            case QtCore.Qt.ItemDataRole.DisplayRole:
+            case Qt.ItemDataRole.DisplayRole:
                 if result:
                     return_value = f"{result.value if result.value else np.nan:5.0f}"
 
@@ -259,30 +260,30 @@ class ResultTableModel(QtCore.QAbstractTableModel):
             # - Set font bold for 2 additional rows:
             #   - Mean
             #   - Standard deviation
-            case QtCore.Qt.ItemDataRole.FontRole if self.row_index_max < row_index:
+            case Qt.ItemDataRole.FontRole if self.row_index_max < row_index:
                 return_value = _get_qtgui_qfont_bold()
 
-            case QtCore.Qt.ItemDataRole.ForegroundRole if result:
-                color = QtCore.Qt.GlobalColor.darkGreen if result.valid else QtCore.Qt.GlobalColor.darkRed
-                return_value = QtGui.QBrush(color)
+            case Qt.ItemDataRole.ForegroundRole if result:
+                color = Qt.GlobalColor.darkGreen if result.valid else Qt.GlobalColor.darkRed
+                return_value = QBrush(color)
 
-            case QtCore.Qt.ItemDataRole.TextAlignmentRole:
-                return_value = QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
+            case Qt.ItemDataRole.TextAlignmentRole:
+                return_value = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 
         return return_value
 
     def headerData(  # noqa: N802
-        self, section: int, orientation: QtCore.Qt.Orientation, role: int = QtCore.Qt.ItemDataRole.DisplayRole
+        self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole
     ):
         return_value: Any = None
 
         match role:
-            case QtCore.Qt.ItemDataRole.DisplayRole:
+            case Qt.ItemDataRole.DisplayRole:
                 match orientation:
-                    case QtCore.Qt.Orientation.Horizontal:
+                    case Qt.Orientation.Horizontal:
                         return_value = section + 1
 
-                    case QtCore.Qt.Orientation.Vertical:
+                    case Qt.Orientation.Vertical:
                         if section <= self.row_index_max:
                             return_value = ascii_uppercase[section]
 
@@ -292,9 +293,7 @@ class ResultTableModel(QtCore.QAbstractTableModel):
                         elif section == self.row_index_max + 2:
                             return_value = "Std."
 
-            case QtCore.Qt.ItemDataRole.FontRole if (
-                orientation == QtCore.Qt.Orientation.Vertical and self.row_index_max < section
-            ):
+            case Qt.ItemDataRole.FontRole if (orientation == Qt.Orientation.Vertical and self.row_index_max < section):
                 return_value = _get_qtgui_qfont_bold()
 
         return return_value
@@ -337,6 +336,6 @@ class ResultTableModel(QtCore.QAbstractTableModel):
 
 
 def _get_qtgui_qfont_bold():  # cSpell:ignore qtgui qfont
-    font_bold = QtGui.QFont()
+    font_bold = QFont()
     font_bold.setBold(True)
     return font_bold

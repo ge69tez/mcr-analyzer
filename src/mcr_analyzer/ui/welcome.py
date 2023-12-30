@@ -1,46 +1,47 @@
 from pathlib import Path
 
-from PyQt6 import QtCore, QtWidgets
+from PyQt6.QtCore import QSettings, QSize, pyqtSignal, pyqtSlot
+from PyQt6.QtWidgets import QFileDialog, QLabel, QPushButton, QStyle, QVBoxLayout, QWidget
 
 import mcr_analyzer.utils as util
 from mcr_analyzer.config import SQLITE__FILE_FILTER, SQLITE__FILENAME_EXTENSION
 from mcr_analyzer.database.database import database
 
 
-class WelcomeWidget(QtWidgets.QWidget):
-    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
+class WelcomeWidget(QWidget):
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         welcome_msg = """<h1>Welcome to MCR-Analyzer</h1>
 
             <p>You can create a new database or open an existing one.</p>
             """
 
-        layout = QtWidgets.QVBoxLayout()
+        layout = QVBoxLayout()
 
-        self.text = QtWidgets.QLabel(welcome_msg)
+        self.text = QLabel(welcome_msg)
         layout.addWidget(self.text)
-        self.new_button = QtWidgets.QPushButton(
-            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon),  # cSpell:ignore Pixmap
+        self.new_button = QPushButton(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_FileIcon),  # cSpell:ignore Pixmap
             "Create &new database...",
         )
-        self.new_button.setIconSize(QtCore.QSize(48, 48))
+        self.new_button.setIconSize(QSize(48, 48))
         self.new_button.clicked.connect(self.clicked_new_button)
         layout.addWidget(self.new_button)
 
-        self.open_button = QtWidgets.QPushButton(
-            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DialogOpenButton), "&Open existing database..."
+        self.open_button = QPushButton(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_DialogOpenButton), "&Open existing database..."
         )
-        self.open_button.setIconSize(QtCore.QSize(48, 48))
+        self.open_button.setIconSize(QSize(48, 48))
         self.open_button.clicked.connect(self.clicked_open_button)
         layout.addWidget(self.open_button)
 
         self.setLayout(layout)
 
-    database_changed = QtCore.pyqtSignal()
-    database_created = QtCore.pyqtSignal()
-    database_opened = QtCore.pyqtSignal()
+    database_changed = pyqtSignal()
+    database_created = pyqtSignal()
+    database_opened = pyqtSignal()
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def clicked_new_button(self) -> None:
         file_name, filter_name = self._get_save_file_name()
         if file_name and filter_name:
@@ -57,7 +58,7 @@ class WelcomeWidget(QtWidgets.QWidget):
 
             self.database_created.emit()
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def clicked_open_button(self) -> None:
         file_name, filter_name = self._get_open_file_name()
         if file_name and filter_name:
@@ -69,16 +70,14 @@ class WelcomeWidget(QtWidgets.QWidget):
             self.database_opened.emit()
 
     def _get_save_file_name(self) -> tuple[str, str]:
-        return QtWidgets.QFileDialog.getSaveFileName(
-            parent=self, caption="Store database as", filter=SQLITE__FILE_FILTER
-        )
+        return QFileDialog.getSaveFileName(parent=self, caption="Store database as", filter=SQLITE__FILE_FILTER)
 
     def _get_open_file_name(self) -> tuple[str, str]:
-        return QtWidgets.QFileDialog.getOpenFileName(parent=self, caption="Select database", filter=SQLITE__FILE_FILTER)
+        return QFileDialog.getOpenFileName(parent=self, caption="Select database", filter=SQLITE__FILE_FILTER)
 
 
 def _update_settings_recent_files(file_name: str) -> None:
-    settings = QtCore.QSettings()
+    settings = QSettings()
     recent_files = util.ensure_list(settings.value("Session/Files"))
 
     recent_files.insert(0, file_name)

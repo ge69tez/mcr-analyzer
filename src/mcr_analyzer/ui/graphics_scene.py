@@ -1,37 +1,37 @@
 from string import ascii_uppercase
 
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtCore import QRectF, Qt, pyqtSignal
+from PyQt6.QtGui import QBrush, QPainter, QPen
+from PyQt6.QtWidgets import QGraphicsItem, QGraphicsRectItem, QGraphicsScene
 from sqlalchemy.sql.expression import select
 
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement, Result
 
 
-class GraphicsMeasurementScene(QtWidgets.QGraphicsScene):
+class GraphicsMeasurementScene(QGraphicsScene):
     """Adds event handlers to QGraphicsScene."""
 
-    changed_validity = QtCore.pyqtSignal(int, int, bool)
-    moved_grid = QtCore.pyqtSignal()
+    changed_validity = pyqtSignal(int, int, bool)
+    moved_grid = pyqtSignal()
 
 
-class GraphicsRectTextItem(QtWidgets.QGraphicsRectItem):
+class GraphicsRectTextItem(QGraphicsRectItem):
     """Draws text on a rectangular background."""
 
     def __init__(self, x: float, y: float, w: float, h: float, t: str, parent) -> None:  # noqa: PLR0913, PLR0917
         super().__init__(x, y, w, h, parent)
         self.text = t
-        self.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.white))
-        self.setBrush(QtGui.QBrush(QtCore.Qt.GlobalColor.white))
+        self.setPen(QPen(Qt.GlobalColor.white))
+        self.setBrush(QBrush(Qt.GlobalColor.white))
 
-    def paint(self, painter: QtGui.QPainter, option, widget) -> None:
+    def paint(self, painter: QPainter, option, widget) -> None:
         super().paint(painter, option, widget)
-        painter.setPen(QtCore.Qt.GlobalColor.black)
-        painter.drawText(
-            option.rect, QtCore.Qt.AlignmentFlag.AlignHCenter | QtCore.Qt.AlignmentFlag.AlignVCenter, self.text
-        )
+        painter.setPen(Qt.GlobalColor.black)
+        painter.drawText(option.rect, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter, self.text)
 
 
-class GraphicsSpotItem(QtWidgets.QGraphicsRectItem):
+class GraphicsSpotItem(QGraphicsRectItem):
     """Draws spot marker and stores associated information."""
 
     def __init__(  # noqa: PLR0913, PLR0917
@@ -41,27 +41,27 @@ class GraphicsSpotItem(QtWidgets.QGraphicsRectItem):
         self.col = col
         self.row = row
         self.valid = valid
-        self.pen = QtGui.QPen(QtCore.Qt.GlobalColor.red)
+        self.pen = QPen(Qt.GlobalColor.red)
         if not self.valid:
-            self.pen.setStyle(QtCore.Qt.PenStyle.DotLine)
+            self.pen.setStyle(Qt.PenStyle.DotLine)
         self.setPen(self.pen)
 
     def mousePressEvent(self, event):  # noqa: N802
-        if event.button() == QtCore.Qt.MouseButton.RightButton:
+        if event.button() == Qt.MouseButton.RightButton:
             self.valid = not self.valid
             scene = self.scene()
             if scene is not None and isinstance(scene, GraphicsMeasurementScene):
                 scene.changed_validity.emit(self.row, self.col, self.valid)
             if self.valid:
-                self.pen.setStyle(QtCore.Qt.PenStyle.SolidLine)
+                self.pen.setStyle(Qt.PenStyle.SolidLine)
                 self.setPen(self.pen)
             else:
-                self.pen.setStyle(QtCore.Qt.PenStyle.DotLine)
+                self.pen.setStyle(Qt.PenStyle.DotLine)
                 self.setPen(self.pen)
         super().mousePressEvent(event)
 
 
-class GridItem(QtWidgets.QGraphicsItem):
+class GridItem(QGraphicsItem):
     """Container class for drawing the measurement grid."""
 
     def __init__(self, measurement_id: int, parent=None):
@@ -82,8 +82,8 @@ class GridItem(QtWidgets.QGraphicsItem):
         self.spots = []
         self.c_headers = []
         self.r_headers = []
-        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
-        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges)
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges)
         self.pen_width = 1.0
 
         self.preview_mode = False
@@ -94,10 +94,10 @@ class GridItem(QtWidgets.QGraphicsItem):
         width = self.cols * self.size + (self.cols - 1) * self.vertical_space + self.pen_width / 2
         height = self.rows * self.size + (self.rows - 1) * self.horizontal_space + self.pen_width / 2
         # Labels are drawn on the "negative" side of the origin
-        return QtCore.QRectF(-self.pen_width / 2 - 15, -self.pen_width / 2 - 15, width + 15, height + 15)
+        return QRectF(-self.pen_width / 2 - 15, -self.pen_width / 2 - 15, width + 15, height + 15)
 
     def itemChange(self, change, value):  # noqa: N802
-        if change == QtWidgets.QGraphicsItem.GraphicsItemChange.ItemPositionChange and self.scene():
+        if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange and self.scene():
             self.scene().moved_grid.emit()
         return super().itemChange(change, value)
 
