@@ -1,8 +1,8 @@
-import operator
-import re
+from collections.abc import Callable
 from datetime import datetime, timedelta
-from numbers import Number
+from operator import eq, ge, gt, le, lt, ne
 from pathlib import Path
+from typing import TypeVar
 
 import numpy as np
 from PyQt6.QtCore import QSettings, pyqtSignal, pyqtSlot
@@ -19,39 +19,27 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from sqlalchemy.sql.expression import or_, select
+from sqlalchemy.orm import InstrumentedAttribute
+from sqlalchemy.sql.expression import ColumnElement, or_, select
 
-from mcr_analyzer.config import TZ_INFO
+from mcr_analyzer.config.exporter import EXPORTER__FILTER_WIDGET__VALUE__DEFAULT
+from mcr_analyzer.config.qt import Q_SETTINGS__SESSION__LAST_EXPORT
+from mcr_analyzer.config.timezone import TZ_INFO
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement, Result
+from mcr_analyzer.utils.re import re_match_success
 
 
 class ExportWidget(QWidget):
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.filters = []
         layout = QVBoxLayout()
 
-        filter_group = QGroupBox("Filter selection")
-        filter_layout = QVBoxLayout()
-        self.filters.append(FilterWidget())
-
-        add_layout = QHBoxLayout()
-        add_button = QPushButton("+")
-        add_layout.addWidget(add_button)
-        add_layout.addStretch()
-
-        for widget in self.filters:
-            filter_layout.addWidget(widget)
-            widget.filter_updated.connect(self.update_preview)
-        filter_layout.addLayout(add_layout)
-
-        filter_group.setLayout(filter_layout)
-        layout.addWidget(filter_group)
+        layout.addWidget(self.get_filter_group())
 
         template_group = QGroupBox("Output template")
         template_layout = QHBoxLayout()
-        self.template_edit = QLineEdit("{timestamp}\t{chip.name}\t{sample.name}\t{sample.note}\t{results}")
+        self.template_edit = QLineEdit("{timestamp}\t{chip.chip_id}\t{sample.probe_id}\t{notes}\t{mean}")
         self.template_edit.setDisabled(True)
         template_layout.addWidget(self.template_edit)
         template_group.setLayout(template_layout)
@@ -74,34 +62,60 @@ class ExportWidget(QWidget):
 
         self.setLayout(layout)
 
-    def showEvent(self, event: QShowEvent):  # noqa: N802, ARG002
+    def get_filter_group(self) -> QGroupBox:
+        filter_group = QGroupBox("Filter selection")
+
+        self.filter_layout = QVBoxLayout()
+
+        self.append_add_layout()
+
+        self.filter_widgets: list[FilterWidget] = []
+        self.insert_filter_widget()
+
+        filter_group.setLayout(self.filter_layout)
+        return filter_group
+
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802, ARG002
         self.update_preview()
 
+    def append_add_layout(self) -> None:
+        add_layout = QHBoxLayout()
+        add_button = QPushButton("+")
+        add_button.clicked.connect(self.insert_filter_widget)
+        add_layout.addWidget(add_button)
+        add_layout.addStretch()
+        self.filter_layout.addLayout(add_layout)
+
     @pyqtSlot()
-    def clicked_export_button(self):
-        settings = QSettings()
-        last_export = settings.value("Session/LastExport")
+    def clicked_export_button(self) -> None:
+        q_settings = QSettings()
+        last_export = q_settings.value(Q_SETTINGS__SESSION__LAST_EXPORT)
         file_name, filter_name = QFileDialog.getSaveFileName(
             self, "Save result as", last_export, "Tab Separated Values (*.csv *.tsv *.txt)"
         )
 
-        if file_name and filter_name:
+        if file_name != "" and filter_name != "":
             # Ensure file has an extension
-            file_name = Path(file_name)
+            file_path = Path(file_name)
 
-            if not file_name.exists() and not file_name.suffix:
-                file_name = file_name.with_suffix(".csv")
+            if not file_path.exists() and not file_path.suffix:
+                file_path = file_path.with_suffix(".csv")
 
-            settings.setValue("Session/LastExport", str(file_name))
+            q_settings.setValue(Q_SETTINGS__SESSION__LAST_EXPORT, str(file_path))
 
-            with file_name.open(mode="w", encoding="utf-8") as output:
+            with file_path.open(mode="w", encoding="utf-8") as output:
                 output.write(self.preview_edit.toPlainText())
 
-    def add_filter(self, cmp, comparator, value):
-        self.filters.append((comparator, cmp, value))
+    @pyqtSlot()
+    def insert_filter_widget(self) -> None:
+        filter_widget = FilterWidget()
+        filter_widget.filter_updated.connect(self.update_preview)
+        self.filter_widgets.append(filter_widget)
+
+        self.filter_layout.insertWidget(self.filter_layout.count() - 1, filter_widget)
 
     @pyqtSlot()
-    def update_preview(self):
+    def update_preview(self) -> None:
         self.preview_edit.clear()
 
         # Initialize query object
@@ -109,57 +123,61 @@ class ExportWidget(QWidget):
             statement = select(Measurement)
 
             # Apply user filters to query
-            for filter in self.filters:
-                obj, op, value = filter.filter()
+            for filter_widget in self.filter_widgets:
+                column, operator, value = filter_widget.filter()
                 # DateTime comparisons are hard to get right: eq/ne on a date does
                 # not work as expected, time is always compared as well. Therefore,
                 # always check intervals
-                if obj == Measurement.timestamp:
-                    if op is operator.eq:
-                        statement = statement.where(obj >= value).where(
-                            obj < datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=TZ_INFO) + timedelta(days=1)
+                if column == Measurement.timestamp:
+                    value_date_time = datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=TZ_INFO)
+                    if operator is eq:
+                        statement = statement.where(column >= value_date_time).where(
+                            column < value_date_time + timedelta(days=1)
                         )
-                    elif op is operator.ne:
+                    elif operator is ne:
                         statement = statement.where(
-                            or_(
-                                obj < value,
-                                obj >= datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=TZ_INFO) + timedelta(days=1),
-                            )
+                            or_(column < value_date_time, column >= value_date_time + timedelta(days=1))
                         )
                     else:
-                        statement = statement.where(op(obj, value))
+                        statement = statement.where(operator(column, value_date_time))
                 else:
-                    statement = statement.where(op(obj, value))
+                    raise NotImplementedError
 
             for measurement in session.execute(statement).scalars():
-                measurement_line = f"{escape_csv(measurement.timestamp)}\t"
-                measurement_line += f"{escape_csv(measurement.chip.name)}\t"
-                measurement_line += f"{escape_csv(measurement.sample.name)}\t"
-
-                measurement_line += '""' if measurement.notes is None else f"{escape_csv(measurement.notes)}"
+                items = [
+                    _escape_csv(str(measurement.timestamp)),
+                    _escape_csv(measurement.chip.chip_id),
+                    _escape_csv(measurement.sample.probe_id),
+                    '""' if measurement.notes is None else _escape_csv(measurement.notes),
+                ]
 
                 for col in range(measurement.chip.column_count):
-                    statement = (
-                        select(Result.value)
-                        .where(Result.measurement == measurement)
-                        .where(Result.column == col)
-                        .where(Result.valid.is_(True))
-                        .where(Result.value.is_not(None))
+                    values = (
+                        session.execute(
+                            select(Result.value)
+                            .where(Result.measurement == measurement)
+                            .where(Result.column == col)
+                            .where(Result.valid.is_(True))
+                            .where(Result.value.is_not(None))
+                        )
+                        .scalars()
+                        .all()
                     )
 
-                    values = session.execute(statement).scalars().all()
+                    values_array = np.array(values, dtype=float)  # cSpell:ignore dtype
 
-                    if len(values) > 0:
-                        mean = f"\t{np.mean(values):.0f}"
-                        measurement_line += mean
+                    if len(values_array) > 0:
+                        mean = round(np.mean(values_array))
+                        items.append(str(mean))
 
-                self.preview_edit.appendPlainText(measurement_line)
+                self.preview_edit.appendPlainText("\t".join(items))
+
+
+T = TypeVar("T")
 
 
 class FilterWidget(QWidget):
-    """Widget grouping object, comparator operation and value entry"""
-
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         layout = QHBoxLayout()
         self.target = QComboBox()
@@ -167,18 +185,18 @@ class FilterWidget(QWidget):
         layout.addWidget(self.target)
         self.target.currentIndexChanged.connect(self._user_changed_settings)
 
-        self.comparator = QComboBox()
-        self.comparator.addItem("<", "lt")
-        self.comparator.addItem("<=", "le")
-        self.comparator.addItem("==", "eq")
-        self.comparator.addItem(">=", "ge")
-        self.comparator.addItem(">", "gt")
-        self.comparator.addItem("!=", "ne")
-        self.comparator.setCurrentIndex(3)
-        layout.addWidget(self.comparator)
-        self.comparator.currentIndexChanged.connect(self._user_changed_settings)
+        self.column_operator = QComboBox()
+        self.column_operator.addItem("<", lt)
+        self.column_operator.addItem("<=", le)
+        self.column_operator.addItem("==", eq)
+        self.column_operator.addItem(">=", ge)
+        self.column_operator.addItem(">", gt)
+        self.column_operator.addItem("!=", ne)
+        self.column_operator.setCurrentIndex(3)
+        layout.addWidget(self.column_operator)
+        self.column_operator.currentIndexChanged.connect(self._user_changed_settings)
 
-        self.value = QLineEdit("2021-03-17")
+        self.value = QLineEdit(EXPORTER__FILTER_WIDGET__VALUE__DEFAULT)
         layout.addWidget(self.value)
         self.value.editingFinished.connect(self._user_changed_settings)
 
@@ -186,53 +204,37 @@ class FilterWidget(QWidget):
 
     filter_updated = pyqtSignal()
 
-    def __str__(self):
-        return f"{self.target.currentData()}, {self.comparator.currentData()}, {self.value.text()}"
-
     @pyqtSlot()
-    def _user_changed_settings(self):
+    def _user_changed_settings(self) -> None:
         """Slot whenever the user interacted with the filter settings."""
         self.filter_updated.emit()
 
-    def filter(self):
-        cmp = self.comparator.currentData()
-        if cmp == "lt":
-            cmp = operator.lt
-        elif cmp == "le":
-            cmp = operator.le
-        elif cmp == "eq":
-            cmp = operator.eq
-        elif cmp == "ge":
-            cmp = operator.ge
-        elif cmp == "gt":
-            cmp = operator.gt
-        elif cmp == "ne":
-            cmp = operator.ne
-        else:
-            cmp = None
+    def filter(self) -> tuple[InstrumentedAttribute[datetime], Callable[[T, T], ColumnElement[bool]], str]:
+        column_operator = self.column_operator.currentData()
 
-        return self.target.currentData(), cmp, self.value.text()
+        column = self.target.currentData()
+        if not isinstance(column, InstrumentedAttribute):
+            raise NotImplementedError
+
+        value = self.value.text()
+
+        return column, column_operator, value
 
 
-def escape_csv(val):
-    """Escapes `val` to a valid cell for CSV.
+def _escape_csv(value: str) -> str:
+    """Escapes `value` to a valid cell for CSV.
 
     Quotations and dangerous chars (@, +, -, =, |, %) are considered.
     """
-    if val is None:
-        return '""'
-    if isinstance(val, Number):
-        return val
 
-    val = str(val)
-
-    if val and not re.match(r"^[-+]?[0-9\.,]+$", val):
+    if not re_match_success(r"^[-+]?[0-9\.,]+$", value):
         symbols = ("@", "+", "-", "=", "|", "%")
-        val = val.replace('"', '""')
-        val = f'"{val}"'
-        if val[1] in symbols or val[2] in symbols:
+        value = value.replace('"', '""')
+        value = f'"{value}"'
+        if value[1] in symbols or value[2] in symbols:
             # Adding a single quote breaks multiline, so we replace linebreaks to allow recovery
-            val = val.replace("\n", "\\n").replace("\r", "\\r")
-            val = f"'{val}"
 
-    return val
+            value = value.replace("\n", "\\n").replace("\r", "\\r")
+            value = f"'{value}"
+
+    return value

@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import URL, Engine
 from sqlalchemy.orm import Session, sessionmaker  # cSpell:ignore sessionmaker
 
-from mcr_analyzer.config import SQLITE__DRIVER_NAME
+from mcr_analyzer.config.database import SQLITE__DRIVER_NAME
 from mcr_analyzer.database.models import Base
 
 

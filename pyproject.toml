@@ -216,6 +216,12 @@ module = [
 ]
 disallow_untyped_decorators = false # - 2023-12-16 - @pytest.fixture() - GitHub Actions
 
+[[tool.mypy.overrides]]
+module = [
+  "mcr_analyzer.database.models.*",
+]
+disallow_subclassing_any = false # - 2024-01-04 - Class cannot subclass "MappedAsDataclass/DeclarativeBase" (has type "Any")  [misc] # cSpell:ignore subclassing Dataclass
+
 [tool.pre-commit-update]
 dry_run = true
 exclude = [

@@ -24,7 +24,7 @@ class Validator(metaclass=ABCMeta):
 
 
 class SpotReaderValidator(Validator):
-    r"""Validator based on the Java Spot Reader.
+    """Validator based on the Java Spot Reader.
 
     It find the three closest spots (value wise), calculate their mean and check whether the individual values satisfy
 

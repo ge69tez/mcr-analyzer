@@ -7,6 +7,8 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_co
 from sqlalchemy.schema import ForeignKey, UniqueConstraint
 from sqlalchemy.types import BINARY, Text
 
+from mcr_analyzer.config.hash import HASH__DIGEST_SIZE
+
 
 class Base(MappedAsDataclass, DeclarativeBase):
     pass
@@ -21,7 +23,7 @@ class Chip(Base):
     id: Mapped[column_type__primary_key] = mapped_column(init=False)
     """Internal ID, used for cross-references."""
 
-    name: Mapped[str]
+    chip_id: Mapped[str]
     """Chip ID assigned by user during measurement."""
 
     row_count: Mapped[int]
@@ -150,7 +152,7 @@ class Sample(Base):
     id: Mapped[column_type__primary_key] = mapped_column(init=False)
     """Internal ID, used for cross-references."""
 
-    name: Mapped[str]
+    probe_id: Mapped[str]
     """Short description of the sample, entered as Probe ID during measurement."""
 
     known_positive: Mapped[bool | None] = mapped_column(default=None)
@@ -197,11 +199,13 @@ class Measurement(Base):
     sample_id: Mapped[column_type__foreign_key__sample] = mapped_column(init=False)
     """Refers to the measured :class:`Sample`."""
 
-    image: Mapped[bytes]
-    """Raw 16-bit image data, big endian. (Numpy's ``>u2`` datatype, for compatibility with `Netpbm
+    image_data: Mapped[bytes]
+    """Raw 16-bit image data, big endian. (Numpy's ``uint16`` datatype, for compatibility with `Netpbm
     <https://netpbm.sourceforge.net/doc/pgm.html>`_). """  # cSpell:ignore netpbm
+    image_height: Mapped[int]
+    image_width: Mapped[int]
 
-    checksum: Mapped[bytes] = mapped_column(BINARY(32))
+    checksum: Mapped[bytes] = mapped_column(BINARY(HASH__DIGEST_SIZE))
     """SHA256 hash of the raw 16-bit image data. Used for duplicate detection."""
 
     timestamp: Mapped[datetime] = mapped_column(index=True)

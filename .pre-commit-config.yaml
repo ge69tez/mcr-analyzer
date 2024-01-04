@@ -15,7 +15,7 @@ repos:
           - commit-msg
 
   - repo: https://gitlab.com/vojko.pribudic/pre-commit-update
-    rev: v0.1.0
+    rev: v0.1.1
     hooks:
       - id: pre-commit-update
 
@@ -45,12 +45,12 @@ repos:
           - tomli # cSpell:ignore tomli
 
   - repo: https://github.com/streetsidesoftware/cspell-cli
-    rev: v8.1.1
+    rev: v8.3.0
     hooks:
       - id: cspell
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.9
+    rev: v0.1.11
     hooks:
       - id: ruff
         args:
@@ -109,12 +109,13 @@ repos:
         additional_dependencies:
           - tox>=4.9
 
-  #- repo: https://github.com/pre-commit/mirrors-mypy
-  #  rev: v1.6.1
-  #  hooks:
-  #    - id: mypy # cSpell:ignore mypy
-  #      additional_dependencies:
-  #        - PyQt6-stubs @ git+https://github.com/python-qt-tools/PyQt6-stubs@86d119e # - 2023-07-23
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy # cSpell:ignore mypy
+        additional_dependencies:
+          - PyQt6-stubs @ git+https://github.com/python-qt-tools/PyQt6-stubs@86d119e # - 2023-07-23
+          - types-pytz
 
   - repo: local
     hooks:

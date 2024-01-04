@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from mcr_analyzer.config import SQLITE__DRIVER_NAME
+from mcr_analyzer.config.database import SQLITE__DRIVER_NAME
 from mcr_analyzer.database.database import _make_url__sqlite, database
 
 _url__sqlite__in_memory = f"{SQLITE__DRIVER_NAME}://"

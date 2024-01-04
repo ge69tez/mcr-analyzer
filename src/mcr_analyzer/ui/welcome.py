@@ -1,10 +1,10 @@
 from pathlib import Path
 
-from PyQt6.QtCore import QSettings, QSize, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import QFileDialog, QLabel, QPushButton, QStyle, QVBoxLayout, QWidget
 
-import mcr_analyzer.utils as util
-from mcr_analyzer.config import SQLITE__FILE_FILTER, SQLITE__FILENAME_EXTENSION
+from mcr_analyzer.config.database import SQLITE__FILE_FILTER, SQLITE__FILENAME_EXTENSION
+from mcr_analyzer.config.qt import BUTTON__ICON_SIZE, q_settings__session__recent_file_name_list__add
 from mcr_analyzer.database.database import database
 
 
@@ -24,14 +24,14 @@ class WelcomeWidget(QWidget):
             self.style().standardIcon(QStyle.StandardPixmap.SP_FileIcon),  # cSpell:ignore Pixmap
             "Create &new database...",
         )
-        self.new_button.setIconSize(QSize(48, 48))
+        self.new_button.setIconSize(BUTTON__ICON_SIZE)
         self.new_button.clicked.connect(self.clicked_new_button)
         layout.addWidget(self.new_button)
 
         self.open_button = QPushButton(
             self.style().standardIcon(QStyle.StandardPixmap.SP_DialogOpenButton), "&Open existing database..."
         )
-        self.open_button.setIconSize(QSize(48, 48))
+        self.open_button.setIconSize(BUTTON__ICON_SIZE)
         self.open_button.clicked.connect(self.clicked_open_button)
         layout.addWidget(self.open_button)
 
@@ -52,10 +52,9 @@ class WelcomeWidget(QWidget):
 
             database.create__sqlite(file_path)
 
-            _update_settings_recent_files(str(file_path))
+            q_settings__session__recent_file_name_list__add(file_name)
 
             self.database_changed.emit()
-
             self.database_created.emit()
 
     @pyqtSlot()
@@ -64,7 +63,7 @@ class WelcomeWidget(QWidget):
         if file_name and filter_name:
             database.load__sqlite(Path(file_name))
 
-            _update_settings_recent_files(file_name)
+            q_settings__session__recent_file_name_list__add(file_name)
 
             self.database_changed.emit()
             self.database_opened.emit()
@@ -74,15 +73,3 @@ class WelcomeWidget(QWidget):
 
     def _get_open_file_name(self) -> tuple[str, str]:
         return QFileDialog.getOpenFileName(parent=self, caption="Select database", filter=SQLITE__FILE_FILTER)
-
-
-def _update_settings_recent_files(file_name: str) -> None:
-    settings = QSettings()
-    recent_files = util.ensure_list(settings.value("Session/Files"))
-
-    recent_files.insert(0, file_name)
-    recent_files = util.ensure_list(util.remove_duplicates(recent_files))
-
-    settings.setValue(
-        "Session/Files", util.simplify_list(recent_files[0 : settings.value("Preferences/MaxRecentFiles", 5)])
-    )

@@ -1,191 +1,70 @@
-"""Image functions related to MCR measurements"""
-
-import re
+from enum import Enum
+from io import TextIOWrapper
 from pathlib import Path
+from typing import Final
 
 import numpy as np
+import numpy.typing as npt
+
+from mcr_analyzer.config.netpbm import (  # cSpell:ignore netpbm
+    NETPBM_MAGIC_NUMBER__PATTERN,
+    PGM__COLOR_RANGE_MAX,
+    PGM__HEIGHT__PATTERN,
+    PGM__ND_ARRAY__DATA_TYPE,
+    PGM__WIDTH__PATTERN,
+    NetpbmMagicNumber,
+)
+from mcr_analyzer.utils.io import readlines
+from mcr_analyzer.utils.re import re_match_success
 
 
 class Image:
-    """Class for reading and writing image data of single measurements.
+    class InputFormat(Enum):
+        MCR_TXT: Final[int] = 1  # MCR's own TXT format
+        PNM: Final[int] = 2  # Portable AnyMap Format
 
-    It supports PNM gray maps as well as MCR's own TXT format (auto-detected) and
-    has functions for writing all these formats as well.
-    """
+    def __init__(self, file_path: Path) -> None:
+        with file_path.open(encoding="utf-8") as file:
+            header_lines, input_format = self.read_header(file)
 
-    def __init__(self, file_pointer=None) -> None:
-        """
-        Initialize image object using data from *file_pointer*.
+            data = self.read_data(file, header_lines, input_format)
 
-        :param file_pointer: (File) pointer to image data, usually a filename.
-        :type file_pointer: str, bytes, pathlib.Path, or file like.
-        """
-        self.img = None
-        self._size = (0, 0)
+            self.data = data
+            self.height, self.width = data.shape
 
-        # Support file like objects and direct stream
-        if is_path(file_pointer):
-            self.file = Path(file_pointer).open("rb")  # noqa: SIM115
+    def read_header(self, file: TextIOWrapper) -> tuple[list[str], InputFormat]:
+        header_line_count = 3
+        header_lines = list(readlines(file, header_line_count))
+
+        if (
+            re_match_success(NETPBM_MAGIC_NUMBER__PATTERN, header_lines[0])
+            and re_match_success(PGM__WIDTH__PATTERN + r" " + PGM__HEIGHT__PATTERN, header_lines[1])
+            and re_match_success(str(PGM__COLOR_RANGE_MAX), header_lines[2])
+        ):
+            input_format = self.InputFormat.PNM
+
         else:
-            self.file = file_pointer
+            raise NotImplementedError
 
-        # Identify file
-        header = peek(self.file, length=2)
-        # Comparison of bytes needs 'in' operator
-        if header[0] in b"P" and header[1] in b"123456":
-            self._read_pnm(int(header[1:]))
-        elif header[0] in b"123456789" and header[1] in b"0123456789\n":
-            self._read_txt()
-        else:
-            msg = "File does not seem to be either PNM or MCR ASCII."
-            raise TypeError(msg)
+        return header_lines, input_format
 
-    @property
-    def width(self):
-        """Width of the image."""
-        return self.size[0]
+    def read_data(
+        self, file: TextIOWrapper, header_lines: list[str], input_format: InputFormat
+    ) -> npt.NDArray[PGM__ND_ARRAY__DATA_TYPE]:
+        match input_format:
+            case self.InputFormat.PNM:
+                width, height = (int(x) for x in header_lines[1].split())
 
-    @property
-    def height(self):
-        """Height of the image."""
-        return self.size[1]
+                magic_number = NetpbmMagicNumber(header_lines[0])
+                match magic_number.type, magic_number.encoding:
+                    case NetpbmMagicNumber.Type.PGM, NetpbmMagicNumber.Encoding.ASCII_PLAIN:
+                        data = np.fromfile(file, dtype=PGM__ND_ARRAY__DATA_TYPE, count=height * width, sep=" ").reshape(
+                            height, width
+                        )  # cSpell:ignore dtype
+                    case _:
+                        raise NotImplementedError
 
-    @property
-    def size(self):
-        """Size of the image as tuple (width, height)."""
-        return self._size
+            case _:
+                raise NotImplementedError
 
-    # Context manager support
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args):
-        if hasattr(self, "file"):
-            self.file.close()
-        self.file = None
-
-    def _parse_header(self, regex):
-        header = b""
-        while True:
-            header += self.file.read(1)
-            match = re.search(regex, header)
-            if match:
-                return match.group()
-
-    @staticmethod
-    def _pnm_kind(char):
-        return {
-            1: ("ascii", "bitmap"),
-            2: ("ascii", "gray"),
-            3: ("ascii", "color"),
-            4: ("binary", "bitmap"),
-            5: ("binary", "gray"),
-            6: ("binary", "color"),
-        }[char]
-
-    def _read_pnm(self, pnm_kind: _pnm_kind):
-        # We know about the header at this point
-        self.file.seek(2)
-        pnm_type = self._pnm_kind(pnm_kind)
-        encoding = pnm_type[0]
-
-        width = int(self._parse_header(rb"^\s*(\d+)\D+"))
-        height = int(self._parse_header(rb"^\s*(\d+)\D+"))
-
-        self._size = (width, height)
-
-        max_value = int(self._parse_header(b"^\\s*(\\d+)\\D")) if pnm_type[1] != "bitmap" else 1
-
-        if pnm_type[1] != "gray":
-            msg = "Only grayscale is supported at the moment."
-            raise NotImplementedError(msg)
-
-        if max_value < 2**8:
-            data_type = "B"
-        elif max_value < 2**16:
-            data_type = "u2"
-        else:
-            msg = f"PNM only supports values up to {2 ** 16}."
-            raise TypeError(msg)
-
-        if encoding == "ascii":
-            sep = " "
-        else:
-            sep = ""
-            data_type = ">" + data_type
-
-        self.data = np.fromfile(self.file, dtype=data_type, sep=sep).reshape(height, width)
-        # cSpell:ignore dtype
-
-    def write_pnm_ascii(self, path):
-        """Save image as ASCII PGM.
-
-        Writes a portable gray map in ASCII format (human readable).
-
-        :param path: filename/path to be written
-        """
-        header = f"P2\n{self.width} {self.height}\n{2**(self.data.dtype.itemsize * 8) - 1}"
-        # cSpell:ignore itemsize
-        np.savetxt(path, self.data, fmt="%d", delimiter="\t", header=header, comments="")
-        # cSpell:ignore savetxt
-
-    def write_pgm_binary(self, path):
-        """Save image as binary PGM.
-
-        Writes a portable gray map in binary format. This is the smallest and most
-        portable file format this library can create. Use this for exchange and
-        storage if you don't have other requirements.
-
-        :param path: filename/path to be written
-        """
-
-        max_size_in_bytes = 2
-
-        if self.data.dtype.itemsize > max_size_in_bytes:
-            msg = f"Unsupported data type '{self.data.dtype.name}', PGM supports uint8 and uint16."
-            raise RuntimeError(msg)
-
-        header = f"P5\n{self.width} {self.height}\n{2**(self.data.dtype.itemsize * 8) - 1}\n"
-
-        with Path(path).open("wb") as f:
-            f.write(header.encode("ascii"))
-
-            if self.data.dtype.itemsize == max_size_in_bytes:
-                f.write(self.data.astype(">u2").tobytes())  # cSpell:ignore astype tobytes
-            else:
-                f.write(self.data.tobytes())
-
-    def _read_txt(self):
-        width = int(self.file.readline())
-        height = int(self.file.readline())
-        self._size = (width, height)
-        self.data = np.flip(np.fromfile(self.file, dtype="u2", sep=" ")).reshape(height, width)
-
-    def write_txt(self, path):
-        """Save image as MCR text format.
-
-        This saves the format in the original MCR format. Use only if required by
-        your toolchain, this format is the least portable.
-
-        :param path: filename/path to be written
-        """
-        with Path(path).open("w", encoding="utf-8") as f:
-            # Write header (width, height and newline)
-            f.write(f"{self.width}\n{self.height}\n\n")
-            # Write image data
-            img = np.flip(self.data.reshape((self.size[0] * self.size[1],)))
-            img.tofile(f, sep="\n")  # cSpell:ignore tofile
-
-
-def is_path(file):
-    """Helper function for testing whether *file* needs an :func:`open` call."""
-    return isinstance(file, bytes | str | Path)
-
-
-def peek(file, length=1):
-    """Helper function for reading *length* bytes from *file* without advancing
-    the current position."""
-    pos = file.tell()
-    data = file.read(length)
-    file.seek(pos)
-    return data
+        return data

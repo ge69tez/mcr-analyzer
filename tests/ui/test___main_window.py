@@ -5,7 +5,8 @@ import pytest
 from pooch import Unzip, retrieve
 from pytestqt.qtbot import QtBot  # cSpell:ignore pytestqt qtbot
 
-from mcr_analyzer.config import SQLITE__FILE_FILTER
+from mcr_analyzer.config.database import SQLITE__FILE_FILTER
+from mcr_analyzer.config.importer import IMPORTER__COLUMN_INDEX__STATUS
 from mcr_analyzer.ui.importer import ImportWidget
 from mcr_analyzer.ui.main_window import MainWindow
 from mcr_analyzer.ui.welcome import WelcomeWidget
@@ -51,8 +52,10 @@ def _fetch_sample_results() -> None:
 def test_profile(
     qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, main_window: MainWindow, tmp_sqlite_file_path: Path
 ) -> None:
-    monkeypatch.setattr(WelcomeWidget, "_get_save_file_name", lambda _: (tmp_sqlite_file_path, SQLITE__FILE_FILTER))
-    monkeypatch.setattr(ImportWidget, "_get_directory_path", lambda _: SAMPLE_RESULTS__DIR)
+    monkeypatch.setattr(
+        WelcomeWidget, "_get_save_file_name", lambda _: (str(tmp_sqlite_file_path), SQLITE__FILE_FILTER)
+    )
+    monkeypatch.setattr(ImportWidget, "_get_directory_path", lambda _: str(SAMPLE_RESULTS__DIR))
 
     # - Idempotence test
     for _ in range(2):
@@ -72,7 +75,12 @@ def test_profile(
             with qtbot.waitSignal(main_window.import_widget.import_finished, timeout=None):
                 main_window.import_widget.import_button.click()
 
-            assert main_window.import_widget.file_model.item(SAMPLE_RESULTS__COUNT - 1, 4).text() == status
+            assert (
+                main_window.import_widget.file_model.item(
+                    SAMPLE_RESULTS__COUNT - 1, IMPORTER__COLUMN_INDEX__STATUS
+                ).text()
+                == status
+            )
 
             main_window.export_widget.update_preview()
             qtbot.waitUntil(lambda: len(main_window.export_widget.preview_edit.toPlainText().splitlines()) > 0)

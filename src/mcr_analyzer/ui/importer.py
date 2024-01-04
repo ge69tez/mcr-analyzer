@@ -1,7 +1,6 @@
 import hashlib
 
-import numpy as np
-from PyQt6.QtCore import QObject, QSize, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import (
     QFileDialog,
@@ -18,6 +17,9 @@ from PyQt6.QtWidgets import (
 from sqlalchemy.dialects.sqlite import insert as sqlite_upsert
 from sqlalchemy.sql.expression import select
 
+from mcr_analyzer.config.hash import HASH__DIGEST_SIZE
+from mcr_analyzer.config.importer import IMPORTER__COLUMN_INDEX__STATUS
+from mcr_analyzer.config.qt import BUTTON__ICON_SIZE
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Chip, Device, Measurement, Sample
 from mcr_analyzer.io.image import Image
@@ -50,7 +52,7 @@ class ImportWidget(QWidget):
             self.style().standardIcon(QStyle.StandardPixmap.SP_DirOpenIcon),  # cSpell:ignore Pixmap
             "Select Folder...",
         )
-        self.path_button.setIconSize(QSize(48, 48))
+        self.path_button.setIconSize(BUTTON__ICON_SIZE)
         self.path_button.clicked.connect(self.path_dialog)
         self.path_button.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         layout.addWidget(self.path_button)
@@ -58,7 +60,7 @@ class ImportWidget(QWidget):
         self.import_button = QPushButton(
             self.style().standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton), "Import into Database"
         )
-        self.import_button.setIconSize(QSize(48, 48))
+        self.import_button.setIconSize(BUTTON__ICON_SIZE)
         self.import_button.clicked.connect(self.start_import)
         self.import_button.hide()
         layout.addWidget(self.import_button)
@@ -77,8 +79,8 @@ class ImportWidget(QWidget):
     @pyqtSlot()
     def path_dialog(self) -> None:
         if not database.valid:
-            if QMessageBox.warning(self, "No database selected", "You need to open or create a database first."):
-                self.database_missing.emit()
+            QMessageBox.warning(self, "No database selected", "You need to open or create a database first.")
+            self.database_missing.emit()
             return
 
         self.directory_path = self._get_directory_path()
@@ -130,10 +132,10 @@ class ImportWidget(QWidget):
 
             for result in self.results:
                 measurement = [
-                    QStandardItem(f"{result.meta['Date/time'].strftime('%Y-%m-%d')}"),
-                    QStandardItem(f"{result.meta['Date/time'].strftime('%H:%M:%S')}"),
-                    QStandardItem(f"{result.meta['Probe ID']}"),
-                    QStandardItem(f"{result.meta['Chip ID']}"),
+                    QStandardItem(result.date_time.strftime("%Y-%m-%d")),
+                    QStandardItem(result.date_time.strftime("%H:%M:%S")),
+                    QStandardItem(result.probe_id),
+                    QStandardItem(result.chip_id),
                     QStandardItem(""),
                 ]
                 self.file_model.appendRow(measurement)
@@ -145,47 +147,50 @@ class ImportWidget(QWidget):
     @pyqtSlot(int, bytes)
     def update_status(self, step: int, checksum: bytes) -> None:
         with database.Session() as session:
-            statement = select(Measurement).where(Measurement.checksum == checksum)
-            exists = session.execute(select(statement.exists())).scalar_one()
+            exists = session.execute(
+                select(select(Measurement).where(Measurement.checksum == checksum).exists())
+            ).scalar_one()
 
         if exists:
-            self.file_model.item(step + len(self.failed), 4).setText("Imported previously")
-            self.file_model.item(step + len(self.failed), 4).setIcon(
+            self.file_model.item(step + len(self.failed), IMPORTER__COLUMN_INDEX__STATUS).setText("Imported previously")
+            self.file_model.item(step + len(self.failed), IMPORTER__COLUMN_INDEX__STATUS).setIcon(
                 self.style().standardIcon(QStyle.StandardPixmap.SP_DialogNoButton)
             )
 
         else:
             rslt = self.results[step]
 
-            with Image(
-                rslt.dir.joinpath(rslt.meta["Result image PGM"])
-            ) as img, database.Session() as session, session.begin():
+            image = Image(rslt.dir.joinpath(rslt.result_image_pgm))
+
+            with database.Session() as session, session.begin():
                 chip = Chip(
-                    name=rslt.meta["Chip ID"],
-                    row_count=rslt.meta["Y"],
-                    column_count=rslt.meta["X"],
-                    margin_left=rslt.meta["Margin left"],
-                    margin_top=rslt.meta["Margin top"],
-                    spot_size=rslt.meta["Spot size"],
-                    spot_margin_horizontal=rslt.meta["Spot margin horizontal"],
-                    spot_margin_vertical=rslt.meta["Spot margin vertical"],
+                    chip_id=rslt.chip_id,
+                    row_count=rslt.row_count,
+                    column_count=rslt.column_count,
+                    margin_left=rslt.margin_left,
+                    margin_top=rslt.margin_top,
+                    spot_size=rslt.spot_size,
+                    spot_margin_horizontal=rslt.spot_margin_horizontal,
+                    spot_margin_vertical=rslt.spot_margin_vertical,
                 )
 
-                statement = sqlite_upsert(Device).values([{Device.serial: rslt.meta["Device ID"]}])
+                statement = sqlite_upsert(Device).values([{Device.serial: rslt.device_id}])
                 statement = statement.on_conflict_do_update(
                     index_elements=[Device.serial], set_={Device.serial: statement.excluded.serial}
                 )
                 device = session.execute(statement.returning(Device)).scalar_one()
 
-                sample = Sample(name=rslt.meta["Probe ID"])
+                sample = Sample(probe_id=rslt.probe_id)
 
                 measurement = Measurement(
                     checksum=checksum,
                     chip=chip,
                     device=device,
                     sample=sample,
-                    image=np.ascontiguousarray(img.data, ">u2"),  # cSpell:ignore ascontiguousarray
-                    timestamp=rslt.meta["Date/time"],
+                    image_data=image.data.tobytes(),  # cSpell:ignore ascontiguousarray
+                    image_height=image.height,
+                    image_width=image.width,
+                    timestamp=rslt.date_time,
                 )
 
                 session.add_all([chip, sample, measurement])
@@ -197,8 +202,8 @@ class ImportWidget(QWidget):
             update_results(measurement_id)
 
             # Update UI
-            self.file_model.item(step + len(self.failed), 4).setText("Import successful")
-            self.file_model.item(step + len(self.failed), 4).setIcon(
+            self.file_model.item(step + len(self.failed), IMPORTER__COLUMN_INDEX__STATUS).setText("Import successful")
+            self.file_model.item(step + len(self.failed), IMPORTER__COLUMN_INDEX__STATUS).setIcon(
                 self.style().standardIcon(QStyle.StandardPixmap.SP_DialogYesButton)
             )
 
@@ -212,8 +217,12 @@ class ChecksumWorker(QObject):
     @pyqtSlot()
     def run(self, results: list[RsltParser]) -> None:
         for i, result in enumerate(results):
-            with Image(result.dir.joinpath(result.meta["Result image PGM"])) as img:
-                sha = hashlib.sha256(np.ascontiguousarray(img.data, ">u2").tobytes())  # cSpell:ignore tobytes
-                self.progress.emit(i, sha.digest())
+            image = Image(result.dir.joinpath(result.result_image_pgm))
+            sha = hashlib.sha256(image.data.tobytes())  # cSpell:ignore tobytes
+            if sha.digest_size != HASH__DIGEST_SIZE:
+                msg = f"invalid hash digest size: {sha.digest_size} (expected: {HASH__DIGEST_SIZE})"
+                raise ValueError(msg)
+
+            self.progress.emit(i, sha.digest())
 
         self.finished.emit()

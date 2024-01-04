@@ -12,15 +12,15 @@ from mcr_analyzer.database.models import Measurement, Result
 
 
 class MeasurementTreeItem:
-    def __init__(self, tree_item_data: list, parent_tree_item: Self | None = None):
+    def __init__(self, tree_item_data: list[str | int | None], parent_tree_item: Self | None = None) -> None:
         self._tree_item_data = tree_item_data
         self._parent_tree_item = parent_tree_item
-        self._child_tree_items: list[MeasurementTreeItem] = []
+        self._child_tree_items: list[Self] = []
 
-    def append_child_tree_item(self, child_tree_item: Self):
+    def append_child_tree_item(self, child_tree_item: Self) -> None:
         self.get_child_tree_items().append(child_tree_item)
 
-    def get_child_tree_item(self, row: int):
+    def get_child_tree_item(self, row: int) -> Self | None:
         child_tree_items = self.get_child_tree_items()
 
         return_value: Self | None = None
@@ -30,10 +30,10 @@ class MeasurementTreeItem:
 
         return return_value
 
-    def child_tree_items_count(self):
+    def child_tree_items_count(self) -> int:
         return len(self.get_child_tree_items())
 
-    def row(self):
+    def row(self) -> int:
         return_value = 0
 
         parent_tree_item = self.get_parent_tree_item()
@@ -42,29 +42,29 @@ class MeasurementTreeItem:
 
         return return_value
 
-    def column_count(self):
+    def column_count(self) -> int:
         return len(self.get_tree_item_data())
 
-    def data(self, column: int):
+    def data(self, column: int) -> str | int | None:
         child_tree_items = self.get_tree_item_data()
 
-        return_value: Any = None
+        return_value = None
 
         if 0 <= column < len(child_tree_items):
             return_value = child_tree_items[column]
 
         return return_value
 
-    def get_parent_tree_item(self):
+    def get_parent_tree_item(self) -> Self | None:
         return self._parent_tree_item
 
-    def get_child_tree_items(self):
+    def get_child_tree_items(self) -> list[Self]:
         return self._child_tree_items
 
     def clear_child_tree_items(self) -> None:
         self._child_tree_items.clear()
 
-    def get_tree_item_data(self) -> list[str]:
+    def get_tree_item_data(self) -> list[str | int | None]:
         return self._tree_item_data
 
 
@@ -72,22 +72,23 @@ class MeasurementTreeModel(QAbstractItemModel):
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
 
-        header_row = ["Date/Time", "Chip", "Sample"]
+        header_row: list[str | int | None] = ["Date/time", "Chip", "Sample"]
         self._root_tree_item = MeasurementTreeItem(header_row)
 
         self._setup_model_data()
 
-    def index(self, row: int, column: int, parent: QModelIndex = QModelIndex()):
+    def index(self, row: int, column: int, parent: QModelIndex = QModelIndex()) -> QModelIndex:
         if not self.hasIndex(row, column, parent):
             return QModelIndex()
 
         return_value = QModelIndex()
 
         parent_tree_item = self._get_tree_item(parent)
-        if parent_tree_item:
-            child_tree_item = parent_tree_item.get_child_tree_item(row)
-            if child_tree_item:
-                return_value = self.createIndex(row, column, child_tree_item)
+
+        child_tree_item = parent_tree_item.get_child_tree_item(row)
+
+        if child_tree_item is not None:
+            return_value = self.createIndex(row, column, child_tree_item)
 
         return return_value
 
@@ -98,36 +99,36 @@ class MeasurementTreeModel(QAbstractItemModel):
     # - https://www.riverbankcomputing.com/static/Docs/PyQt6/api/qtcore/qabstractitemmodel.html#parent
     def parent(self) -> QObject: ...
 
-    def parent(self, child: QModelIndex = QModelIndex()):
+    def parent(self, child: QModelIndex = QModelIndex()) -> QModelIndex | QObject:
         if not child.isValid():
             return QModelIndex()
 
         return_value = QModelIndex()
 
         child_tree_item = self._get_tree_item(child)
-        if child_tree_item:
-            parent_tree_item = child_tree_item.get_parent_tree_item()
-            if parent_tree_item and parent_tree_item != self._root_tree_item:
-                return_value = self.createIndex(parent_tree_item.row(), 0, parent_tree_item)
+
+        parent_tree_item = child_tree_item.get_parent_tree_item()
+
+        if parent_tree_item is not None and parent_tree_item != self._root_tree_item:
+            return_value = self.createIndex(parent_tree_item.row(), 0, parent_tree_item)
 
         return return_value
 
-    def rowCount(self, parent: QModelIndex = QModelIndex()):  # noqa: N802
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802
         return_value = 0
 
         if parent.column() <= 0:
             parent_tree_item = self._get_tree_item(parent)
-            if parent_tree_item:
-                return_value = parent_tree_item.child_tree_items_count()
+            return_value = parent_tree_item.child_tree_items_count()
 
         return return_value
 
-    def columnCount(self, parent: QModelIndex = QModelIndex()):  # noqa: N802
+    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802
         parent_tree_item = self._get_tree_item(parent)
 
         return parent_tree_item.column_count()
 
-    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
+    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
         if not index.isValid():
             return None
 
@@ -142,7 +143,7 @@ class MeasurementTreeModel(QAbstractItemModel):
 
     def headerData(  # noqa: N802
         self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole
-    ):
+    ) -> Any:
         return_value: Any = None
 
         match role:
@@ -153,7 +154,7 @@ class MeasurementTreeModel(QAbstractItemModel):
 
         return return_value
 
-    def refresh_model(self):
+    def refresh_model(self) -> None:
         self.beginResetModel()
 
         self._setup_model_data()
@@ -161,7 +162,7 @@ class MeasurementTreeModel(QAbstractItemModel):
         self.endResetModel()
 
     def _get_tree_item(self, index: QModelIndex) -> MeasurementTreeItem:
-        return_value: MeasurementTreeItem = self._root_tree_item
+        return_value = self._root_tree_item
 
         if index.isValid():
             tree_item = index.internalPointer()
@@ -174,31 +175,32 @@ class MeasurementTreeModel(QAbstractItemModel):
         self._root_tree_item.clear_child_tree_items()
 
         with database.Session() as session:
-            statement = select(Measurement.timestamp).group_by(func.strftime("%Y-%m-%d", Measurement.timestamp))
-            timestamps = session.execute(statement).scalars()
+            timestamps = session.execute(
+                select(Measurement.timestamp).group_by(func.strftime("%Y-%m-%d", Measurement.timestamp))
+            ).scalars()
+
             for timestamp in timestamps:
                 date = timestamp.date()
                 date_row_tree_item = MeasurementTreeItem([str(date), None, None], self._root_tree_item)
 
                 self._root_tree_item.append_child_tree_item(date_row_tree_item)
 
-                statement = (
+                measurements = session.execute(
                     select(Measurement)
                     .where(date <= Measurement.timestamp)
                     .where(
                         # - Before the same day at 23:59:59
                         Measurement.timestamp <= datetime.combine(date, time.max)
                     )
-                )
-                measurements = session.execute(statement).scalars()
+                ).scalars()
 
                 for measurement in measurements:
                     date_row_tree_item.append_child_tree_item(
                         MeasurementTreeItem(
                             [
                                 measurement.timestamp.time().strftime("%H:%M:%S"),
-                                measurement.chip.name,
-                                measurement.sample.name,
+                                measurement.chip.chip_id,
+                                measurement.sample.probe_id,
                                 measurement.id,
                             ],
                             date_row_tree_item,
@@ -216,23 +218,23 @@ class ResultTableModel(QAbstractTableModel):
             statement = select(Measurement).where(Measurement.id == measurement_id)
             measurement = session.execute(statement).scalar_one()
 
-            self.row_count = measurement.chip.row_count
-            self.column_count = measurement.chip.column_count
+            self.row_count: int = measurement.chip.row_count
+            self.column_count: int = measurement.chip.column_count
 
         self.row_index_max = self.row_count - 1
 
         self.update()
 
-    def rowCount(self, parent: QModelIndex = QModelIndex()):  # noqa: N802, ARG002
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802, ARG002
         # - 2 additional rows:
         #   - Mean
         #   - Standard deviation
         return self.row_count + 2
 
-    def columnCount(self, parent: QModelIndex = QModelIndex()):  # noqa: N802, ARG002
+    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802, ARG002
         return self.column_count
 
-    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
+    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
         if not index.isValid():
             return None
 
@@ -274,7 +276,7 @@ class ResultTableModel(QAbstractTableModel):
 
     def headerData(  # noqa: N802
         self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole
-    ):
+    ) -> Any:
         return_value: Any = None
 
         match role:
@@ -298,7 +300,7 @@ class ResultTableModel(QAbstractTableModel):
 
         return return_value
 
-    def update(self):
+    def update(self) -> None:
         self.results = np.empty([self.row_count, self.column_count], dtype=Result)  # cSpell:ignore dtype
 
         self.means = np.empty([self.column_count])
@@ -307,35 +309,39 @@ class ResultTableModel(QAbstractTableModel):
         with database.Session() as session:
             for col in range(self.column_count):
                 for row in range(self.row_count):
-                    statement = (
+                    result = session.execute(
                         select(Result)
                         .where(Result.measurement_id == self.measurement_id)
                         .where(Result.column == col)
                         .where(Result.row == row)
-                    )
-
-                    result = session.execute(statement).scalar_one()
+                    ).scalar_one()
 
                     self.results[row][col] = result
 
-                statement = (
-                    select(Result.value)
-                    .where(Result.measurement_id == self.measurement_id)
-                    .where(Result.column == col)
-                    .where(Result.valid.is_(True))
-                    .where(Result.value.is_not(None))
+                values = (
+                    session.execute(
+                        select(Result.value)
+                        .where(Result.measurement_id == self.measurement_id)
+                        .where(Result.column == col)
+                        .where(Result.valid.is_(True))
+                        .where(Result.value.is_not(None))
+                    )
+                    .scalars()
+                    .all()
                 )
 
-                values = session.execute(statement).scalars().all()
+                values_array = np.array(values, dtype=float)
 
-                values_not_empty = len(values) > 0
-                self.means[col] = np.mean(values) if values_not_empty else np.nan
-                self.standard_deviations[col] = (
-                    np.std(values, ddof=1) if values_not_empty else np.nan  # cSpell:ignore ddof
-                )
+                values_not_empty = len(values_array) > 0
+
+                mean = np.mean(values_array) if values_not_empty else np.nan
+                standard_deviation = np.std(values_array, ddof=1) if values_not_empty else np.nan  # cSpell:ignore ddof
+
+                self.means[col] = mean
+                self.standard_deviations[col] = standard_deviation
 
 
-def _get_qtgui_qfont_bold():  # cSpell:ignore qtgui qfont
+def _get_qtgui_qfont_bold() -> QFont:  # cSpell:ignore qtgui qfont
     font_bold = QFont()
     font_bold.setBold(True)
     return font_bold
