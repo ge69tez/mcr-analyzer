@@ -23,7 +23,7 @@ from mcr_analyzer.config.qt import BUTTON__ICON_SIZE
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Chip, Device, Measurement, Sample
 from mcr_analyzer.io.image import Image
-from mcr_analyzer.io.importer import RsltParser, gather_measurements
+from mcr_analyzer.io.importer import Rslt, parse_rslt_in_directory_recursively
 from mcr_analyzer.processing.measurement import update_results
 
 
@@ -33,29 +33,27 @@ class ImportWidget(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.directory_path: str | None = None
 
         self.file_model = QStandardItemModel(self)
         self.file_model.setHorizontalHeaderLabels(["Date", "Time", "Sample", "Chip", "Status"])
 
-        self.results: list[RsltParser] = []
-        self.failed: list[str] = []
+        self.rslt_list: list[Rslt] = []
+        self.rslt_file_name_parse_fail_list: list[str] = []
         self.checksum_worker = ChecksumWorker()
         self.checksum_worker.progress.connect(self.update_status)
         self.checksum_worker.finished.connect(self.import_finished.emit)
-        self.setWindowTitle("Import measurements")
 
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        self.path_button = QPushButton(
+        self.select_folder_button = QPushButton(
             self.style().standardIcon(QStyle.StandardPixmap.SP_DirOpenIcon),  # cSpell:ignore Pixmap
             "Select Folder...",
         )
-        self.path_button.setIconSize(BUTTON__ICON_SIZE)
-        self.path_button.clicked.connect(self.path_dialog)
-        self.path_button.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
-        layout.addWidget(self.path_button)
+        self.select_folder_button.setIconSize(BUTTON__ICON_SIZE)
+        self.select_folder_button.clicked.connect(self._select_folder_dialog)
+        self.select_folder_button.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
+        layout.addWidget(self.select_folder_button)
 
         self.import_button = QPushButton(
             self.style().standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton), "Import into Database"
@@ -77,19 +75,20 @@ class ImportWidget(QWidget):
         layout.addWidget(self.progress_bar)
 
     @pyqtSlot()
-    def path_dialog(self) -> None:
+    def _select_folder_dialog(self) -> None:
         if not database.valid:
             QMessageBox.warning(self, "No database selected", "You need to open or create a database first.")
             self.database_missing.emit()
             return
 
-        self.directory_path = self._get_directory_path()
+        directory_path = self._get_directory_path()
 
-        self.update_filelist()
-        self.measurements_table.show()
-        self.import_button.show()
+        self.update_filelist(directory_path)
 
         self.progress_bar.hide()
+
+        self.measurements_table.show()
+        self.import_button.show()
 
     def _get_directory_path(self) -> str | None:
         directory_path = None
@@ -104,19 +103,19 @@ class ImportWidget(QWidget):
     @pyqtSlot()
     def start_import(self) -> None:
         self.import_button.hide()
-        self.progress_bar.setMaximum(len(self.results))
+        self.progress_bar.setMaximum(len(self.rslt_list))
         self.progress_bar.show()
 
-        self.checksum_worker.run(self.results)
+        self.checksum_worker.run(self.rslt_list)
 
-    def update_filelist(self) -> None:
+    def update_filelist(self, directory_path: str | None) -> None:
         self.file_model.removeRows(0, self.file_model.rowCount())
 
-        if self.directory_path is not None:
-            self.results, self.failed = gather_measurements(self.directory_path)
+        if directory_path is not None:
+            self.rslt_list, self.rslt_file_name_parse_fail_list = parse_rslt_in_directory_recursively(directory_path)
 
-            for fail in self.failed:
-                error_item = QStandardItem(f"Failed to load '{fail}', might be a corrupted file.")
+            for rslt_file_name_parse_fail in self.rslt_file_name_parse_fail_list:
+                error_item = QStandardItem(f"Failed to load '{rslt_file_name_parse_fail}', might be a corrupted file.")
 
                 error_item.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_DialogNoButton))
 
@@ -130,12 +129,12 @@ class ImportWidget(QWidget):
 
                 self.file_model.appendRow(measurement)
 
-            for result in self.results:
+            for rslt in self.rslt_list:
                 measurement = [
-                    QStandardItem(result.date_time.strftime("%Y-%m-%d")),
-                    QStandardItem(result.date_time.strftime("%H:%M:%S")),
-                    QStandardItem(result.probe_id),
-                    QStandardItem(result.chip_id),
+                    QStandardItem(rslt.date_time.strftime("%Y-%m-%d")),
+                    QStandardItem(rslt.date_time.strftime("%H:%M:%S")),
+                    QStandardItem(rslt.probe_id),
+                    QStandardItem(rslt.chip_id),
                     QStandardItem(""),
                 ]
                 self.file_model.appendRow(measurement)
@@ -152,13 +151,11 @@ class ImportWidget(QWidget):
             ).scalar_one()
 
         if exists:
-            self.file_model.item(step + len(self.failed), IMPORTER__COLUMN_INDEX__STATUS).setText("Imported previously")
-            self.file_model.item(step + len(self.failed), IMPORTER__COLUMN_INDEX__STATUS).setIcon(
-                self.style().standardIcon(QStyle.StandardPixmap.SP_DialogNoButton)
-            )
+            file_model_item_text = "Imported previously"
+            file_model_item_icon_pixmap = QStyle.StandardPixmap.SP_DialogNoButton
 
         else:
-            rslt = self.results[step]
+            rslt = self.rslt_list[step]
 
             image = Image(rslt.dir.joinpath(rslt.result_image_pgm))
 
@@ -201,11 +198,15 @@ class ImportWidget(QWidget):
 
             update_results(measurement_id)
 
-            # Update UI
-            self.file_model.item(step + len(self.failed), IMPORTER__COLUMN_INDEX__STATUS).setText("Import successful")
-            self.file_model.item(step + len(self.failed), IMPORTER__COLUMN_INDEX__STATUS).setIcon(
-                self.style().standardIcon(QStyle.StandardPixmap.SP_DialogYesButton)
-            )
+            file_model_item_text = "Import successful"
+            file_model_item_icon_pixmap = QStyle.StandardPixmap.SP_DialogYesButton
+
+        file_model_item = self.file_model.item(
+            step + len(self.rslt_file_name_parse_fail_list), IMPORTER__COLUMN_INDEX__STATUS
+        )
+
+        file_model_item.setText(file_model_item_text)
+        file_model_item.setIcon(self.style().standardIcon(file_model_item_icon_pixmap))
 
         self.progress_bar.setValue(step + 1)
 
@@ -215,7 +216,7 @@ class ChecksumWorker(QObject):
     progress = pyqtSignal(int, bytes)
 
     @pyqtSlot()
-    def run(self, results: list[RsltParser]) -> None:
+    def run(self, results: list[Rslt]) -> None:
         for i, result in enumerate(results):
             image = Image(result.dir.joinpath(result.result_image_pgm))
             sha = hashlib.sha256(image.data.tobytes())  # cSpell:ignore tobytes

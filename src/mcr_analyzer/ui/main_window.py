@@ -62,17 +62,17 @@ class MainWindow(QMainWindow):
         self.about_action.triggered.connect(self.show_about_dialog)
 
         self.new_action = QAction("Create &new database...", self)
-        self.new_action.setShortcut(QKeySequence.StandardKey.New)
+        self.new_action.setShortcut(QKeySequence.StandardKey.New)  # - Ctrl + N
         self.new_action.setStatusTip("Create a new MCR-Analyzer database.")
         self.new_action.triggered.connect(self.welcome_widget.clicked_new_button)
 
         self.open_action = QAction("&Open existing database...", self)
-        self.open_action.setShortcut(QKeySequence.StandardKey.Open)
+        self.open_action.setShortcut(QKeySequence.StandardKey.Open)  # - Ctrl + O
         self.open_action.setStatusTip("Open an existing MCR-Analyzer database.")
         self.open_action.triggered.connect(self.welcome_widget.clicked_open_button)
 
         self.quit_action = QAction("&Quit", self)
-        self.quit_action.setShortcut(QKeySequence.StandardKey.Quit)
+        self.quit_action.setShortcut(QKeySequence.StandardKey.Quit)  # - Ctrl + Q
         self.quit_action.setStatusTip("Terminate the application.")
         self.quit_action.triggered.connect(self.quit)
 

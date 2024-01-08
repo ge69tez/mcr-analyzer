@@ -37,7 +37,7 @@ class Point:
         return x, y
 
 
-class RsltParser:
+class Rslt:
     """Reads in RSLT file produced by the MCR.
 
     :Attributes:
@@ -58,12 +58,12 @@ class RsltParser:
         * Spot size (`int`): Size (in pixels) of the configured square for result computation.
     """
 
-    def __init__(self, path: Path) -> None:
+    def __init__(self, rslt_file_path: Path) -> None:
         """Parse file `path` and populate class attributes.
 
         :raises ValueError: An expected RSLT entry was not found.
         """
-        self.path = path
+        self.path = rslt_file_path
         self.dir = self.path.parent
 
         with self.path.open(encoding="utf-8") as file:
@@ -150,33 +150,37 @@ def _read_rslt_table(file: TextIOWrapper, row_count: int, column_count: int, fn:
     return rslt_table
 
 
-def gather_measurements(path: str) -> tuple[list[RsltParser], list[str]]:
+def parse_rslt_in_directory_recursively(directory_path: str) -> tuple[list[Rslt], list[str]]:
     """Collect all measurements in the given path.
 
     This function handles multi-image measurements by copying their base metadata and delaying each image by one second.
     """
+    rslt_list: list[Rslt] = []
+    rslt_file_name_parse_fail_list: list[str] = []
 
-    measurements: list[RsltParser] = []
-    failed: list[str] = []
-    results = Path(path).glob("**/*.rslt")
-
-    for result in results:
+    rslt_file_path_generator = Path(directory_path).glob("**/*.rslt")
+    for rslt_file_path in rslt_file_path_generator:
         try:
-            rslt = RsltParser(result)
+            rslt = Rslt(rslt_file_path)
         except ValueError:
-            failed.append(result.name)
+            rslt_file_name_parse_fail_list.append(rslt_file_path.name)
             continue
 
-        img = rslt.dir.joinpath(rslt.result_image_pgm)
-        if img.exists():
-            measurements.append(rslt)
+        image_pgm_file_path = rslt.dir.joinpath(rslt.result_image_pgm)
+
+        if image_pgm_file_path.exists():
+            rslt_list.append(rslt)
+
         else:
             # Check for multi image measurements and mock them as individual
-            base = Path(rslt.result_image_pgm).stem
-            for i, name in enumerate(sorted(rslt.dir.glob(f"{base}-*.pgm"))):
-                temp_result = deepcopy(rslt)
-                temp_result.result_image_pgm = name.name
-                temp_result.date_time = rslt.date_time + timedelta(seconds=i)
-                measurements.append(temp_result)
 
-    return measurements, failed
+            image_pgm_file_stem = image_pgm_file_path.stem
+            for i, image_pgm_file_path_i in enumerate(sorted(rslt.dir.glob(f"{image_pgm_file_stem}-*.pgm"))):
+                rslt_copy = deepcopy(rslt)
+
+                rslt_copy.result_image_pgm = image_pgm_file_path_i.name
+                rslt_copy.date_time += timedelta(seconds=i)
+
+                rslt_list.append(rslt_copy)
+
+    return rslt_list, rslt_file_name_parse_fail_list

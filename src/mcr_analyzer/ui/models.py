@@ -307,22 +307,22 @@ class ResultTableModel(QAbstractTableModel):
         self.standard_deviations = np.empty([self.column_count])
 
         with database.Session() as session:
-            for col in range(self.column_count):
+            for column in range(self.column_count):
                 for row in range(self.row_count):
                     result = session.execute(
                         select(Result)
                         .where(Result.measurement_id == self.measurement_id)
-                        .where(Result.column == col)
+                        .where(Result.column == column)
                         .where(Result.row == row)
                     ).scalar_one()
 
-                    self.results[row][col] = result
+                    self.results[row][column] = result
 
                 values = (
                     session.execute(
                         select(Result.value)
                         .where(Result.measurement_id == self.measurement_id)
-                        .where(Result.column == col)
+                        .where(Result.column == column)
                         .where(Result.valid.is_(True))
                         .where(Result.value.is_not(None))
                     )
@@ -337,8 +337,8 @@ class ResultTableModel(QAbstractTableModel):
                 mean = np.mean(values_array) if values_not_empty else np.nan
                 standard_deviation = np.std(values_array, ddof=1) if values_not_empty else np.nan  # cSpell:ignore ddof
 
-                self.means[col] = mean
-                self.standard_deviations[col] = standard_deviation
+                self.means[column] = mean
+                self.standard_deviations[column] = standard_deviation
 
 
 def _get_qtgui_qfont_bold() -> QFont:  # cSpell:ignore qtgui qfont

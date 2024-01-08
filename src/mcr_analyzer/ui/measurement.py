@@ -62,10 +62,10 @@ class MeasurementWidget(QWidget):
         self.notes.editing_finished.connect(self.update_notes)
         form_layout.addRow("Notes:", self.notes)
         form_layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
-        self.cols = QSpinBox()
-        form_layout.addRow("Number of Columns:", self.cols)
-        self.rows = QSpinBox()
-        form_layout.addRow("Number of Rows:", self.rows)
+        self.column_count = QSpinBox()
+        form_layout.addRow("Number of Columns:", self.column_count)
+        self.row_count = QSpinBox()
+        form_layout.addRow("Number of Rows:", self.row_count)
         self.spot_size = QSpinBox()
         form_layout.addRow("Spot size:", self.spot_size)
         self.spot_margin_horizontal = QSpinBox()
@@ -83,8 +83,8 @@ class MeasurementWidget(QWidget):
         layout.addWidget(group_box)
 
         group_box = QGroupBox("Visualization")
-        v_layout = QVBoxLayout()
-        group_box.setLayout(v_layout)
+        v_box_layout = QVBoxLayout()
+        group_box.setLayout(v_box_layout)
 
         # Visualization via multi-layered GraphicsScene
         # Size to MCR image; might need to become non-static in future devices
@@ -99,9 +99,9 @@ class MeasurementWidget(QWidget):
         self.grid: GridItem | None = None
 
         # Scale result table twice as much as image
-        v_layout.addWidget(self.view, 1)
+        v_box_layout.addWidget(self.view, 1)
         self.results = QTableView()
-        v_layout.addWidget(self.results, 2)
+        v_box_layout.addWidget(self.results, 2)
 
         layout.addWidget(group_box)
 
@@ -149,8 +149,8 @@ class MeasurementWidget(QWidget):
 
             # Disconnect all signals
             try:
-                self.cols.valueChanged.disconnect()
-                self.rows.valueChanged.disconnect()
+                self.column_count.valueChanged.disconnect()
+                self.row_count.valueChanged.disconnect()
                 self.spot_size.valueChanged.disconnect()
                 self.spot_margin_horizontal.valueChanged.disconnect()
                 self.spot_margin_vertical.valueChanged.disconnect()
@@ -158,15 +158,15 @@ class MeasurementWidget(QWidget):
                 # Don't fail if they are not connected
                 pass
 
-            self.cols.setValue(measurement.chip.column_count)
-            self.rows.setValue(measurement.chip.row_count)
+            self.column_count.setValue(measurement.chip.column_count)
+            self.row_count.setValue(measurement.chip.row_count)
             self.spot_size.setValue(measurement.chip.spot_size)
             self.spot_margin_horizontal.setValue(measurement.chip.spot_margin_horizontal)
             self.spot_margin_vertical.setValue(measurement.chip.spot_margin_vertical)
 
             # Connect grid related fields
-            self.cols.valueChanged.connect(self.preview_grid)
-            self.rows.valueChanged.connect(self.preview_grid)
+            self.column_count.valueChanged.connect(self.preview_grid)
+            self.row_count.valueChanged.connect(self.preview_grid)
             self.spot_size.valueChanged.connect(self.preview_grid)
             self.spot_margin_horizontal.valueChanged.connect(self.preview_grid)
             self.spot_margin_vertical.valueChanged.connect(self.preview_grid)
@@ -210,11 +210,11 @@ class MeasurementWidget(QWidget):
         self.saveGridButton.setEnabled(True)
         self.resetGridButton.setEnabled(True)
         self.grid.preview_settings(
-            self.cols.value(),
-            self.rows.value(),
-            self.spot_margin_horizontal.value(),
-            self.spot_margin_vertical.value(),
-            self.spot_size.value(),
+            column_count=self.column_count.value(),
+            row_count=self.row_count.value(),
+            spot_margin_horizontal=self.spot_margin_horizontal.value(),
+            spot_margin_vertical=self.spot_margin_vertical.value(),
+            spot_size=self.spot_size.value(),
         )
 
     @pyqtSlot()
@@ -232,8 +232,8 @@ class MeasurementWidget(QWidget):
             measurement = session.execute(select(Measurement).where(Measurement.id == self.measurement_id)).scalar_one()
 
             chip = measurement.chip
-            chip.column_count = self.cols.value()
-            chip.row_count = self.rows.value()
+            chip.column_count = self.column_count.value()
+            chip.row_count = self.row_count.value()
 
             chip.margin_left = int(self.grid.scenePos().x())
             chip.margin_top = int(self.grid.scenePos().y())
@@ -265,8 +265,8 @@ class MeasurementWidget(QWidget):
 
         # Disconnect all signals
         try:
-            self.cols.valueChanged.disconnect()
-            self.rows.valueChanged.disconnect()
+            self.column_count.valueChanged.disconnect()
+            self.row_count.valueChanged.disconnect()
             self.spot_size.valueChanged.disconnect()
             self.spot_margin_horizontal.valueChanged.disconnect()
             self.spot_margin_vertical.valueChanged.disconnect()
@@ -276,8 +276,8 @@ class MeasurementWidget(QWidget):
         with database.Session() as session:
             measurement = session.execute(select(Measurement).where(Measurement.id == self.measurement_id)).scalar_one()
 
-            self.cols.setValue(measurement.chip.column_count)
-            self.rows.setValue(measurement.chip.row_count)
+            self.column_count.setValue(measurement.chip.column_count)
+            self.row_count.setValue(measurement.chip.row_count)
             self.spot_size.setValue(measurement.chip.spot_size)
             self.spot_margin_horizontal.setValue(measurement.chip.spot_margin_horizontal)
             self.spot_margin_vertical.setValue(measurement.chip.spot_margin_vertical)
@@ -285,8 +285,8 @@ class MeasurementWidget(QWidget):
             self.grid.setPos(measurement.chip.margin_left, measurement.chip.margin_top)
 
         # Connect grid related fields
-        self.cols.valueChanged.connect(self.preview_grid)
-        self.rows.valueChanged.connect(self.preview_grid)
+        self.column_count.valueChanged.connect(self.preview_grid)
+        self.row_count.valueChanged.connect(self.preview_grid)
         self.spot_size.valueChanged.connect(self.preview_grid)
         self.spot_margin_horizontal.valueChanged.connect(self.preview_grid)
         self.spot_margin_vertical.valueChanged.connect(self.preview_grid)
@@ -300,14 +300,13 @@ class MeasurementWidget(QWidget):
     @pyqtSlot()
     def update_grid_position(self) -> None:
         """Filters out additional events before activating grid preview."""
-
         if self.grid is None:
             return
 
         x = int(self.grid.scenePos().x())
         y = int(self.grid.scenePos().y())
 
-        # Initial position is (0,0) and triggers an event which needs to be ignored
+        # Initial position is (0, 0) and triggers an event which needs to be ignored
         if x == 0 and y == 0:
             return
 
@@ -331,7 +330,7 @@ class MeasurementWidget(QWidget):
             measurement.notes = notes
 
     @pyqtSlot(int, int, bool)
-    def update_validity(self, row: int, col: int, valid: bool) -> None:  # noqa: FBT001
+    def update_validity(self, row: int, column: int, valid: bool) -> None:  # noqa: FBT001
         if self.measurement_id is None:
             return
 
@@ -342,7 +341,7 @@ class MeasurementWidget(QWidget):
             statement = (
                 select(Result)
                 .where(Result.measurement_id == self.measurement_id)
-                .where(Result.column == col)
+                .where(Result.column == column)
                 .where(Result.row == row)
             )
             result = session.execute(statement).scalar_one()
@@ -350,8 +349,8 @@ class MeasurementWidget(QWidget):
             result.valid = valid
 
         # Tell views about change
-        start = self.result_model.index(row, col)
-        end = self.result_model.index(self.result_model.rowCount(), col)
+        start = self.result_model.index(row, column)
+        end = self.result_model.index(self.result_model.rowCount(), column)
 
         self.result_model.dataChanged.emit(start, end)
 

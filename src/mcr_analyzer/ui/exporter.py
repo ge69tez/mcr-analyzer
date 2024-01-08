@@ -124,22 +124,22 @@ class ExportWidget(QWidget):
 
             # Apply user filters to query
             for filter_widget in self.filter_widgets:
-                column, operator, value = filter_widget.filter()
+                table_column, column_operator, value = filter_widget.filter()
                 # DateTime comparisons are hard to get right: eq/ne on a date does
                 # not work as expected, time is always compared as well. Therefore,
                 # always check intervals
-                if column == Measurement.timestamp:
+                if table_column == Measurement.timestamp:
                     value_date_time = datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=TZ_INFO)
-                    if operator is eq:
-                        statement = statement.where(column >= value_date_time).where(
-                            column < value_date_time + timedelta(days=1)
+                    if column_operator is eq:
+                        statement = statement.where(table_column >= value_date_time).where(
+                            table_column < value_date_time + timedelta(days=1)
                         )
-                    elif operator is ne:
+                    elif column_operator is ne:
                         statement = statement.where(
-                            or_(column < value_date_time, column >= value_date_time + timedelta(days=1))
+                            or_(table_column < value_date_time, table_column >= value_date_time + timedelta(days=1))
                         )
                     else:
-                        statement = statement.where(operator(column, value_date_time))
+                        statement = statement.where(column_operator(table_column, value_date_time))
                 else:
                     raise NotImplementedError
 
@@ -151,12 +151,12 @@ class ExportWidget(QWidget):
                     '""' if measurement.notes is None else _escape_csv(measurement.notes),
                 ]
 
-                for col in range(measurement.chip.column_count):
+                for column in range(measurement.chip.column_count):
                     values = (
                         session.execute(
                             select(Result.value)
                             .where(Result.measurement == measurement)
-                            .where(Result.column == col)
+                            .where(Result.column == column)
                             .where(Result.valid.is_(True))
                             .where(Result.value.is_not(None))
                         )
@@ -212,13 +212,13 @@ class FilterWidget(QWidget):
     def filter(self) -> tuple[InstrumentedAttribute[datetime], Callable[[T, T], ColumnElement[bool]], str]:
         column_operator = self.column_operator.currentData()
 
-        column = self.target.currentData()
-        if not isinstance(column, InstrumentedAttribute):
+        table_column = self.target.currentData()
+        if not isinstance(table_column, InstrumentedAttribute):
             raise NotImplementedError
 
         value = self.value.text()
 
-        return column, column_operator, value
+        return table_column, column_operator, value
 
 
 def _escape_csv(value: str) -> str:
@@ -226,7 +226,6 @@ def _escape_csv(value: str) -> str:
 
     Quotations and dangerous chars (@, +, -, =, |, %) are considered.
     """
-
     if not re_match_success(r"^[-+]?[0-9\.,]+$", value):
         symbols = ("@", "+", "-", "=", "|", "%")
         value = value.replace('"', '""')

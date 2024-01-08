@@ -63,7 +63,7 @@ def test_profile(
             main_window.welcome_widget.new_button.click()
 
         for status in ["Import successful", "Imported previously"]:
-            main_window.import_widget.path_button.click()
+            main_window.import_widget.select_folder_button.click()
 
             qtbot.waitUntil(main_window.import_widget.import_button.isVisible)
 

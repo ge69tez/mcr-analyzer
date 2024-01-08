@@ -27,9 +27,11 @@ class GraphicsMeasurementScene(QGraphicsScene):
 class GraphicsRectTextItem(QGraphicsRectItem):
     """Draws text on a rectangular background."""
 
-    def __init__(self, x: float, y: float, w: float, h: float, t: str, parent: QGraphicsItem | None) -> None:  # noqa: PLR0913, PLR0917
-        super().__init__(x, y, w, h, parent)
-        self.text = t
+    def __init__(  # noqa: PLR0913
+        self, *, x: float, y: float, width: float, height: float, text: str, parent: QGraphicsItem | None
+    ) -> None:
+        super().__init__(x, y, width, height, parent)
+        self.text = text
         self.setPen(QPen(Qt.GlobalColor.white))
         self.setBrush(QBrush(Qt.GlobalColor.white))
 
@@ -42,11 +44,20 @@ class GraphicsRectTextItem(QGraphicsRectItem):
 class GraphicsSpotItem(QGraphicsRectItem):
     """Draws spot marker and stores associated information."""
 
-    def __init__(  # noqa: PLR0913, PLR0917
-        self, x: float, y: float, w: float, h: float, col: int, row: int, parent: QGraphicsItem | None, *, valid: bool
+    def __init__(  # noqa: PLR0913
+        self,
+        *,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        column: int,
+        row: int,
+        parent: QGraphicsItem | None,
+        valid: bool,
     ) -> None:
-        super().__init__(x, y, w, h, parent)
-        self.col = col
+        super().__init__(x, y, width, height, parent)
+        self.column = column
         self.row = row
         self.valid = valid
         self.pen_ = QPen(Qt.GlobalColor.red)
@@ -59,7 +70,7 @@ class GraphicsSpotItem(QGraphicsRectItem):
             self.valid = not self.valid
             scene = self.scene()
             if isinstance(scene, GraphicsMeasurementScene):
-                scene.changed_validity.emit(self.row, self.col, self.valid)
+                scene.changed_validity.emit(self.row, self.column, self.valid)
             if self.valid:
                 self.pen_.setStyle(Qt.PenStyle.SolidLine)
                 self.setPen(self.pen_)
@@ -81,17 +92,20 @@ class GridItem(QGraphicsItem):
             measurement = session.execute(statement).scalar_one()
             self.measurement = measurement
 
-            self.cols = measurement.chip.column_count
-            self.rows = measurement.chip.row_count
-            self.horizontal_space = measurement.chip.spot_margin_horizontal
-            self.vertical_space = measurement.chip.spot_margin_vertical
-            self.size = measurement.chip.spot_size
+            self.column_count = measurement.chip.column_count
+            self.row_count = measurement.chip.row_count
+            self.spot_margin_horizontal = measurement.chip.spot_margin_horizontal
+            self.spot_margin_vertical = measurement.chip.spot_margin_vertical
+            self.spot_size = measurement.chip.spot_size
 
         self.spots: list[GraphicsSpotItem] = []
-        self.c_headers: list[GraphicsRectTextItem] = []
-        self.r_headers: list[GraphicsRectTextItem] = []
+
+        self.column_headers: list[GraphicsRectTextItem] = []
+        self.row_headers: list[GraphicsRectTextItem] = []
+
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges)
+
         self.pen_width = 1.0
 
         self.preview_mode = False
@@ -99,8 +113,14 @@ class GridItem(QGraphicsItem):
         self._add_children()
 
     def boundingRect(self) -> QRectF:  # noqa: N802
-        width = self.cols * self.size + (self.cols - 1) * self.vertical_space + self.pen_width / 2
-        height = self.rows * self.size + (self.rows - 1) * self.horizontal_space + self.pen_width / 2
+        width = (
+            self.column_count * self.spot_size
+            + (self.column_count - 1) * self.spot_margin_vertical
+            + self.pen_width / 2
+        )
+        height = (
+            self.row_count * self.spot_size + (self.row_count - 1) * self.spot_margin_horizontal + self.pen_width / 2
+        )
         # Labels are drawn on the "negative" side of the origin
         return QRectF(-self.pen_width / 2 - 15, -self.pen_width / 2 - 15, width + 15, height + 15)
 
@@ -117,13 +137,13 @@ class GridItem(QGraphicsItem):
 
     def _clear_children(self) -> None:
         scene = self.scene()
-        for head in self.c_headers:
-            scene.removeItem(head)
-        self.c_headers.clear()
+        for column_header in self.column_headers:
+            scene.removeItem(column_header)
+        self.column_headers.clear()
 
-        for head in self.r_headers:
-            scene.removeItem(head)
-        self.r_headers.clear()
+        for row_header in self.row_headers:
+            scene.removeItem(row_header)
+        self.row_headers.clear()
 
         for spot in self.spots:
             scene.removeItem(spot)
@@ -131,20 +151,30 @@ class GridItem(QGraphicsItem):
 
     def _add_children(self) -> None:
         # Row labels: letters
-        for row in range(self.rows):
-            head = GraphicsRectTextItem(
-                -15, row * (self.size + self.vertical_space), 12, self.size, ascii_uppercase[row], self
+        for row in range(self.row_count):
+            row_header = GraphicsRectTextItem(
+                x=-15,
+                y=row * (self.spot_size + self.spot_margin_vertical),
+                width=12,
+                height=self.spot_size,
+                text=ascii_uppercase[row],
+                parent=self,
             )
-            self.r_headers.append(head)
+            self.row_headers.append(row_header)
 
-        for col in range(self.cols):
+        for column in range(self.column_count):
             # Column labels
-            head = GraphicsRectTextItem(
-                col * (self.size + self.horizontal_space), -15, self.size, 12, str(col + 1), self
+            column_header = GraphicsRectTextItem(
+                x=column * (self.spot_size + self.spot_margin_horizontal),
+                y=-15,
+                width=self.spot_size,
+                height=12,
+                text=str(column + 1),
+                parent=self,
             )
-            self.c_headers.append(head)
+            self.column_headers.append(column_header)
 
-            for row in range(self.rows):
+            for row in range(self.row_count):
                 if self.preview_mode:
                     valid = False
                 else:
@@ -152,25 +182,43 @@ class GridItem(QGraphicsItem):
                         statement = (
                             select(Result.valid)
                             .where(Result.measurement == self.measurement)
-                            .where(Result.column == col)
+                            .where(Result.column == column)
                             .where(Result.row == row)
                         )
-                        res = session.execute(statement).scalar_one_or_none()
+                        valid_or_none = session.execute(statement).scalar_one_or_none()
 
-                    valid = res if res is not None else False
-                x = col * (self.size + self.horizontal_space)
-                y = row * (self.size + self.vertical_space)
-                spot = GraphicsSpotItem(x, y, self.size, self.size, col, row, self, valid=valid)
+                    valid = valid_or_none if valid_or_none is not None else False
+
+                x = column * (self.spot_size + self.spot_margin_horizontal)
+                y = row * (self.spot_size + self.spot_margin_vertical)
+                spot = GraphicsSpotItem(
+                    x=x,
+                    y=y,
+                    width=self.spot_size,
+                    height=self.spot_size,
+                    column=column,
+                    row=row,
+                    parent=self,
+                    valid=valid,
+                )
                 self.spots.append(spot)
 
-    def preview_settings(self, cols: int, rows: int, horizontal_space: int, vertical_space: int, size: int) -> None:  # noqa: PLR0913, PLR0917
+    def preview_settings(  # noqa: PLR0913
+        self,
+        *,
+        column_count: int,
+        row_count: int,
+        spot_margin_horizontal: int,
+        spot_margin_vertical: int,
+        spot_size: int,
+    ) -> None:
         self._clear_children()
         self.preview_mode = True
-        self.cols = cols
-        self.rows = rows
-        self.horizontal_space = horizontal_space
-        self.vertical_space = vertical_space
-        self.size = size
+        self.column_count = column_count
+        self.row_count = row_count
+        self.spot_margin_horizontal = spot_margin_horizontal
+        self.spot_margin_vertical = spot_margin_vertical
+        self.spot_size = spot_size
         self._add_children()
 
     def database_view(self) -> None:
@@ -182,11 +230,11 @@ class GridItem(QGraphicsItem):
             measurement = session.execute(statement).scalar_one()
             self.measurement = measurement
 
-            self.cols = measurement.chip.column_count
-            self.rows = measurement.chip.row_count
-            self.horizontal_space = measurement.chip.spot_margin_horizontal
-            self.vertical_space = measurement.chip.spot_margin_vertical
-            self.size = measurement.chip.spot_size
+            self.column_count = measurement.chip.column_count
+            self.row_count = measurement.chip.row_count
+            self.spot_margin_horizontal = measurement.chip.spot_margin_horizontal
+            self.spot_margin_vertical = measurement.chip.spot_margin_vertical
+            self.spot_size = measurement.chip.spot_size
 
         self.preview_mode = False
         self._add_children()
