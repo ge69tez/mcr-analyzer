@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Annotated
 
-from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, declared_attr, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey, UniqueConstraint
 from sqlalchemy.types import BINARY, Text
 
@@ -11,18 +11,14 @@ from mcr_analyzer.config.hash import HASH__DIGEST_SIZE
 
 
 class Base(MappedAsDataclass, DeclarativeBase):
-    pass
+    @declared_attr.directive
+    def __tablename__(self) -> str:  # noqa: PLW3201
+        return self.__name__.lower()
 
-
-column_type__primary_key = Annotated[int, mapped_column(primary_key=True)]
+    id: Mapped[int] = mapped_column(primary_key=True, init=False)
 
 
 class Chip(Base):
-    __tablename__ = "chip"
-
-    id: Mapped[column_type__primary_key] = mapped_column(init=False)
-    """Internal ID, used for cross-references."""
-
     chip_id: Mapped[str]
     """Chip ID assigned by user during measurement."""
 
@@ -59,11 +55,6 @@ column_type__foreign_key__chip = Annotated[int, mapped_column(ForeignKey(f"{Chip
 class Device(Base):
     """Information about the MCR device used."""
 
-    __tablename__ = "device"
-
-    id: Mapped[column_type__primary_key] = mapped_column(init=False)
-    """Internal ID, used for cross-references."""
-
     serial: Mapped[str] = mapped_column(unique=True)
     """Serial number of the device."""
 
@@ -83,11 +74,6 @@ class Reagent(Base):
     this is about the reagent which should be detected or the reagent which is initially put on the chip.
     """
 
-    __tablename__ = "reagent"
-
-    id: Mapped[column_type__primary_key] = mapped_column(init=False)
-    """Internal ID, used for cross-references."""
-
     name: Mapped[str]
     """Name of the substance."""
 
@@ -100,11 +86,6 @@ column_type__foreign_key__reagent = Annotated[int, mapped_column(ForeignKey(f"{R
 
 class User(Base):
     """Researcher who did the measurement or took the sample."""
-
-    __tablename__ = "user"
-
-    id: Mapped[column_type__primary_key] = mapped_column(init=False)
-    """Internal ID, used for cross-references."""
 
     name: Mapped[str]
     """Name of the researcher."""
@@ -127,11 +108,6 @@ column_type__foreign_key__user = Annotated[int, mapped_column(ForeignKey(f"{User
 class SampleType(Base):
     """Information about the kind of sample."""
 
-    __tablename__ = "sampleType"
-
-    id: Mapped[column_type__primary_key] = mapped_column(init=False)
-    """Internal ID, used for cross-references."""
-
     name: Mapped[str]
     """Name of the kind. For example full blood, serum, water, etc."""
 
@@ -146,11 +122,6 @@ column_type__foreign_key__sample_type = Annotated[int, mapped_column(ForeignKey(
 
 class Sample(Base):
     """Information about the measured sample."""
-
-    __tablename__ = "sample"
-
-    id: Mapped[column_type__primary_key] = mapped_column(init=False)
-    """Internal ID, used for cross-references."""
 
     probe_id: Mapped[str]
     """Short description of the sample, entered as Probe ID during measurement."""
@@ -184,11 +155,6 @@ column_type__foreign_key__sample = Annotated[int, mapped_column(ForeignKey(f"{Sa
 
 class Measurement(Base):
     """A single measurement. This is the central table everything is about."""
-
-    __tablename__ = "measurement"
-
-    id: Mapped[column_type__primary_key] = mapped_column(init=False)
-    """Internal ID, used for cross-references."""
 
     chip_id: Mapped[column_type__foreign_key__chip] = mapped_column(init=False)
     """Refers to the used :class:`Chip`."""
@@ -244,12 +210,7 @@ column_type__foreign_key__measurement = Annotated[int, mapped_column(ForeignKey(
 class Result(Base):
     """Analysis information about a single spot."""
 
-    __tablename__ = "result"
-
     __table_args__ = (UniqueConstraint("measurement_id", "row", "column"),)
-
-    id: Mapped[column_type__primary_key] = mapped_column(init=False)
-    """Internal ID, used for cross-references."""
 
     measurement_id: Mapped[column_type__foreign_key__measurement] = mapped_column(init=False)
     """Reference to the :class:`Measurement` to which the result belongs."""
