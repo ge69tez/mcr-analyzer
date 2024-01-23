@@ -3,10 +3,10 @@ from pathlib import Path
 from PyQt6.QtCore import QByteArray, QSettings, QSize, pyqtSlot
 from PyQt6.QtGui import QAction, QCloseEvent, QKeySequence
 from PyQt6.QtWidgets import QMainWindow, QMessageBox, QTabWidget, QWidget
+from returns.pipeline import is_successful
 
 from mcr_analyzer.config.qt import (
     MAIN_WINDOW__SIZE_HINT,
-    q_settings__session__recent_file_name_list__add,
     q_settings__session__recent_file_name_list__get,
     q_settings__session__recent_file_name_list__remove,
 )
@@ -34,7 +34,7 @@ class MainWindow(QMainWindow):
         self.create_actions()
         self.create_menus()
         self.create_status_bar()
-        self.update_recent_files()
+        self.refresh__menu_file__submenu_recent_files()
 
         self.tab_widget.addTab(self.welcome_widget, "&Welcome")
         self.tab_widget.addTab(self.import_widget, "&Import measurements")
@@ -43,8 +43,8 @@ class MainWindow(QMainWindow):
 
         self.welcome_widget.database_created.connect(self.switch_to_import)
         self.welcome_widget.database_opened.connect(self.switch_to_measurement)
-        self.welcome_widget.database_changed.connect(self.measurement_widget.switch_database)
-        self.welcome_widget.database_changed.connect(self.update_recent_files)
+        self.welcome_widget.database_changed.connect(self.measurement_widget.refresh__measurement_widget__tree_view)
+        self.welcome_widget.database_changed.connect(self.refresh__menu_file__submenu_recent_files)
 
         self.import_widget.database_missing.connect(self.switch_to_welcome)
         self.import_widget.import_finished.connect(self.measurement_widget.refresh_database)
@@ -77,20 +77,22 @@ class MainWindow(QMainWindow):
         self.quit_action.triggered.connect(self.quit)
 
     def create_menus(self) -> None:
-        file_menu = self.menuBar().addMenu("&File")
-        file_menu.addAction(self.new_action)
-        file_menu.addAction(self.open_action)
+        menu_file = self.menuBar().addMenu("&File")
+        menu_file.addAction(self.new_action)
+        menu_file.addAction(self.open_action)
 
-        file_menu.addSeparator()
-        self.recent_menu = file_menu.addMenu("Recently used databases")
-        file_menu.addSeparator()
+        menu_file.addSeparator()
 
-        file_menu.addAction(self.quit_action)
+        self.menu_file__submenu_recent_files = menu_file.addMenu("Recent databases")
+
+        menu_file.addSeparator()
+
+        menu_file.addAction(self.quit_action)
 
         self.menuBar().addSeparator()
 
-        help_menu = self.menuBar().addMenu("&Help")
-        help_menu.addAction(self.about_action)
+        menu_help = self.menuBar().addMenu("&Help")
+        menu_help.addAction(self.about_action)
 
     def create_status_bar(self) -> None:
         self.statusBar()
@@ -100,21 +102,18 @@ class MainWindow(QMainWindow):
         self.close()
 
     @pyqtSlot()
-    def update_recent_files(self) -> None:
-        self.recent_menu.clear()
+    def refresh__menu_file__submenu_recent_files(self) -> None:
+        self.menu_file__submenu_recent_files.clear()
 
         recent_file_name_list = q_settings__session__recent_file_name_list__get()
 
         for recent_file_name in recent_file_name_list:
-            action = QAction(recent_file_name, self.recent_menu)
+            action = QAction(recent_file_name, self.menu_file__submenu_recent_files)
             action.setData(recent_file_name)
             action.triggered.connect(self.open_recent_file)
-            self.recent_menu.addAction(action)
+            self.menu_file__submenu_recent_files.addAction(action)
 
-        if self.recent_menu.isEmpty():
-            self.recent_menu.setEnabled(False)
-        else:
-            self.recent_menu.setEnabled(True)
+        self.menu_file__submenu_recent_files.setEnabled(not self.menu_file__submenu_recent_files.isEmpty())
 
     @pyqtSlot()
     def open_recent_file(self) -> None:
@@ -126,18 +125,7 @@ class MainWindow(QMainWindow):
 
         file_path = Path(file_name)
 
-        if file_path.exists():
-            database.load__sqlite(file_path)
-
-            q_settings__session__recent_file_name_list__add(file_name)
-
-            self.measurement_widget.switch_database()
-            self.switch_to_measurement()
-
-        else:
-            q_settings__session__recent_file_name_list__remove(file_name)
-
-            QMessageBox.warning(self, "File not found", file_name)
+        self.welcome_widget.open_file_path(file_path)
 
     @pyqtSlot()
     def switch_to_import(self) -> None:
@@ -204,12 +192,21 @@ class MainWindow(QMainWindow):
 
         recent_file_name_list = q_settings__session__recent_file_name_list__get()
 
-        if len(recent_file_name_list) > 0:
-            recent_file_name = recent_file_name_list[0]
+        recent_file_name_not_found_list: list[str] = []
+
+        for recent_file_name in recent_file_name_list:
             recent_file_path = Path(recent_file_name)
-            if recent_file_path.exists():
-                database.load__sqlite(recent_file_path)
-                self.measurement_widget.switch_database()
+
+            if recent_file_path.exists() and is_successful(database.load__sqlite(recent_file_path)):
+                self.welcome_widget.database_changed.emit()
+                self.welcome_widget.database_opened.emit()
 
                 # Only restore the last tab if we can open the database
-                self.tab_widget.setCurrentIndex(q_settings.value("MainWindow/ActiveTab", 0, int))
+                self.tab_widget.setCurrentIndex(q_settings.value("MainWindow/ActiveTab", defaultValue=0, type=int))
+
+                break
+
+            recent_file_name_not_found_list.append(recent_file_name)
+
+        q_settings__session__recent_file_name_list__remove(recent_file_name_not_found_list)
+        self.refresh__menu_file__submenu_recent_files()

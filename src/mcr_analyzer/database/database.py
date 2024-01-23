@@ -2,15 +2,18 @@
 
 from pathlib import Path
 
+from returns.result import Failure, Result, Success
 from sqlalchemy import create_engine
 from sqlalchemy.engine import URL, Engine
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session, sessionmaker  # cSpell:ignore sessionmaker
+from sqlalchemy.sql.expression import select
 
 from mcr_analyzer.config.database import SQLITE__DRIVER_NAME
 from mcr_analyzer.database.models import Base
 
 
-def _make_url__sqlite(sqlite_file_path: Path | None = None) -> URL:
+def make_url__sqlite(sqlite_file_path: Path | None = None) -> URL:
     """Given a `Path` or `None`, produce a new sqlite `URL` instance.
 
     Args:
@@ -28,6 +31,10 @@ def _make_url__sqlite(sqlite_file_path: Path | None = None) -> URL:
     )
 
 
+def create_engine__sqlite(sqlite_file_path: Path | None = None) -> Engine:
+    return create_engine(url=make_url__sqlite(sqlite_file_path))
+
+
 class _DatabaseSingleton:
     Session: sessionmaker[Session]
 
@@ -42,31 +49,43 @@ class _DatabaseSingleton:
     def __init__(self) -> None:
         pass
 
-    def load__sqlite(self, sqlite_file_path: Path | None = None) -> Engine:
-        engine_url = _make_url__sqlite(sqlite_file_path)
+    def load__sqlite(self, sqlite_file_path: Path | None = None) -> Result[Engine, str]:
+        engine = create_engine__sqlite(sqlite_file_path)
 
-        engine = create_engine(url=engine_url)
+        if not _is_engine_compatible_with_base(engine, Base):
+            return Failure("Engine is incompatible with Base.")
 
         self.Session.configure(bind=engine)
 
-        return engine
+        return Success(engine)
 
-    def create__sqlite(self, sqlite_file_path: Path | None = None) -> Engine:
+    def create_and_load__sqlite(self, sqlite_file_path: Path | None = None) -> None:
         if sqlite_file_path is not None:
             # - Create an empty file.
             sqlite_file_path.open(mode="w").close()
 
-        engine = self.load__sqlite(sqlite_file_path)
+        engine = create_engine__sqlite(sqlite_file_path)
 
-        Base.metadata.create_all(bind=engine)
+        Base.metadata.create_all(bind=engine, checkfirst=False)  # cSpell:ignore checkfirst
 
-        return engine
+        self.Session.configure(bind=engine)
 
     @property
-    def valid(self) -> bool:
-        """Is the database setup correctly?"""
+    def is_valid(self) -> bool:
         with self.Session() as session:
-            return session.bind is not None
+            return isinstance(session.bind, Engine) and _is_engine_compatible_with_base(session.bind, Base)
 
 
 database = _DatabaseSingleton()
+
+
+def _is_engine_compatible_with_base(engine: Engine, base: type[Base]) -> bool:
+    try:
+        with Session(bind=engine) as session:
+            for table in base.metadata.tables.values():
+                session.execute(select(select(table).exists()))
+
+    except OperationalError:
+        return False
+
+    return True

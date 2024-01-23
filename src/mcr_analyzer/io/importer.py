@@ -150,7 +150,7 @@ def _read_rslt_table(file: TextIOWrapper, row_count: int, column_count: int, fn:
     return rslt_table
 
 
-def parse_rslt_in_directory_recursively(directory_path: str) -> tuple[list[Rslt], list[str]]:
+def parse_rslt_in_directory_recursively(directory_path: Path) -> tuple[list[Rslt], list[str]]:
     """Collect all measurements in the given path.
 
     This function handles multi-image measurements by copying their base metadata and delaying each image by one second.
@@ -158,7 +158,7 @@ def parse_rslt_in_directory_recursively(directory_path: str) -> tuple[list[Rslt]
     rslt_list: list[Rslt] = []
     rslt_file_name_parse_fail_list: list[str] = []
 
-    rslt_file_path_generator = Path(directory_path).glob("**/*.rslt")
+    rslt_file_path_generator = directory_path.glob("**/*.rslt")
     for rslt_file_path in rslt_file_path_generator:
         try:
             rslt = Rslt(rslt_file_path)

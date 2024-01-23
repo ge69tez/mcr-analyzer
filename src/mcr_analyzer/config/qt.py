@@ -1,8 +1,9 @@
-from contextlib import suppress
 from typing import Final
 
 from PyQt6.QtCore import QSettings, QSize
 from PyQt6.QtWidgets import QApplication
+
+from mcr_analyzer.utils.list import list_remove_if_exist
 
 Q_SETTINGS__SESSION__LAST_EXPORT: Final[str] = "Session/LastExport"
 Q_SETTINGS__SESSION__RECENT_FILE_NAME_LIST__MAX_LENGTH: Final[int] = 5
@@ -31,9 +32,7 @@ def q_settings__session__recent_file_name_list__get() -> list[str]:
 def q_settings__session__recent_file_name_list__add(file_name: str) -> None:
     recent_file_name_list = q_settings__session__recent_file_name_list__get()
 
-    with suppress(ValueError):
-        # - Remove possible duplicate
-        recent_file_name_list.remove(file_name)
+    list_remove_if_exist(recent_file_name_list, file_name)
 
     recent_file_name_list.insert(0, file_name)
 
@@ -42,10 +41,15 @@ def q_settings__session__recent_file_name_list__add(file_name: str) -> None:
     QSettings().setValue(Q_SETTINGS__SESSION__RECENT_FILE_NAME_LIST, recent_file_name_list)
 
 
-def q_settings__session__recent_file_name_list__remove(file_name: str) -> None:
+def q_settings__session__recent_file_name_list__remove(file_name_or_file_name_list: str | list[str]) -> None:
     recent_file_name_list = q_settings__session__recent_file_name_list__get()
 
-    recent_file_name_list.remove(file_name)
+    file_name_list = (
+        [file_name_or_file_name_list] if isinstance(file_name_or_file_name_list, str) else file_name_or_file_name_list
+    )
+
+    for file_name in file_name_list:
+        list_remove_if_exist(recent_file_name_list, file_name)
 
     QSettings().setValue(Q_SETTINGS__SESSION__RECENT_FILE_NAME_LIST, recent_file_name_list)
 

@@ -1,9 +1,9 @@
 import hashlib
+from pathlib import Path
 
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import (
-    QFileDialog,
     QHeaderView,
     QMessageBox,
     QProgressBar,
@@ -25,6 +25,7 @@ from mcr_analyzer.database.models import Chip, Device, Measurement, Sample
 from mcr_analyzer.io.image import Image
 from mcr_analyzer.io.importer import Rslt, parse_rslt_in_directory_recursively
 from mcr_analyzer.processing.measurement import update_results
+from mcr_analyzer.utils.q_file_dialog import FileDialog
 
 
 class ImportWidget(QWidget):
@@ -76,12 +77,12 @@ class ImportWidget(QWidget):
 
     @pyqtSlot()
     def _select_folder_dialog(self) -> None:
-        if not database.valid:
-            QMessageBox.warning(self, "No database selected", "You need to open or create a database first.")
+        if not database.is_valid:
+            QMessageBox.warning(self, "No valid database", "You must first open or create a database.")
             self.database_missing.emit()
             return
 
-        directory_path = self._get_directory_path()
+        directory_path = FileDialog.get_directory_path(parent=self)
 
         self.update_filelist(directory_path)
 
@@ -89,16 +90,6 @@ class ImportWidget(QWidget):
 
         self.measurements_table.show()
         self.import_button.show()
-
-    def _get_directory_path(self) -> str | None:
-        directory_path = None
-
-        dialog = QFileDialog(self)
-        dialog.setFileMode(QFileDialog.FileMode.Directory)
-        if dialog.exec():
-            directory_path = dialog.selectedFiles()[0]
-
-        return directory_path
 
     @pyqtSlot()
     def start_import(self) -> None:
@@ -108,7 +99,7 @@ class ImportWidget(QWidget):
 
         self.checksum_worker.run(self.rslt_list)
 
-    def update_filelist(self, directory_path: str | None) -> None:
+    def update_filelist(self, directory_path: Path | None) -> None:
         self.file_model.removeRows(0, self.file_model.rowCount())
 
         if directory_path is not None:

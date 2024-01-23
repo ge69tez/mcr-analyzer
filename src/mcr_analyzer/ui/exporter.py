@@ -1,7 +1,6 @@
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from operator import eq, ge, gt, le, lt, ne
-from pathlib import Path
 from typing import TypeVar
 
 import numpy as np
@@ -9,7 +8,6 @@ from PyQt6.QtCore import QSettings, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QShowEvent
 from PyQt6.QtWidgets import (
     QComboBox,
-    QFileDialog,
     QGroupBox,
     QHBoxLayout,
     QLineEdit,
@@ -27,6 +25,7 @@ from mcr_analyzer.config.qt import Q_SETTINGS__SESSION__LAST_EXPORT
 from mcr_analyzer.config.timezone import TZ_INFO
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement, Result
+from mcr_analyzer.utils.q_file_dialog import FileDialog
 from mcr_analyzer.utils.re import re_match_success
 
 
@@ -89,22 +88,24 @@ class ExportWidget(QWidget):
     @pyqtSlot()
     def clicked_export_button(self) -> None:
         q_settings = QSettings()
-        last_export = q_settings.value(Q_SETTINGS__SESSION__LAST_EXPORT)
-        file_name, filter_name = QFileDialog.getSaveFileName(
-            self, "Save result as", last_export, "Tab Separated Values (*.csv *.tsv *.txt)"
+        last_export = str(q_settings.value(Q_SETTINGS__SESSION__LAST_EXPORT))
+        file_path = FileDialog.get_save_file_path(
+            parent=self,
+            caption="Save result as",
+            directory=last_export,
+            filter="Tab Separated Values (*.csv *.tsv *.txt)",
+            suffix=".csv",
         )
 
-        if file_name != "" and filter_name != "":
-            # Ensure file has an extension
-            file_path = Path(file_name)
+        if file_path is None:
+            return
 
-            if not file_path.exists() and not file_path.suffix:
-                file_path = file_path.with_suffix(".csv")
+        file_name = str(file_path)
 
-            q_settings.setValue(Q_SETTINGS__SESSION__LAST_EXPORT, str(file_path))
+        q_settings.setValue(Q_SETTINGS__SESSION__LAST_EXPORT, file_name)
 
-            with file_path.open(mode="w", encoding="utf-8") as output:
-                output.write(self.preview_edit.toPlainText())
+        with file_path.open(mode="w", encoding="utf-8") as output:
+            output.write(self.preview_edit.toPlainText())
 
     @pyqtSlot()
     def insert_filter_widget(self) -> None:

@@ -115,7 +115,10 @@ class MeasurementWidget(QWidget):
         self._expand_rows_with_selected_date()
 
     @pyqtSlot()
-    def switch_database(self) -> None:
+    def refresh__measurement_widget__tree_view(self) -> None:
+        if not database.is_valid:
+            raise NotImplementedError
+
         self.model = MeasurementTreeModel()
         self.tree.setModel(self.model)
 

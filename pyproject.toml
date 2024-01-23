@@ -25,6 +25,7 @@ dependencies = [
   "numpy", # cSpell:ignore numpy
   "PyQt6",
   "pytz", # cSpell:ignore pytz
+  "returns",
   "SQLAlchemy",
 ]
 [project.optional-dependencies]
@@ -202,6 +203,11 @@ enable_error_code = [
 
 strict = true
 ignore_missing_imports = false
+
+plugins = [
+  # - https://returns.readthedocs.io/en/latest/pages/contrib/mypy_plugins.html
+  "returns.contrib.mypy.returns_plugin",
+]
 
 [[tool.mypy.overrides]]
 module = [

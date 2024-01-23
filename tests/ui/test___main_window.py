@@ -5,15 +5,15 @@ import pytest
 from pooch import Unzip, retrieve
 from pytestqt.qtbot import QtBot  # cSpell:ignore pytestqt qtbot
 
-from mcr_analyzer.config.database import SQLITE__FILE_FILTER
 from mcr_analyzer.config.importer import IMPORTER__COLUMN_INDEX__STATUS
-from mcr_analyzer.ui.importer import ImportWidget
 from mcr_analyzer.ui.main_window import MainWindow
-from mcr_analyzer.ui.welcome import WelcomeWidget
+from mcr_analyzer.utils.q_file_dialog import FileDialog
 
 
 @pytest.fixture()
-def main_window(qtbot: QtBot) -> Generator[MainWindow, None, None]:
+def main_window(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> Generator[MainWindow, None, None]:
+    monkeypatch.setattr(MainWindow, "q_settings__restore", lambda _: None)
+
     main_window = MainWindow()
     main_window.show()
 
@@ -52,10 +52,8 @@ def _fetch_sample_results() -> None:
 def test_profile(
     qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, main_window: MainWindow, tmp_sqlite_file_path: Path
 ) -> None:
-    monkeypatch.setattr(
-        WelcomeWidget, "_get_save_file_name", lambda _: (str(tmp_sqlite_file_path), SQLITE__FILE_FILTER)
-    )
-    monkeypatch.setattr(ImportWidget, "_get_directory_path", lambda _: str(SAMPLE_RESULTS__DIR))
+    monkeypatch.setattr(FileDialog, "get_save_file_path", lambda **_: tmp_sqlite_file_path)
+    monkeypatch.setattr(FileDialog, "get_directory_path", lambda **_: SAMPLE_RESULTS__DIR)
 
     # - Idempotence test
     for _ in range(2):

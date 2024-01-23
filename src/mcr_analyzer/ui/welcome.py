@@ -1,11 +1,17 @@
 from pathlib import Path
 
 from PyQt6.QtCore import pyqtSignal, pyqtSlot
-from PyQt6.QtWidgets import QFileDialog, QLabel, QPushButton, QStyle, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QLabel, QMessageBox, QPushButton, QStyle, QVBoxLayout, QWidget
+from returns.pipeline import is_successful
 
 from mcr_analyzer.config.database import SQLITE__FILE_FILTER, SQLITE__FILENAME_EXTENSION
-from mcr_analyzer.config.qt import BUTTON__ICON_SIZE, q_settings__session__recent_file_name_list__add
+from mcr_analyzer.config.qt import (
+    BUTTON__ICON_SIZE,
+    q_settings__session__recent_file_name_list__add,
+    q_settings__session__recent_file_name_list__remove,
+)
 from mcr_analyzer.database.database import database
+from mcr_analyzer.utils.q_file_dialog import FileDialog
 
 
 class WelcomeWidget(QWidget):
@@ -43,33 +49,50 @@ class WelcomeWidget(QWidget):
 
     @pyqtSlot()
     def clicked_new_button(self) -> None:
-        file_name, filter_name = self._get_save_file_name()
-        if file_name and filter_name:
-            # Ensure file has an extension
-            file_path = Path(file_name)
-            if not file_path.exists() and not file_path.suffix:
-                file_path = file_path.with_suffix(SQLITE__FILENAME_EXTENSION)
+        file_path = FileDialog.get_save_file_path(
+            parent=self, caption="Store database as", filter=SQLITE__FILE_FILTER, suffix=SQLITE__FILENAME_EXTENSION
+        )
 
-            database.create__sqlite(file_path)
+        if file_path is None:
+            return
 
-            q_settings__session__recent_file_name_list__add(file_name)
+        file_name = str(file_path)
 
-            self.database_changed.emit()
-            self.database_created.emit()
+        database.create_and_load__sqlite(file_path)
+
+        q_settings__session__recent_file_name_list__add(file_name)
+
+        self.database_changed.emit()
+        self.database_created.emit()
 
     @pyqtSlot()
     def clicked_open_button(self) -> None:
-        file_name, filter_name = self._get_open_file_name()
-        if file_name and filter_name:
-            database.load__sqlite(Path(file_name))
+        while True:
+            file_path = FileDialog.get_open_file_path(
+                parent=self, caption="Select database", filter=SQLITE__FILE_FILTER
+            )
 
+            if file_path is None:
+                return
+
+            self.open_file_path(file_path)
+
+            if database.is_valid:
+                break
+
+    def open_file_path(self, file_path: Path) -> None:
+        file_name = str(file_path)
+
+        if not file_path.exists():
+            q_settings__session__recent_file_name_list__remove(file_name)
+            QMessageBox.warning(self, "File not found", file_name)
+
+        elif not is_successful(database.load__sqlite(file_path)):
+            q_settings__session__recent_file_name_list__remove(file_name)
+            QMessageBox.warning(self, "File incompatible", file_name)
+
+        else:
             q_settings__session__recent_file_name_list__add(file_name)
 
             self.database_changed.emit()
             self.database_opened.emit()
-
-    def _get_save_file_name(self) -> tuple[str, str]:
-        return QFileDialog.getSaveFileName(parent=self, caption="Store database as", filter=SQLITE__FILE_FILTER)
-
-    def _get_open_file_name(self) -> tuple[str, str]:
-        return QFileDialog.getOpenFileName(parent=self, caption="Select database", filter=SQLITE__FILE_FILTER)
