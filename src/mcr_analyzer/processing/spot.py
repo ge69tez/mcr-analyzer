@@ -1,6 +1,6 @@
 """Interface and classes for spot analysis."""
 
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 
 import numpy as np
 import numpy.typing as npt
@@ -9,7 +9,7 @@ from mcr_analyzer.config.netpbm import PGM__ND_ARRAY__DATA_TYPE  # cSpell:ignore
 from mcr_analyzer.config.spot import SPOT__NUMBER__OF__BRIGHTEST_PIXELS
 
 
-class Spot(metaclass=ABCMeta):
+class Spot(ABC):
     """Base class defining spot analysis interface."""
 
     def __init__(self, data: npt.NDArray[PGM__ND_ARRAY__DATA_TYPE]) -> None:  # cSpell:ignore ndarray

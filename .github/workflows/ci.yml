@@ -39,7 +39,7 @@ jobs:
           pip install \
             -r requirements-dev.txt
 
-      - uses: pre-commit/action@v3.0.0
+      - uses: pre-commit/action@v3.0.1
         env:
           SKIP: pre-commit-update,coverage-badge,no-commit-to-branch
 

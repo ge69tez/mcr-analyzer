@@ -6,19 +6,19 @@
 #
 greenlet==3.0.3
     # via sqlalchemy
-numpy==1.26.3
+numpy==1.26.4
     # via mcr-analyzer (pyproject.toml)
 pyqt6==6.6.1
     # via mcr-analyzer (pyproject.toml)
-pyqt6-qt6==6.6.1
+pyqt6-qt6==6.6.2
     # via pyqt6
 pyqt6-sip==13.6.0
     # via pyqt6
-pytz==2023.3.post1
+pytz==2024.1
     # via mcr-analyzer (pyproject.toml)
 returns==0.22.0
     # via mcr-analyzer (pyproject.toml)
-sqlalchemy==2.0.25
+sqlalchemy==2.0.27
     # via mcr-analyzer (pyproject.toml)
 typing-extensions==4.9.0
     # via

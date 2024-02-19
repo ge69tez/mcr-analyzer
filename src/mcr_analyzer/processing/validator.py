@@ -1,11 +1,11 @@
 """Validation functions for replicates."""
 
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 
 import numpy as np
 
 
-class Validator(metaclass=ABCMeta):
+class Validator(ABC):
     """Base class for column based spot verification."""
 
     def __init__(self, data: list[float]):
