@@ -91,9 +91,11 @@ class MeasurementWidget(QWidget):
         self.scene = GraphicsMeasurementScene(0, 0, PGM__WIDTH, PGM__HEIGHT)
         self.scene.changed_validity.connect(self.update_validity)
         self.scene.moved_grid.connect(self.update_grid_position)
+
         # Container for measurement image
         self.image = QGraphicsPixmapItem()  # cSpell:ignore Pixmap
         self.scene.addItem(self.image)
+
         self.view = QGraphicsView(self.scene)
         self.view.centerOn(PGM__WIDTH / 2, PGM__HEIGHT / 2)
         self.grid: GridItem | None = None
@@ -168,11 +170,11 @@ class MeasurementWidget(QWidget):
             self.spot_margin_vertical.setValue(measurement.chip.spot_margin_vertical)
 
             # Connect grid related fields
-            self.column_count.valueChanged.connect(self.preview_grid)
-            self.row_count.valueChanged.connect(self.preview_grid)
-            self.spot_size.valueChanged.connect(self.preview_grid)
-            self.spot_margin_horizontal.valueChanged.connect(self.preview_grid)
-            self.spot_margin_vertical.valueChanged.connect(self.preview_grid)
+            self.column_count.valueChanged.connect(self.refresh_grid)
+            self.row_count.valueChanged.connect(self.refresh_grid)
+            self.spot_size.valueChanged.connect(self.refresh_grid)
+            self.spot_margin_horizontal.valueChanged.connect(self.refresh_grid)
+            self.spot_margin_vertical.valueChanged.connect(self.refresh_grid)
 
             if measurement.notes:
                 self.notes.setPlainText(measurement.notes)
@@ -180,7 +182,7 @@ class MeasurementWidget(QWidget):
                 self.notes.clear()
 
             q_image = QImage(
-                measurement.image_data,  # cSpell:ignore astype tobytes
+                measurement.image_data,
                 measurement.image_width,
                 measurement.image_height,
                 QImage.Format.Format_Grayscale16,
@@ -190,7 +192,7 @@ class MeasurementWidget(QWidget):
             self.results.setModel(self.result_model)
             self.results.resizeColumnsToContents()
 
-            if self.grid:
+            if self.grid is not None:
                 self.scene.removeItem(self.grid)
 
             self.grid = GridItem(self.measurement_id)
@@ -205,19 +207,21 @@ class MeasurementWidget(QWidget):
             QSettings().setValue(Q_SETTINGS__SESSION__SELECTED_DATE, parent_index.data())
 
     @pyqtSlot()
-    def preview_grid(self) -> None:
+    def refresh_grid(self) -> None:
         if self.grid is None:
             return
 
         self.results.setDisabled(True)
         self.saveGridButton.setEnabled(True)
         self.resetGridButton.setEnabled(True)
-        self.grid.preview_settings(
+
+        self.grid.refresh(
             column_count=self.column_count.value(),
             row_count=self.row_count.value(),
             spot_margin_horizontal=self.spot_margin_horizontal.value(),
             spot_margin_vertical=self.spot_margin_vertical.value(),
             spot_size=self.spot_size.value(),
+            editing_mode=True,
         )
 
     @pyqtSlot()
@@ -238,8 +242,9 @@ class MeasurementWidget(QWidget):
             chip.column_count = self.column_count.value()
             chip.row_count = self.row_count.value()
 
-            chip.margin_left = int(self.grid.scenePos().x())
-            chip.margin_top = int(self.grid.scenePos().y())
+            x, y = self._get_grid_scene_position()
+            chip.margin_left = x
+            chip.margin_top = y
 
             chip.spot_size = self.spot_size.value()
             chip.spot_margin_horizontal = self.spot_margin_horizontal.value()
@@ -247,7 +252,13 @@ class MeasurementWidget(QWidget):
 
         update_results(self.measurement_id)
 
-        self.grid.database_view()
+        self.grid.refresh(
+            column_count=self.column_count.value(),
+            row_count=self.row_count.value(),
+            spot_margin_horizontal=self.spot_margin_horizontal.value(),
+            spot_margin_vertical=self.spot_margin_vertical.value(),
+            spot_size=self.spot_size.value(),
+        )
 
         self.saveGridButton.setDisabled(True)
 
@@ -288,13 +299,19 @@ class MeasurementWidget(QWidget):
             self.grid.setPos(measurement.chip.margin_left, measurement.chip.margin_top)
 
         # Connect grid related fields
-        self.column_count.valueChanged.connect(self.preview_grid)
-        self.row_count.valueChanged.connect(self.preview_grid)
-        self.spot_size.valueChanged.connect(self.preview_grid)
-        self.spot_margin_horizontal.valueChanged.connect(self.preview_grid)
-        self.spot_margin_vertical.valueChanged.connect(self.preview_grid)
+        self.column_count.valueChanged.connect(self.refresh_grid)
+        self.row_count.valueChanged.connect(self.refresh_grid)
+        self.spot_size.valueChanged.connect(self.refresh_grid)
+        self.spot_margin_horizontal.valueChanged.connect(self.refresh_grid)
+        self.spot_margin_vertical.valueChanged.connect(self.refresh_grid)
 
-        self.grid.database_view()
+        self.grid.refresh(
+            column_count=self.column_count.value(),
+            row_count=self.row_count.value(),
+            spot_margin_horizontal=self.spot_margin_horizontal.value(),
+            spot_margin_vertical=self.spot_margin_vertical.value(),
+            spot_size=self.spot_size.value(),
+        )
 
         self.saveGridButton.setDisabled(True)
         self.resetGridButton.setDisabled(True)
@@ -306,17 +323,15 @@ class MeasurementWidget(QWidget):
         if self.grid is None:
             return
 
-        x = int(self.grid.scenePos().x())
-        y = int(self.grid.scenePos().y())
-
         # Initial position is (0, 0) and triggers an event which needs to be ignored
+        x, y = self._get_grid_scene_position()
         if x == 0 and y == 0:
             return
 
         if self.measurement_id is None:
             return
 
-        self.preview_grid()
+        self.refresh_grid()
 
     @pyqtSlot()
     def update_notes(self) -> None:
@@ -367,6 +382,17 @@ class MeasurementWidget(QWidget):
             matches = self.model.match(root, Qt.ItemDataRole.DisplayRole, current_date)
             for idx in matches:
                 self.tree.expand(idx)
+
+    def _get_grid_scene_position(self) -> tuple[int, int]:
+        if self.grid is None:
+            raise NotImplementedError
+
+        grid_scene_position = self.grid.scenePos()
+
+        x = int(grid_scene_position.x())
+        y = int(grid_scene_position.y())
+
+        return x, y
 
 
 class StatefulPlainTextEdit(QPlainTextEdit):
