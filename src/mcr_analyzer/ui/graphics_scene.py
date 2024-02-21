@@ -2,12 +2,14 @@ from string import ascii_uppercase
 from typing import Any
 
 from PyQt6.QtCore import QRectF, Qt, pyqtSignal
-from PyQt6.QtGui import QBrush, QPainter, QPen
+from PyQt6.QtGui import QBrush, QPainter, QPen, QWheelEvent
 from PyQt6.QtWidgets import (
     QGraphicsItem,
+    QGraphicsPixmapItem,
     QGraphicsRectItem,
     QGraphicsScene,
     QGraphicsSceneMouseEvent,
+    QGraphicsView,
     QStyleOptionGraphicsItem,
     QWidget,
 )
@@ -222,3 +224,36 @@ class GridItem(QGraphicsItem):
         self.spot_size = spot_size
 
         self._add_children(editing_mode=editing_mode)
+
+
+class ImageView(QGraphicsView):
+    def __init__(self, scene: QGraphicsScene, image: QGraphicsPixmapItem) -> None:  # cSpell:ignore Pixmap
+        super().__init__(scene)
+
+        self.zoom_level = 0
+
+        self.image = image
+
+        self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+
+        self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+
+        self.centerOn(self.image)
+
+    def wheelEvent(self, event: QWheelEvent) -> None:  # noqa: N802
+        zoom_in_factor = 1.25
+        zoom_out_factor = 1 / zoom_in_factor
+
+        if event.angleDelta().y() > 0:
+            factor = zoom_in_factor
+            self.zoom_level += 1
+        else:
+            factor = zoom_out_factor
+            self.zoom_level -= 1
+
+        if self.zoom_level > 0:
+            self.scale(factor, factor)
+        else:
+            self.zoom_level = 0
+            self.fitInView(self.image, Qt.AspectRatioMode.KeepAspectRatio)

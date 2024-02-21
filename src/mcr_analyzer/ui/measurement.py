@@ -3,7 +3,6 @@ from PyQt6.QtGui import QFocusEvent, QImage, QPixmap
 from PyQt6.QtWidgets import (
     QFormLayout,
     QGraphicsPixmapItem,
-    QGraphicsView,
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
@@ -23,7 +22,7 @@ from mcr_analyzer.config.qt import Q_SETTINGS__SESSION__SELECTED_DATE
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement, Result
 from mcr_analyzer.processing.measurement import update_results
-from mcr_analyzer.ui.graphics_scene import GraphicsMeasurementScene, GridItem
+from mcr_analyzer.ui.graphics_scene import GraphicsMeasurementScene, GridItem, ImageView
 from mcr_analyzer.ui.models import MeasurementTreeItem, MeasurementTreeModel, ResultTableModel
 
 
@@ -96,14 +95,13 @@ class MeasurementWidget(QWidget):
         self.image = QGraphicsPixmapItem()  # cSpell:ignore Pixmap
         self.scene.addItem(self.image)
 
-        self.view = QGraphicsView(self.scene)
-        self.view.centerOn(PGM__WIDTH / 2, PGM__HEIGHT / 2)
+        self.view = ImageView(self.scene, self.image)
+
         self.grid: GridItem | None = None
 
-        # Scale result table twice as much as image
-        v_box_layout.addWidget(self.view, 1)
+        v_box_layout.addWidget(self.view)
         self.results = QTableView()
-        v_box_layout.addWidget(self.results, 2)
+        v_box_layout.addWidget(self.results)
 
         layout.addWidget(group_box)
 
