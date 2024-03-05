@@ -1,6 +1,7 @@
 from PyQt6.QtCore import QItemSelection, QModelIndex, QSettings, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QFocusEvent, QImage, QPixmap
 from PyQt6.QtWidgets import (
+    QDoubleSpinBox,
     QFormLayout,
     QGraphicsPixmapItem,
     QGroupBox,
@@ -20,9 +21,9 @@ from sqlalchemy.sql.expression import select
 from mcr_analyzer.config.netpbm import PGM__HEIGHT, PGM__WIDTH  # cSpell:ignore netpbm
 from mcr_analyzer.config.qt import Q_SETTINGS__SESSION__SELECTED_DATE
 from mcr_analyzer.database.database import database
-from mcr_analyzer.database.models import Measurement, Result
+from mcr_analyzer.database.models import Measurement
 from mcr_analyzer.processing.measurement import update_results
-from mcr_analyzer.ui.graphics_scene import GraphicsMeasurementScene, GridItem, ImageView
+from mcr_analyzer.ui.graphics_scene import GraphicsMeasurementScene, Grid, ImageView
 from mcr_analyzer.ui.models import MeasurementTreeItem, MeasurementTreeModel, ResultTableModel
 
 
@@ -40,91 +41,143 @@ class MeasurementWidget(QWidget):
         self.tree.header().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         layout.addWidget(self.tree)
 
-        group_box = QGroupBox("Record data")
+        group_box__record_data = QGroupBox("Record data")
         form_layout = QFormLayout()
-        group_box.setLayout(form_layout)
+        group_box__record_data.setLayout(form_layout)
+        layout.addWidget(group_box__record_data)
+
         self.measurer = QLineEdit()
         form_layout.addRow("Measured by:", self.measurer)
+
         self.device = QLineEdit()
         self.device.setReadOnly(True)
         form_layout.addRow("Device:", self.device)
+
         self.timestamp = QLineEdit()
         self.timestamp.setReadOnly(True)
         form_layout.addRow("Date/time:", self.timestamp)
+
         self.chip = QLineEdit()
         form_layout.addRow("Chip ID:", self.chip)
+
         self.sample = QLineEdit()
         form_layout.addRow("Sample ID:", self.sample)
+
         self.notes = StatefulPlainTextEdit()
         self.notes.setPlaceholderText("Please enter additional notes here.")
         self.notes.setMinimumWidth(250)
         self.notes.editing_finished.connect(self.update_notes)
         form_layout.addRow("Notes:", self.notes)
         form_layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+
         self.column_count = QSpinBox()
+        self.column_count.setMinimum(2)
         form_layout.addRow("Number of Columns:", self.column_count)
+
         self.row_count = QSpinBox()
+        self.row_count.setMinimum(2)
         form_layout.addRow("Number of Rows:", self.row_count)
+
         self.spot_size = QSpinBox()
         form_layout.addRow("Spot size:", self.spot_size)
+
         self.spot_margin_horizontal = QSpinBox()
-        form_layout.addRow("Horizontal Spot Distance:", self.spot_margin_horizontal)
+
         self.spot_margin_vertical = QSpinBox()
-        form_layout.addRow("Vert. Spot Distance:", self.spot_margin_vertical)
-        self.saveGridButton = QPushButton("Save grid and calculate results")
-        self.saveGridButton.setDisabled(True)
-        self.saveGridButton.clicked.connect(self.save_grid)
-        form_layout.addRow(self.saveGridButton)
-        self.resetGridButton = QPushButton("Reset grid")
-        self.resetGridButton.setDisabled(True)
-        self.resetGridButton.clicked.connect(self.reset_grid)
-        form_layout.addRow(self.resetGridButton)
-        layout.addWidget(group_box)
 
-        group_box = QGroupBox("Visualization")
+        self.spot_corner_top_left_x = QDoubleSpinBox()
+        form_layout.addRow("Spot Corner Top Left X:", self.spot_corner_top_left_x)
+        self.spot_corner_top_left_y = QDoubleSpinBox()
+        form_layout.addRow("Spot Corner Top Left Y:", self.spot_corner_top_left_y)
+
+        self.spot_corner_top_right_x = QDoubleSpinBox()
+        form_layout.addRow("Spot Corner Top Right X:", self.spot_corner_top_right_x)
+        self.spot_corner_top_right_y = QDoubleSpinBox()
+        form_layout.addRow("Spot Corner Top Right Y:", self.spot_corner_top_right_y)
+
+        self.spot_corner_bottom_right_x = QDoubleSpinBox()
+        form_layout.addRow("Spot Corner Bottom Right X:", self.spot_corner_bottom_right_x)
+        self.spot_corner_bottom_right_y = QDoubleSpinBox()
+        form_layout.addRow("Spot Corner Bottom Right Y:", self.spot_corner_bottom_right_y)
+
+        self.spot_corner_bottom_left_x = QDoubleSpinBox()
+        form_layout.addRow("Spot Corner Bottom Left X:", self.spot_corner_bottom_left_x)
+        self.spot_corner_bottom_left_y = QDoubleSpinBox()
+        form_layout.addRow("Spot Corner Bottom Left Y:", self.spot_corner_bottom_left_y)
+
+        self.spot_corner_top_left_x.setMaximum(PGM__WIDTH)
+        self.spot_corner_top_left_y.setMaximum(PGM__HEIGHT)
+        self.spot_corner_top_right_x.setMaximum(PGM__WIDTH)
+        self.spot_corner_top_right_y.setMaximum(PGM__HEIGHT)
+        self.spot_corner_bottom_right_x.setMaximum(PGM__WIDTH)
+        self.spot_corner_bottom_right_y.setMaximum(PGM__HEIGHT)
+        self.spot_corner_bottom_left_x.setMaximum(PGM__WIDTH)
+        self.spot_corner_bottom_left_y.setMaximum(PGM__HEIGHT)
+
+        self.column_count.valueChanged.connect(self.update_grid)
+        self.row_count.valueChanged.connect(self.update_grid)
+        self.spot_size.valueChanged.connect(self.update_grid)
+        self.spot_margin_horizontal.valueChanged.connect(self.update_grid)
+        self.spot_margin_vertical.valueChanged.connect(self.update_grid)
+
+        self.spot_corner_top_left_x.valueChanged.connect(self.update_grid)
+        self.spot_corner_top_left_y.valueChanged.connect(self.update_grid)
+        self.spot_corner_top_right_x.valueChanged.connect(self.update_grid)
+        self.spot_corner_top_right_y.valueChanged.connect(self.update_grid)
+        self.spot_corner_bottom_right_x.valueChanged.connect(self.update_grid)
+        self.spot_corner_bottom_right_y.valueChanged.connect(self.update_grid)
+        self.spot_corner_bottom_left_x.valueChanged.connect(self.update_grid)
+        self.spot_corner_bottom_left_y.valueChanged.connect(self.update_grid)
+
+        self.save_grid_and_update_results_button = QPushButton("Save grid and update results")
+        self.save_grid_and_update_results_button.setEnabled(False)
+        self.save_grid_and_update_results_button.clicked.connect(self.save_grid_and_update_results)
+        form_layout.addRow(self.save_grid_and_update_results_button)
+
+        self.reset_grid_button = QPushButton("Reset grid")
+        self.reset_grid_button.setEnabled(False)
+        self.reset_grid_button.clicked.connect(self.reset_grid)
+        form_layout.addRow(self.reset_grid_button)
+
+        group_box__visualization = QGroupBox("Visualization")
         v_box_layout = QVBoxLayout()
-        group_box.setLayout(v_box_layout)
+        group_box__visualization.setLayout(v_box_layout)
 
-        # Visualization via multi-layered GraphicsScene
-        # Size to MCR image; might need to become non-static in future devices
-        self.scene = GraphicsMeasurementScene(0, 0, PGM__WIDTH, PGM__HEIGHT)
-        self.scene.changed_validity.connect(self.update_validity)
-        self.scene.moved_grid.connect(self.update_grid_position)
+        self.scene = GraphicsMeasurementScene(self)
 
-        # Container for measurement image
         self.image = QGraphicsPixmapItem()  # cSpell:ignore Pixmap
         self.scene.addItem(self.image)
 
         self.view = ImageView(self.scene, self.image)
 
-        self.grid: GridItem | None = None
+        self.grid: Grid | None = None
+        self.scene.grid_corner_moved.connect(self.update_grid_children)
 
         v_box_layout.addWidget(self.view)
         self.results = QTableView()
-        v_box_layout.addWidget(self.results)
 
-        layout.addWidget(group_box)
+        layout.addWidget(group_box__visualization, stretch=3)
 
     @pyqtSlot()
-    def refresh_database(self) -> None:
+    def reload_database(self) -> None:
         if self.model is None:
             return
 
-        self.model.refresh_model()
+        self.model.reload_model()
 
         self._expand_rows_with_selected_date()
 
     @pyqtSlot()
-    def refresh__measurement_widget__tree_view(self) -> None:
+    def update__measurement_widget__tree_view(self) -> None:
         if not database.is_valid:
             raise NotImplementedError
 
         self.model = MeasurementTreeModel()
+
         self.tree.setModel(self.model)
+        self.tree.selectionModel().selectionChanged.connect(self.selection_changed)
 
         self._expand_rows_with_selected_date()
-
-        self.tree.selectionModel().selectionChanged.connect(self.selection_changed)
 
     @pyqtSlot(QItemSelection, QItemSelection)
     def selection_changed(self, selected: QItemSelection, deselected: QItemSelection) -> None:  # noqa: ARG002
@@ -150,29 +203,21 @@ class MeasurementWidget(QWidget):
             self.chip.setText(measurement.chip.chip_id)
             self.sample.setText(measurement.sample.probe_id)
 
-            # Disconnect all signals
-            try:
-                self.column_count.valueChanged.disconnect()
-                self.row_count.valueChanged.disconnect()
-                self.spot_size.valueChanged.disconnect()
-                self.spot_margin_horizontal.valueChanged.disconnect()
-                self.spot_margin_vertical.valueChanged.disconnect()
-            except (RuntimeError, TypeError):
-                # Don't fail if they are not connected
-                pass
-
-            self.column_count.setValue(measurement.chip.column_count)
-            self.row_count.setValue(measurement.chip.row_count)
-            self.spot_size.setValue(measurement.chip.spot_size)
-            self.spot_margin_horizontal.setValue(measurement.chip.spot_margin_horizontal)
-            self.spot_margin_vertical.setValue(measurement.chip.spot_margin_vertical)
-
-            # Connect grid related fields
-            self.column_count.valueChanged.connect(self.refresh_grid)
-            self.row_count.valueChanged.connect(self.refresh_grid)
-            self.spot_size.valueChanged.connect(self.refresh_grid)
-            self.spot_margin_horizontal.valueChanged.connect(self.refresh_grid)
-            self.spot_margin_vertical.valueChanged.connect(self.refresh_grid)
+            self._update_fields(
+                column_count=measurement.chip.column_count,
+                row_count=measurement.chip.row_count,
+                spot_size=measurement.chip.spot_size,
+                spot_margin_horizontal=measurement.chip.spot_margin_horizontal,
+                spot_margin_vertical=measurement.chip.spot_margin_vertical,
+                spot_corner_top_left_x=measurement.chip.spot_corner_top_left_x,
+                spot_corner_top_left_y=measurement.chip.spot_corner_top_left_y,
+                spot_corner_top_right_x=measurement.chip.spot_corner_top_right_x,
+                spot_corner_top_right_y=measurement.chip.spot_corner_top_right_y,
+                spot_corner_bottom_right_x=measurement.chip.spot_corner_bottom_right_x,
+                spot_corner_bottom_right_y=measurement.chip.spot_corner_bottom_right_y,
+                spot_corner_bottom_left_x=measurement.chip.spot_corner_bottom_left_x,
+                spot_corner_bottom_left_y=measurement.chip.spot_corner_bottom_left_y,
+            )
 
             if measurement.notes:
                 self.notes.setPlainText(measurement.notes)
@@ -192,12 +237,11 @@ class MeasurementWidget(QWidget):
 
             if self.grid is not None:
                 self.scene.removeItem(self.grid)
-
-            self.grid = GridItem(self.measurement_id)
+            self.grid = Grid(self.measurement_id)
             self.scene.addItem(self.grid)
-            self.grid.setPos(measurement.chip.margin_left, measurement.chip.margin_top)
 
         self.image.setPixmap(QPixmap.fromImage(q_image))
+        self.view.fit_in_view()
 
         # Store date of last used measurement for expanding tree on next launch
         parent_index = model_index.parent()
@@ -205,25 +249,55 @@ class MeasurementWidget(QWidget):
             QSettings().setValue(Q_SETTINGS__SESSION__SELECTED_DATE, parent_index.data())
 
     @pyqtSlot()
-    def refresh_grid(self) -> None:
-        if self.grid is None:
-            return
+    def update_grid(self) -> None:
+        if self.grid is not None:
+            editing_mode_enabled = True
+            self._widgets_set_enabled(editing_mode_enabled=editing_mode_enabled)
 
-        self.results.setDisabled(True)
-        self.saveGridButton.setEnabled(True)
-        self.resetGridButton.setEnabled(True)
-
-        self.grid.refresh(
-            column_count=self.column_count.value(),
-            row_count=self.row_count.value(),
-            spot_margin_horizontal=self.spot_margin_horizontal.value(),
-            spot_margin_vertical=self.spot_margin_vertical.value(),
-            spot_size=self.spot_size.value(),
-            editing_mode=True,
-        )
+            self.grid.update_(
+                column_count=self.column_count.value(),
+                row_count=self.row_count.value(),
+                spot_size=self.spot_size.value(),
+                spot_corner_top_left_x=self.spot_corner_top_left_x.value(),
+                spot_corner_top_left_y=self.spot_corner_top_left_y.value(),
+                spot_corner_top_right_x=self.spot_corner_top_right_x.value(),
+                spot_corner_top_right_y=self.spot_corner_top_right_y.value(),
+                spot_corner_bottom_right_x=self.spot_corner_bottom_right_x.value(),
+                spot_corner_bottom_right_y=self.spot_corner_bottom_right_y.value(),
+                spot_corner_bottom_left_x=self.spot_corner_bottom_left_x.value(),
+                spot_corner_bottom_left_y=self.spot_corner_bottom_left_y.value(),
+            )
 
     @pyqtSlot()
-    def save_grid(self) -> None:
+    def update_grid_children(self) -> None:
+        if self.grid is not None:
+            editing_mode_enabled = True
+            self._widgets_set_enabled(editing_mode_enabled=editing_mode_enabled)
+
+            self.grid.update_children(
+                column_count=self.column_count.value(),
+                row_count=self.row_count.value(),
+                spot_size=self.spot_size.value(),
+            )
+
+            (
+                (spot_corner_top_left_x, spot_corner_top_left_y),
+                (spot_corner_top_right_x, spot_corner_top_right_y),
+                (spot_corner_bottom_right_x, spot_corner_bottom_right_y),
+                (spot_corner_bottom_left_x, spot_corner_bottom_left_y),
+            ) = self._get_grid_spot_corner_coordinates()
+
+            self.spot_corner_top_left_x.setValue(spot_corner_top_left_x)
+            self.spot_corner_top_left_y.setValue(spot_corner_top_left_y)
+            self.spot_corner_top_right_x.setValue(spot_corner_top_right_x)
+            self.spot_corner_top_right_y.setValue(spot_corner_top_right_y)
+            self.spot_corner_bottom_right_x.setValue(spot_corner_bottom_right_x)
+            self.spot_corner_bottom_right_y.setValue(spot_corner_bottom_right_y)
+            self.spot_corner_bottom_left_x.setValue(spot_corner_bottom_left_x)
+            self.spot_corner_bottom_left_y.setValue(spot_corner_bottom_left_y)
+
+    @pyqtSlot()
+    def save_grid_and_update_results(self) -> None:
         if self.measurement_id is None:
             return
 
@@ -240,31 +314,45 @@ class MeasurementWidget(QWidget):
             chip.column_count = self.column_count.value()
             chip.row_count = self.row_count.value()
 
-            x, y = self._get_grid_scene_position()
-            chip.margin_left = x
-            chip.margin_top = y
-
             chip.spot_size = self.spot_size.value()
             chip.spot_margin_horizontal = self.spot_margin_horizontal.value()
             chip.spot_margin_vertical = self.spot_margin_vertical.value()
 
+            (
+                (spot_corner_top_left_x, spot_corner_top_left_y),
+                (spot_corner_top_right_x, spot_corner_top_right_y),
+                (spot_corner_bottom_right_x, spot_corner_bottom_right_y),
+                (spot_corner_bottom_left_x, spot_corner_bottom_left_y),
+            ) = self._get_grid_spot_corner_coordinates()
+            chip.spot_corner_top_left_x = spot_corner_top_left_x
+            chip.spot_corner_top_left_y = spot_corner_top_left_y
+            chip.spot_corner_top_right_x = spot_corner_top_right_x
+            chip.spot_corner_top_right_y = spot_corner_top_right_y
+            chip.spot_corner_bottom_right_x = spot_corner_bottom_right_x
+            chip.spot_corner_bottom_right_y = spot_corner_bottom_right_y
+            chip.spot_corner_bottom_left_x = spot_corner_bottom_left_x
+            chip.spot_corner_bottom_left_y = spot_corner_bottom_left_y
+
         update_results(self.measurement_id)
 
-        self.grid.refresh(
+        self.grid.update_(
             column_count=self.column_count.value(),
             row_count=self.row_count.value(),
-            spot_margin_horizontal=self.spot_margin_horizontal.value(),
-            spot_margin_vertical=self.spot_margin_vertical.value(),
             spot_size=self.spot_size.value(),
+            spot_corner_top_left_x=self.spot_corner_top_left_x.value(),
+            spot_corner_top_left_y=self.spot_corner_top_left_y.value(),
+            spot_corner_top_right_x=self.spot_corner_top_right_x.value(),
+            spot_corner_top_right_y=self.spot_corner_top_right_y.value(),
+            spot_corner_bottom_right_x=self.spot_corner_bottom_right_x.value(),
+            spot_corner_bottom_right_y=self.spot_corner_bottom_right_y.value(),
+            spot_corner_bottom_left_x=self.spot_corner_bottom_left_x.value(),
+            spot_corner_bottom_left_y=self.spot_corner_bottom_left_y.value(),
         )
 
-        self.saveGridButton.setDisabled(True)
-
-        self.resetGridButton.setDisabled(True)
+        self._widgets_set_enabled(editing_mode_enabled=False)
 
         self.result_model.update()
 
-        self.results.setEnabled(True)
         self.results.resizeColumnsToContents()
 
     @pyqtSlot()
@@ -275,61 +363,40 @@ class MeasurementWidget(QWidget):
         if self.grid is None:
             return
 
-        # Disconnect all signals
-        try:
-            self.column_count.valueChanged.disconnect()
-            self.row_count.valueChanged.disconnect()
-            self.spot_size.valueChanged.disconnect()
-            self.spot_margin_horizontal.valueChanged.disconnect()
-            self.spot_margin_vertical.valueChanged.disconnect()
-        except TypeError:
-            pass
-
         with database.Session() as session:
             measurement = session.execute(select(Measurement).where(Measurement.id == self.measurement_id)).scalar_one()
 
-            self.column_count.setValue(measurement.chip.column_count)
-            self.row_count.setValue(measurement.chip.row_count)
-            self.spot_size.setValue(measurement.chip.spot_size)
-            self.spot_margin_horizontal.setValue(measurement.chip.spot_margin_horizontal)
-            self.spot_margin_vertical.setValue(measurement.chip.spot_margin_vertical)
+            self._update_fields(
+                column_count=measurement.chip.column_count,
+                row_count=measurement.chip.row_count,
+                spot_size=measurement.chip.spot_size,
+                spot_margin_horizontal=measurement.chip.spot_margin_horizontal,
+                spot_margin_vertical=measurement.chip.spot_margin_vertical,
+                spot_corner_top_left_x=measurement.chip.spot_corner_top_left_x,
+                spot_corner_top_left_y=measurement.chip.spot_corner_top_left_y,
+                spot_corner_top_right_x=measurement.chip.spot_corner_top_right_x,
+                spot_corner_top_right_y=measurement.chip.spot_corner_top_right_y,
+                spot_corner_bottom_right_x=measurement.chip.spot_corner_bottom_right_x,
+                spot_corner_bottom_right_y=measurement.chip.spot_corner_bottom_right_y,
+                spot_corner_bottom_left_x=measurement.chip.spot_corner_bottom_left_x,
+                spot_corner_bottom_left_y=measurement.chip.spot_corner_bottom_left_y,
+            )
 
-            self.grid.setPos(measurement.chip.margin_left, measurement.chip.margin_top)
-
-        # Connect grid related fields
-        self.column_count.valueChanged.connect(self.refresh_grid)
-        self.row_count.valueChanged.connect(self.refresh_grid)
-        self.spot_size.valueChanged.connect(self.refresh_grid)
-        self.spot_margin_horizontal.valueChanged.connect(self.refresh_grid)
-        self.spot_margin_vertical.valueChanged.connect(self.refresh_grid)
-
-        self.grid.refresh(
+        self.grid.update_(
             column_count=self.column_count.value(),
             row_count=self.row_count.value(),
-            spot_margin_horizontal=self.spot_margin_horizontal.value(),
-            spot_margin_vertical=self.spot_margin_vertical.value(),
             spot_size=self.spot_size.value(),
+            spot_corner_top_left_x=self.spot_corner_top_left_x.value(),
+            spot_corner_top_left_y=self.spot_corner_top_left_y.value(),
+            spot_corner_top_right_x=self.spot_corner_top_right_x.value(),
+            spot_corner_top_right_y=self.spot_corner_top_right_y.value(),
+            spot_corner_bottom_right_x=self.spot_corner_bottom_right_x.value(),
+            spot_corner_bottom_right_y=self.spot_corner_bottom_right_y.value(),
+            spot_corner_bottom_left_x=self.spot_corner_bottom_left_x.value(),
+            spot_corner_bottom_left_y=self.spot_corner_bottom_left_y.value(),
         )
 
-        self.saveGridButton.setDisabled(True)
-        self.resetGridButton.setDisabled(True)
-        self.results.setEnabled(True)
-
-    @pyqtSlot()
-    def update_grid_position(self) -> None:
-        """Filters out additional events before activating grid preview."""
-        if self.grid is None:
-            return
-
-        # Initial position is (0, 0) and triggers an event which needs to be ignored
-        x, y = self._get_grid_scene_position()
-        if x == 0 and y == 0:
-            return
-
-        if self.measurement_id is None:
-            return
-
-        self.refresh_grid()
+        self._widgets_set_enabled(editing_mode_enabled=False)
 
     @pyqtSlot()
     def update_notes(self) -> None:
@@ -345,31 +412,6 @@ class MeasurementWidget(QWidget):
             measurement = session.execute(select(Measurement).where(Measurement.id == self.measurement_id)).scalar_one()
             measurement.notes = notes
 
-    @pyqtSlot(int, int, bool)
-    def update_validity(self, row: int, column: int, valid: bool) -> None:  # noqa: FBT001
-        if self.measurement_id is None:
-            return
-
-        if self.result_model is None:
-            return
-
-        with database.Session() as session, session.begin():
-            statement = (
-                select(Result)
-                .where(Result.measurement_id == self.measurement_id)
-                .where(Result.column == column)
-                .where(Result.row == row)
-            )
-            result = session.execute(statement).scalar_one()
-
-            result.valid = valid
-
-        # Tell views about change
-        start = self.result_model.index(row, column)
-        end = self.result_model.index(self.result_model.rowCount(), column)
-
-        self.result_model.dataChanged.emit(start, end)
-
     def _expand_rows_with_selected_date(self) -> None:
         if self.model is None:
             return
@@ -381,19 +423,65 @@ class MeasurementWidget(QWidget):
             for idx in matches:
                 self.tree.expand(idx)
 
-    def _get_grid_scene_position(self) -> tuple[int, int]:
+    def _get_grid_spot_corner_coordinates(
+        self,
+    ) -> tuple[tuple[float, float], tuple[float, float], tuple[float, float], tuple[float, float]]:
         if self.grid is None:
             raise NotImplementedError
 
-        grid_scene_position = self.grid.scenePos()
+        spot_corner_top_left = self.grid.spot_corner_top_left.scenePos()
+        spot_corner_top_right = self.grid.spot_corner_top_right.scenePos()
+        spot_corner_bottom_right = self.grid.spot_corner_bottom_right.scenePos()
+        spot_corner_bottom_left = self.grid.spot_corner_bottom_left.scenePos()
 
-        x = int(grid_scene_position.x())
-        y = int(grid_scene_position.y())
+        return (
+            (spot_corner_top_left.x(), spot_corner_top_left.y()),
+            (spot_corner_top_right.x(), spot_corner_top_right.y()),
+            (spot_corner_bottom_right.x(), spot_corner_bottom_right.y()),
+            (spot_corner_bottom_left.x(), spot_corner_bottom_left.y()),
+        )
 
-        return x, y
+    def _update_fields(  # noqa: PLR0913
+        self,
+        *,
+        column_count: int,
+        row_count: int,
+        spot_size: int,
+        spot_margin_horizontal: int,
+        spot_margin_vertical: int,
+        spot_corner_top_left_x: float,
+        spot_corner_top_left_y: float,
+        spot_corner_top_right_x: float,
+        spot_corner_top_right_y: float,
+        spot_corner_bottom_right_x: float,
+        spot_corner_bottom_right_y: float,
+        spot_corner_bottom_left_x: float,
+        spot_corner_bottom_left_y: float,
+    ) -> None:
+        self.column_count.setValue(column_count)
+        self.row_count.setValue(row_count)
+        self.spot_size.setValue(spot_size)
+        self.spot_margin_horizontal.setValue(spot_margin_horizontal)
+        self.spot_margin_vertical.setValue(spot_margin_vertical)
+
+        self.spot_corner_top_left_x.setValue(spot_corner_top_left_x)
+        self.spot_corner_top_left_y.setValue(spot_corner_top_left_y)
+        self.spot_corner_top_right_x.setValue(spot_corner_top_right_x)
+        self.spot_corner_top_right_y.setValue(spot_corner_top_right_y)
+        self.spot_corner_bottom_right_x.setValue(spot_corner_bottom_right_x)
+        self.spot_corner_bottom_right_y.setValue(spot_corner_bottom_right_y)
+        self.spot_corner_bottom_left_x.setValue(spot_corner_bottom_left_x)
+        self.spot_corner_bottom_left_y.setValue(spot_corner_bottom_left_y)
+
+    def _widgets_set_enabled(self, *, editing_mode_enabled: bool) -> None:
+        self.save_grid_and_update_results_button.setEnabled(editing_mode_enabled)
+        self.reset_grid_button.setEnabled(editing_mode_enabled)
+        self.results.setEnabled(not editing_mode_enabled)
 
 
 class StatefulPlainTextEdit(QPlainTextEdit):
+    editing_finished = pyqtSignal()
+
     def __init__(self) -> None:
         super().__init__()
         self._content = ""
@@ -402,8 +490,6 @@ class StatefulPlainTextEdit(QPlainTextEdit):
         if self._content != self.toPlainText():
             self._content = self.toPlainText()
             self.editing_finished.emit()
-
-    editing_finished = pyqtSignal()
 
     def focusInEvent(self, event: QFocusEvent) -> None:  # noqa: N802
         if event.reason() != Qt.FocusReason.PopupFocusReason:

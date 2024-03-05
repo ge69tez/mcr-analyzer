@@ -43,6 +43,18 @@ class Chip(Base):
     spot_margin_vertical: Mapped[int]
     """Vertical margin between two adjacent spots: skip N pixels before processing the next spot."""
 
+    spot_corner_top_left_x: Mapped[float]
+    spot_corner_top_left_y: Mapped[float]
+
+    spot_corner_top_right_x: Mapped[float]
+    spot_corner_top_right_y: Mapped[float]
+
+    spot_corner_bottom_right_x: Mapped[float]
+    spot_corner_bottom_right_y: Mapped[float]
+
+    spot_corner_bottom_left_x: Mapped[float]
+    spot_corner_bottom_left_y: Mapped[float]
+
     measurements: Mapped[list["Measurement"]] = relationship(
         back_populates="chip", order_by="Measurement.timestamp", default_factory=list
     )

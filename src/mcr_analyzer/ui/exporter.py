@@ -39,7 +39,7 @@ class ExportWidget(QWidget):
         template_group = QGroupBox("Output template")
         template_layout = QHBoxLayout()
         self.template_edit = QLineEdit("{timestamp}\t{chip.chip_id}\t{sample.probe_id}\t{notes}\t{mean}")
-        self.template_edit.setDisabled(True)
+        self.template_edit.setEnabled(False)
         template_layout.addWidget(self.template_edit)
         template_group.setLayout(template_layout)
         layout.addWidget(template_group)

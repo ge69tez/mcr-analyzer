@@ -160,6 +160,18 @@ class ImportWidget(QWidget):
                     spot_size=rslt.spot_size,
                     spot_margin_horizontal=rslt.spot_margin_horizontal,
                     spot_margin_vertical=rslt.spot_margin_vertical,
+                    spot_corner_top_left_x=rslt.margin_left,
+                    spot_corner_top_left_y=rslt.margin_top,
+                    spot_corner_top_right_x=rslt.margin_left
+                    + (rslt.column_count - 1) * (rslt.spot_margin_horizontal + rslt.spot_size),
+                    spot_corner_top_right_y=rslt.margin_top,
+                    spot_corner_bottom_right_x=rslt.margin_left
+                    + (rslt.column_count - 1) * (rslt.spot_margin_horizontal + rslt.spot_size),
+                    spot_corner_bottom_right_y=rslt.margin_top
+                    + (rslt.row_count - 1) * (rslt.spot_margin_vertical + rslt.spot_size),
+                    spot_corner_bottom_left_x=rslt.margin_left,
+                    spot_corner_bottom_left_y=rslt.margin_top
+                    + (rslt.row_count - 1) * (rslt.spot_margin_vertical + rslt.spot_size),
                 )
 
                 statement = sqlite_upsert(Device).values([{Device.serial: rslt.device_id}])

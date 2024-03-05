@@ -154,7 +154,7 @@ class MeasurementTreeModel(QAbstractItemModel):
 
         return return_value
 
-    def refresh_model(self) -> None:
+    def reload_model(self) -> None:
         self.beginResetModel()
 
         self._setup_model_data()
