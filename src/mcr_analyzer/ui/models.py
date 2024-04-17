@@ -251,7 +251,7 @@ class ResultTableModel(QAbstractTableModel):
         match role:
             case Qt.ItemDataRole.DisplayRole:
                 if result:
-                    return_value = f"{result.value if result.value else np.nan:5.0f}"
+                    return_value = f"{result.value or np.nan:5.0f}"
 
                 elif row_index == self.row_index_max + 1:
                     return_value = f"{self.means[column_index]:5.0f}"

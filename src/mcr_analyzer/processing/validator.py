@@ -58,7 +58,7 @@ class SpotReaderValidator(Validator):
                 close_vals = [indices[j] for j in range(i, i + 3)]
                 min_delta = delta
 
-        mean = sum([self.data[i] for i in close_vals]) / len(close_vals)
+        mean = sum(self.data[i] for i in close_vals) / len(close_vals)
 
         remaining = [i for i in indices if i not in close_vals]
 

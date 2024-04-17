@@ -23,9 +23,11 @@ dynamic = [
 ]
 dependencies = [
   "numpy", # cSpell:ignore numpy
+  "opencv-python", # cSpell:ignore opencv
   "PyQt6",
   "pytz", # cSpell:ignore pytz
   "returns",
+  "scipy", # cSpell:ignore scipy
   "SQLAlchemy",
 ]
 [project.optional-dependencies]
@@ -42,7 +44,7 @@ dev = [
   "pytest-qt",
   "pytest-sugar",
   "ruff",
-  "scalene",
+  "scalene==1.5.31.1", # - With "scalene>1.5.31.1", "hook id: scalene-profile" results in "exit code: 1"
   "tqdm", # - https://www.fatiando.org/pooch/latest/progressbars.html?highlight=tqdm # cSpell:ignore tqdm
 ]
 [project.gui-scripts]
