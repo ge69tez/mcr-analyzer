@@ -2,7 +2,7 @@ import numpy as np
 from sqlalchemy.dialects.sqlite import insert as sqlite_upsert
 from sqlalchemy.sql.expression import select
 
-from mcr_analyzer.config.netpbm import PGM__ND_ARRAY__DATA_TYPE  # cSpell:ignore netpbm
+from mcr_analyzer.config.netpbm import PGM__IMAGE__DATA_TYPE  # cSpell:ignore netpbm
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement, Result
 from mcr_analyzer.processing.spot import DeviceBuiltin
@@ -26,7 +26,7 @@ def update_results(measurement_id: int) -> None:
                 y = measurement.chip.margin_top + row * (
                     measurement.chip.spot_size + measurement.chip.spot_margin_vertical
                 )
-                image_data = np.frombuffer(measurement.image_data, dtype=PGM__ND_ARRAY__DATA_TYPE).reshape(
+                image_data = np.frombuffer(measurement.image_data, dtype=PGM__IMAGE__DATA_TYPE).reshape(
                     measurement.image_height, measurement.image_width
                 )  # cSpell:ignore frombuffer dtype
                 spot_data = image_data[y : y + measurement.chip.spot_size, x : x + measurement.chip.spot_size]

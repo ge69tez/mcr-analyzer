@@ -215,6 +215,7 @@ plugins = [
 module = [
   "pooch.*",
   "pytestqt.*", # cSpell:ignore pytestqt
+  "scipy.*",
 ]
 ignore_missing_imports = true
 

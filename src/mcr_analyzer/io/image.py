@@ -4,13 +4,13 @@ from pathlib import Path
 from typing import Final
 
 import numpy as np
-import numpy.typing as npt
 
 from mcr_analyzer.config.netpbm import (  # cSpell:ignore netpbm
     NETPBM_MAGIC_NUMBER__PATTERN,
     PGM__COLOR_RANGE_MAX,
     PGM__HEIGHT__PATTERN,
-    PGM__ND_ARRAY__DATA_TYPE,
+    PGM__IMAGE__DATA_TYPE,
+    PGM__IMAGE__ND_ARRAY__DATA_TYPE,
     PGM__WIDTH__PATTERN,
     NetpbmMagicNumber,
 )
@@ -50,7 +50,7 @@ class Image:
 
     def read_data(
         self, file: TextIOWrapper, header_lines: list[str], input_format: InputFormat
-    ) -> npt.NDArray[PGM__ND_ARRAY__DATA_TYPE]:
+    ) -> PGM__IMAGE__ND_ARRAY__DATA_TYPE:
         match input_format:
             case self.InputFormat.PNM:
                 width, height = (int(x) for x in header_lines[1].split())
@@ -58,7 +58,7 @@ class Image:
                 magic_number = NetpbmMagicNumber(header_lines[0])
                 match magic_number.type, magic_number.encoding:
                     case NetpbmMagicNumber.Type.PGM, NetpbmMagicNumber.Encoding.ASCII_PLAIN:
-                        data = np.fromfile(file, dtype=PGM__ND_ARRAY__DATA_TYPE, count=height * width, sep=" ").reshape(
+                        data = np.fromfile(file, dtype=PGM__IMAGE__DATA_TYPE, count=height * width, sep=" ").reshape(
                             height, width
                         )  # cSpell:ignore dtype
                     case _:

@@ -1,6 +1,8 @@
-from PyQt6.QtCore import QItemSelection, QModelIndex, QSettings, Qt, pyqtSignal, pyqtSlot
+import numpy as np
+from PyQt6.QtCore import QItemSelection, QModelIndex, QPointF, QSettings, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QFocusEvent, QImage, QPixmap
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QDoubleSpinBox,
     QFormLayout,
     QGraphicsPixmapItem,
@@ -8,17 +10,26 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLineEdit,
+    QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QSlider,
     QSpinBox,
     QTableView,
     QTreeView,
     QVBoxLayout,
     QWidget,
 )
+from returns.pipeline import is_successful
 from sqlalchemy.sql.expression import select
 
-from mcr_analyzer.config.netpbm import PGM__HEIGHT, PGM__WIDTH  # cSpell:ignore netpbm
+from mcr_analyzer.config.image import (
+    OPEN_CV__IMAGE__DATA_TYPE__MAX,
+    OPEN_CV__IMAGE__DATA_TYPE__MIN,
+    get_grid,
+    normalize_image,
+)
+from mcr_analyzer.config.netpbm import PGM__HEIGHT, PGM__IMAGE__DATA_TYPE, PGM__WIDTH  # cSpell:ignore netpbm
 from mcr_analyzer.config.qt import Q_SETTINGS__SESSION__SELECTED_DATE
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement
@@ -139,6 +150,39 @@ class MeasurementWidget(QWidget):
         self.reset_grid_button.clicked.connect(self.reset_grid)
         form_layout.addRow(self.reset_grid_button)
 
+        self.adjust_grid_automatically_button = QPushButton("&Adjust grid automatically")
+        self.adjust_grid_automatically_button.clicked.connect(self.adjust_grid_automatically)
+        self.adjust_grid_automatically_button.setToolTip("More sensitive to noise")
+        form_layout.addRow(self.adjust_grid_automatically_button)
+
+        self.set_threshold_value_manually_check_box = QCheckBox("Set threshold value manually")
+        self.set_threshold_value_manually_check_box.stateChanged.connect(
+            self._set_threshold_value_manually_check_box_state_changed
+        )
+
+        self.threshold_value_slider = QSlider(Qt.Orientation.Horizontal)
+        self.threshold_value_slider.setMinimum(OPEN_CV__IMAGE__DATA_TYPE__MIN)
+        self.threshold_value_slider.setMaximum(OPEN_CV__IMAGE__DATA_TYPE__MAX)
+
+        self.threshold_value_slider.sliderReleased.connect(self.adjust_grid_automatically)
+
+        h_box_layout = QHBoxLayout()
+
+        h_box_layout.addWidget(self.set_threshold_value_manually_check_box)
+        h_box_layout.addWidget(self.threshold_value_slider)
+        form_layout.addRow(h_box_layout)
+
+        self.adjust_grid_automatically_with_noise_reduction_filter_button = QPushButton(
+            "Adjust grid automatically with &noise reduction filter"
+        )
+        self.adjust_grid_automatically_with_noise_reduction_filter_button.clicked.connect(
+            lambda: self.adjust_grid_automatically(use_noise_reduction_filter=True)
+        )
+        self.adjust_grid_automatically_with_noise_reduction_filter_button.setToolTip(
+            "Less sensitive to weak positive results"
+        )
+        form_layout.addRow(self.adjust_grid_automatically_with_noise_reduction_filter_button)
+
         group_box__visualization = QGroupBox("Visualization")
         v_box_layout = QVBoxLayout()
         group_box__visualization.setLayout(v_box_layout)
@@ -157,6 +201,8 @@ class MeasurementWidget(QWidget):
         self.results = QTableView()
 
         layout.addWidget(group_box__visualization, stretch=3)
+
+        self._set_threshold_value_manually_check_box_state_changed()
 
     @pyqtSlot()
     def reload_database(self) -> None:
@@ -188,6 +234,8 @@ class MeasurementWidget(QWidget):
         if not isinstance(measurement_id, int):
             return
 
+        self.set_threshold_value_manually_check_box.setChecked(False)
+
         self.measurement_id = measurement_id
 
         with database.Session() as session:
@@ -217,6 +265,7 @@ class MeasurementWidget(QWidget):
                 spot_corner_bottom_right_y=measurement.chip.spot_corner_bottom_right_y,
                 spot_corner_bottom_left_x=measurement.chip.spot_corner_bottom_left_x,
                 spot_corner_bottom_left_y=measurement.chip.spot_corner_bottom_left_y,
+                threshold_value=0,
             )
 
             if measurement.notes:
@@ -380,6 +429,7 @@ class MeasurementWidget(QWidget):
                 spot_corner_bottom_right_y=measurement.chip.spot_corner_bottom_right_y,
                 spot_corner_bottom_left_x=measurement.chip.spot_corner_bottom_left_x,
                 spot_corner_bottom_left_y=measurement.chip.spot_corner_bottom_left_y,
+                threshold_value=0,
             )
 
         self.grid.update_(
@@ -397,6 +447,104 @@ class MeasurementWidget(QWidget):
         )
 
         self._widgets_set_enabled(editing_mode_enabled=False)
+
+    @pyqtSlot()
+    def adjust_grid_automatically(self, *, use_noise_reduction_filter: bool = False) -> None:
+        if self.measurement_id is None:
+            return
+
+        if self.grid is None:
+            return
+
+        with database.Session() as session, session.begin():
+            measurement = session.execute(select(Measurement).where(Measurement.id == self.measurement_id)).scalar_one()
+
+            image = np.frombuffer(measurement.image_data, dtype=PGM__IMAGE__DATA_TYPE).reshape(
+                measurement.image_height, measurement.image_width
+            )  # cSpell:ignore frombuffer dtype
+
+        image_normalized = normalize_image(image=image)
+
+        threshold_value = (
+            self.threshold_value_slider.value() if self.set_threshold_value_manually_check_box.isChecked() else None
+        )
+
+        grid_result = get_grid(
+            image=image_normalized,
+            with_adaptive_threshold=not use_noise_reduction_filter,
+            threshold_value=threshold_value,
+        )
+
+        if not is_successful(grid_result):
+            if not use_noise_reduction_filter:
+                grid_result = get_grid(
+                    image=image_normalized, with_adaptive_threshold=False, threshold_value=threshold_value
+                )
+
+            if not is_successful(grid_result):
+                QMessageBox.warning(self, "Failed to adjust grid automatically", "Please adjust grid manually.")
+                return
+
+        (
+            computed_threshold_value,
+            reference_spot_radius,
+            (column_count, row_count),
+            top_left_top_right_bottom_right_bottom_left,
+        ) = grid_result.unwrap()
+
+        self.hacky_update_workaround_must_be_fixed_later(
+            reference_spot_radius=reference_spot_radius,
+            column_count=column_count,
+            row_count=row_count,
+            top_left_top_right_bottom_right_bottom_left=top_left_top_right_bottom_right_bottom_left,
+            threshold_value=computed_threshold_value,
+        )
+
+    def hacky_update_workaround_must_be_fixed_later(  # noqa: PLR0913
+        self,
+        *,
+        reference_spot_radius: int,
+        column_count: int,
+        row_count: int,
+        top_left_top_right_bottom_right_bottom_left: tuple[QPointF, QPointF, QPointF, QPointF],
+        threshold_value: int,
+    ) -> None:
+        if self.grid is None:
+            return
+
+        top_left, top_right, bottom_right, bottom_left = top_left_top_right_bottom_right_bottom_left
+
+        for _ in range(5):
+            self._update_fields(
+                column_count=column_count,
+                row_count=row_count,
+                spot_size=reference_spot_radius * 2,
+                spot_margin_horizontal=0,
+                spot_margin_vertical=0,
+                spot_corner_top_left_x=top_left.x(),
+                spot_corner_top_left_y=top_left.y(),
+                spot_corner_top_right_x=top_right.x(),
+                spot_corner_top_right_y=top_right.y(),
+                spot_corner_bottom_right_x=bottom_right.x(),
+                spot_corner_bottom_right_y=bottom_right.y(),
+                spot_corner_bottom_left_x=bottom_left.x(),
+                spot_corner_bottom_left_y=bottom_left.y(),
+                threshold_value=threshold_value,
+            )
+
+            self.grid.update_(
+                column_count=self.column_count.value(),
+                row_count=self.row_count.value(),
+                spot_size=self.spot_size.value(),
+                spot_corner_top_left_x=self.spot_corner_top_left_x.value(),
+                spot_corner_top_left_y=self.spot_corner_top_left_y.value(),
+                spot_corner_top_right_x=self.spot_corner_top_right_x.value(),
+                spot_corner_top_right_y=self.spot_corner_top_right_y.value(),
+                spot_corner_bottom_right_x=self.spot_corner_bottom_right_x.value(),
+                spot_corner_bottom_right_y=self.spot_corner_bottom_right_y.value(),
+                spot_corner_bottom_left_x=self.spot_corner_bottom_left_x.value(),
+                spot_corner_bottom_left_y=self.spot_corner_bottom_left_y.value(),
+            )
 
     @pyqtSlot()
     def update_notes(self) -> None:
@@ -422,6 +570,13 @@ class MeasurementWidget(QWidget):
             matches = self.model.match(root, Qt.ItemDataRole.DisplayRole, current_date)
             for idx in matches:
                 self.tree.expand(idx)
+
+    @pyqtSlot()
+    def _set_threshold_value_manually_check_box_state_changed(self) -> None:
+        is_checked = self.set_threshold_value_manually_check_box.isChecked()
+        self.threshold_value_slider.setEnabled(is_checked)
+        self.adjust_grid_automatically_button.setEnabled(not is_checked)
+        self.adjust_grid_automatically_with_noise_reduction_filter_button.setEnabled(not is_checked)
 
     def _get_grid_spot_corner_coordinates(
         self,
@@ -457,6 +612,7 @@ class MeasurementWidget(QWidget):
         spot_corner_bottom_right_y: float,
         spot_corner_bottom_left_x: float,
         spot_corner_bottom_left_y: float,
+        threshold_value: int,
     ) -> None:
         self.column_count.setValue(column_count)
         self.row_count.setValue(row_count)
@@ -472,6 +628,8 @@ class MeasurementWidget(QWidget):
         self.spot_corner_bottom_right_y.setValue(spot_corner_bottom_right_y)
         self.spot_corner_bottom_left_x.setValue(spot_corner_bottom_left_x)
         self.spot_corner_bottom_left_y.setValue(spot_corner_bottom_left_y)
+
+        self.threshold_value_slider.setValue(threshold_value)
 
     def _widgets_set_enabled(self, *, editing_mode_enabled: bool) -> None:
         self.save_grid_and_update_results_button.setEnabled(editing_mode_enabled)

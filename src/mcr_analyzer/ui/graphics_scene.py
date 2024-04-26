@@ -31,7 +31,9 @@ class GraphicsRectTextItem(QGraphicsRectItem):
     def __init__(  # noqa: PLR0913
         self, *, x: float, y: float, width: float, height: float, text: str, parent: QGraphicsItem | None
     ) -> None:
-        super().__init__(x, y, width, height, parent)
+        top_left_x = x - width / 2
+        top_left_y = y - height / 2
+        super().__init__(top_left_x, top_left_y, width, height, parent)
 
         self.text = text
 
@@ -48,7 +50,10 @@ class Spot(QGraphicsEllipseItem):
     def __init__(self, *, x: float, y: float, diameter: float, parent: QGraphicsItem) -> None:
         width = diameter
         height = diameter
-        super().__init__(x, y, width, height, parent)
+
+        top_left_x = x - width / 2
+        top_left_y = y - height / 2
+        super().__init__(top_left_x, top_left_y, width, height, parent)
 
         pen_ = QPen(Qt.GlobalColor.yellow)
         pen_width = 1
@@ -255,10 +260,12 @@ class Grid(QGraphicsItem):
         #
         x = 0
         y = x
-        self.spot_corner_top_left.setRect(x, y, spot_size, spot_size)
-        self.spot_corner_top_right.setRect(x, y, spot_size, spot_size)
-        self.spot_corner_bottom_right.setRect(x, y, spot_size, spot_size)
-        self.spot_corner_bottom_left.setRect(x, y, spot_size, spot_size)
+        top_left_x = x - spot_size / 2
+        top_left_y = y - spot_size / 2
+        self.spot_corner_top_left.setRect(top_left_x, top_left_y, spot_size, spot_size)
+        self.spot_corner_top_right.setRect(top_left_x, top_left_y, spot_size, spot_size)
+        self.spot_corner_bottom_right.setRect(top_left_x, top_left_y, spot_size, spot_size)
+        self.spot_corner_bottom_left.setRect(top_left_x, top_left_y, spot_size, spot_size)
 
         self.spot_corner_top_left.setPos(self.spot_corner_top_left_x, self.spot_corner_top_left_y)
         self.spot_corner_top_right.setPos(self.spot_corner_top_right_x, self.spot_corner_top_right_y)
