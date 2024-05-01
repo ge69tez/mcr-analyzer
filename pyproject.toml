@@ -35,6 +35,7 @@ dev = [
   "coverage",
   "coverage-badge",
   "hatch",
+  "hypothesis",
   "mypy",
   "pip-tools",
   "pooch",

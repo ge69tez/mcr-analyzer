@@ -18,6 +18,7 @@ PGM__IMAGE__ND_ARRAY__DATA_TYPE: Final[TypeAlias] = npt.NDArray[PGM__IMAGE__DATA
 
 PGM__HEIGHT: Final[int] = 520
 PGM__WIDTH: Final[int] = 696
+PGM__SHAPE: Final[tuple[int, int]] = (PGM__HEIGHT, PGM__WIDTH)
 
 PGM__HEIGHT__PATTERN: Final[str] = str(PGM__HEIGHT)
 PGM__WIDTH__PATTERN: Final[str] = str(PGM__WIDTH)

@@ -15,7 +15,7 @@ repos:
           - commit-msg
 
   - repo: https://gitlab.com/vojko.pribudic/pre-commit-update
-    rev: v0.2.3
+    rev: v0.3.1post1
     hooks:
       - id: pre-commit-update
 
@@ -50,7 +50,7 @@ repos:
       - id: cspell
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.7
+    rev: v0.4.2
     hooks:
       - id: ruff
         args:
@@ -103,17 +103,18 @@ repos:
           - black
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: 1.7.0
+    rev: 1.8.0
     hooks:
       - id: pyproject-fmt # cSpell:ignore pyproject
         additional_dependencies:
           - tox>=4.9
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.9.0
+    rev: v1.10.0
     hooks:
       - id: mypy # cSpell:ignore mypy
         additional_dependencies:
+          - hypothesis
           - numpy
           - opencv-python # cSpell:ignore opencv
           - PyQt6-stubs @ git+https://github.com/python-qt-tools/PyQt6-stubs@86d119e # - 2023-07-23
@@ -146,12 +147,24 @@ repos:
 
   - repo: local
     hooks:
-      - id: scalene-profile
-        name: scalene-profile
+      - id: scalene-profile-gui
+        name: scalene-profile-gui
         language: system
         pass_filenames: false
         always_run: true
         entry:
           xvfb-run python3 -m scalene --no-browser --program-path src --cli --reduced-profile --- -m pytest --no-cov -k
           test_profile
+        verbose: true
+
+  - repo: local
+    hooks:
+      - id: scalene-profile-cli
+        name: scalene-profile-cli
+        language: system
+        pass_filenames: false
+        always_run: true
+        entry:
+          python3 -m scalene --no-browser --program-path src --cli --reduced-profile --- -m pytest --no-cov -k
+          test___config__image
         verbose: true

@@ -50,10 +50,9 @@ def fourier_transform_inverse(
     return np.fft.fftshift(input_ifftshift).real.astype(dtype=OPEN_CV__IMAGE__DATA_TYPE)
 
 
-def get_grid(  # noqa: PLR0914, C901, PLR0911
+def get_grid(
     *,
     image: OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE,
-    with_maximum_filter: bool = True,
     with_adaptive_threshold: bool = True,
     threshold_value: int | None = None,
     reference_spot_diameter: int | None = None,
@@ -87,9 +86,6 @@ def get_grid(  # noqa: PLR0914, C901, PLR0911
     if reference_spot_diameter is None:
         reference_spot_diameter = 2 * reference_spot_radius
 
-    if image_is_almost_empty(image_with_threshold=image_with_threshold):
-        return Failure("Image is almost empty.")
-
     spot_with_radius_list_without_outliers = filter_spot_with_radius_outliers(
         spot_with_radius_list=spot_with_radius_list, reference_spot_radius=reference_spot_radius
     )
@@ -102,10 +98,63 @@ def get_grid(  # noqa: PLR0914, C901, PLR0911
 
     image_with_fourier_transform = normalize_image(image=abs(fourier_transform(image_with_detected_spot)))
 
-    # - Try to reduce the resolution to improve the performance of 4-spot detection.
-    if with_maximum_filter:
-        image_with_fourier_transform = maximum_filter(input=image_with_fourier_transform, size=reference_spot_diameter)
+    analyze_image_with_fourier_transform_result = try_to_analyze_image_with_fourier_transform(
+        reference_spot_diameter=reference_spot_diameter,
+        spot_list=[spot for spot, _radius in spot_with_radius_list_without_outliers],
+        image_with_fourier_transform=image_with_fourier_transform,
+    )
 
+    if not is_successful(analyze_image_with_fourier_transform_result):
+        return Failure(analyze_image_with_fourier_transform_result.failure())
+
+    (column_count, row_count), top_left_top_right_bottom_right_bottom_left = (
+        analyze_image_with_fourier_transform_result.unwrap()
+    )
+
+    return Success((
+        computed_threshold_value,
+        reference_spot_radius,
+        (column_count, row_count),
+        top_left_top_right_bottom_right_bottom_left,
+    ))
+
+
+def try_to_analyze_image_with_fourier_transform(
+    *,
+    reference_spot_diameter: int,
+    spot_list: list[QPointF],
+    image_with_fourier_transform: OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE,
+) -> Result[tuple[tuple[int, int], tuple[QPointF, QPointF, QPointF, QPointF]], str]:
+    image_height, image_width = image_with_fourier_transform.shape
+
+    frequency_row = convert_from_interval_in_original_to_frequency_in_fourier_transform(
+        total_length_in_original=image_height, interval_in_original=reference_spot_diameter
+    )
+    frequency_column = convert_from_interval_in_original_to_frequency_in_fourier_transform(
+        total_length_in_original=image_width, interval_in_original=reference_spot_diameter
+    )
+    frequency = min(frequency_row, frequency_column)
+
+    size_upper_bound_learned_by_experience = 6
+    for i in range(1, min(size_upper_bound_learned_by_experience, frequency)):
+        analyze_image_with_fourier_transform_result = analyze_image_with_fourier_transform(
+            image_with_fourier_transform=maximum_filter(input=image_with_fourier_transform, size=i),
+            reference_spot_diameter=reference_spot_diameter,
+            spot_list=spot_list,
+        )
+
+        if is_successful(analyze_image_with_fourier_transform_result):
+            break
+
+    return analyze_image_with_fourier_transform_result
+
+
+def analyze_image_with_fourier_transform(
+    *,
+    image_with_fourier_transform: PGM__IMAGE__ND_ARRAY__DATA_TYPE,
+    reference_spot_diameter: float,
+    spot_list: list[QPointF],
+) -> Result[tuple[tuple[int, int], tuple[QPointF, QPointF, QPointF, QPointF]], str]:
     fourier_transform_contours_reference_spots_result = get_fourier_transform_contours_reference_spots(
         image_with_fourier_transform=image_with_fourier_transform
     )
@@ -116,7 +165,8 @@ def get_grid(  # noqa: PLR0914, C901, PLR0911
     fourier_transform_contours_reference_spots = fourier_transform_contours_reference_spots_result.unwrap()
 
     fourier_transform_left_right_top_bottom = get_fourier_transform_boundary_reference_spots(
-        fourier_transform_contours_reference_spots=fourier_transform_contours_reference_spots, image_shape=image.shape
+        fourier_transform_contours_reference_spots=fourier_transform_contours_reference_spots,
+        image_shape=image_with_fourier_transform.shape,
     )
 
     if not all_unique(fourier_transform_left_right_top_bottom):
@@ -124,7 +174,9 @@ def get_grid(  # noqa: PLR0914, C901, PLR0911
             f"Fourier transform reference spots are not all unique: {fourier_transform_left_right_top_bottom=}"
         )
 
-    interval_column, interval_row = get_interval_column_and_row(image.shape, fourier_transform_left_right_top_bottom)
+    interval_column, interval_row = get_interval_column_and_row(
+        image_with_fourier_transform.shape, fourier_transform_left_right_top_bottom
+    )
 
     if not (
         left_right_top_bottom_are_in_cross_like_position(
@@ -139,22 +191,12 @@ def get_grid(  # noqa: PLR0914, C901, PLR0911
         )
 
     top_left_top_right_bottom_right_bottom_left, (column_count, row_count) = get_grid_position(
-        spot_list=[spot for spot, _radius in spot_with_radius_list],
+        spot_list=spot_list,
         fourier_transform_left_right_top_bottom=fourier_transform_left_right_top_bottom,
         interval_column_interval_row=(interval_column, interval_row),
     )
 
-    return Success((
-        computed_threshold_value,
-        reference_spot_radius,
-        (column_count, row_count),
-        top_left_top_right_bottom_right_bottom_left,
-    ))
-
-
-def image_is_almost_empty(*, image_with_threshold: OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE) -> bool:
-    image_is_almost_empty_threshold_value = 500
-    return len(get_contours(image_with_threshold)) > image_is_almost_empty_threshold_value
+    return Success(((column_count, row_count), top_left_top_right_bottom_right_bottom_left))
 
 
 def get_grid_position(
@@ -220,10 +262,28 @@ def get_interval_column_and_row(
 
     left, right, top, bottom = fourier_transform_left_right_top_bottom
 
-    interval_column = image_width / (get_distance(left, right) / 2)
-    interval_row = image_height / (get_distance(top, bottom) / 2)
+    interval_column = convert_from_frequency_in_fourier_transform_to_interval_in_original(
+        total_length_in_original=image_width, frequency_in_fourier_transform=(get_distance(left, right) / 2)
+    )
+    interval_row = convert_from_frequency_in_fourier_transform_to_interval_in_original(
+        total_length_in_original=image_height, frequency_in_fourier_transform=(get_distance(top, bottom) / 2)
+    )
 
     return interval_column, interval_row
+
+
+def convert_from_frequency_in_fourier_transform_to_interval_in_original(
+    *, total_length_in_original: float, frequency_in_fourier_transform: float
+) -> float:
+    interval_in_original = total_length_in_original / frequency_in_fourier_transform
+    return interval_in_original  # noqa: RET504
+
+
+def convert_from_interval_in_original_to_frequency_in_fourier_transform(
+    *, total_length_in_original: float, interval_in_original: float
+) -> int:
+    frequency_in_fourier_transform = round(total_length_in_original / interval_in_original)
+    return frequency_in_fourier_transform  # noqa: RET504
 
 
 def division_with_zero(numerator: float, denominator: float) -> float:
@@ -314,6 +374,9 @@ def get_fourier_transform_contours_reference_spots(
         if number_of_areas == number_of_expected_reference_spots:
             return Success(contours)
 
+        if number_of_areas > number_of_expected_reference_spots:
+            break
+
     return Failure(f"number_of_areas expected: {number_of_expected_reference_spots}; found: {number_of_areas}")
 
 
@@ -390,22 +453,6 @@ def otsu_threshold(*, image: OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE) -> tuple[int, 
         maxval=OPEN_CV__IMAGE__DATA_TYPE__MAX,
         type=cv.THRESH_BINARY | cv.THRESH_OTSU,
     )  # cSpell:ignore otsu
-
-    return round(computed_threshold_value), image_with_threshold
-
-
-def triangle_threshold(
-    *, image: OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE
-) -> tuple[int, OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE]:
-    image_with_threshold: OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE
-
-    dummy_threshold_value = 0.0
-    computed_threshold_value, image_with_threshold = cv.threshold(
-        src=image,
-        thresh=dummy_threshold_value,
-        maxval=OPEN_CV__IMAGE__DATA_TYPE__MAX,
-        type=cv.THRESH_BINARY | cv.THRESH_TRIANGLE,
-    )
 
     return round(computed_threshold_value), image_with_threshold
 
@@ -493,23 +540,15 @@ def draw_circle_on_image_like(
     return image_with_detected_spots
 
 
-def get_image_background_color(image: OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE) -> int:
-    return round(float(np.median(image)))
-
-
 def get_image_foreground_and_background_color(image: OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE) -> tuple[int, int]:
     background_color = round(mode(a=image, axis=None).mode)
-    foreground_color = round(np.max(image)) - background_color
+    foreground_color = OPEN_CV__IMAGE__DATA_TYPE__MAX - background_color
 
     return foreground_color, background_color
 
 
 def get_circle_area(radius: float) -> float:
     return math.pi * radius**2
-
-
-def get_circle_radius(area: float) -> float:
-    return math.sqrt(area / math.pi)
 
 
 def get_roundness_and_roundness_circle_threshold(*, perimeter: float, area: float) -> tuple[float, float]:
@@ -529,7 +568,7 @@ def get_roundness_and_roundness_circle_threshold(*, perimeter: float, area: floa
     #   - π / 4 ≈ 0.785
     #
     # - When the radius is small, the area will be more like polygon, thus use smaller threshold.
-    roundness_circle_threshold: float = 0.7 if area < get_circle_area(2) else 0.8
+    roundness_circle_threshold: float = 0.7 if area < get_circle_area(2) else 0.75 if area < get_circle_area(8) else 0.8
 
     return roundness, roundness_circle_threshold
 
@@ -542,10 +581,6 @@ def is_circle_like(*, perimeter: float, area: float) -> bool:
 
 def is_infinite(x: float) -> bool:
     return abs(x) == np.inf
-
-
-def get_midpoint(a: QPointF, b: QPointF) -> QPointF:
-    return (a + b) / 2
 
 
 def get_distance(a: QPointF, b: QPointF) -> float:

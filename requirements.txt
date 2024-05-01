@@ -13,9 +13,9 @@ numpy==1.26.4
     #   scipy
 opencv-python==4.9.0.80
     # via mcr-analyzer (pyproject.toml)
-pyqt6==6.6.1
+pyqt6==6.7.0
     # via mcr-analyzer (pyproject.toml)
-pyqt6-qt6==6.6.3
+pyqt6-qt6==6.7.0
     # via pyqt6
 pyqt6-sip==13.6.0
     # via pyqt6
