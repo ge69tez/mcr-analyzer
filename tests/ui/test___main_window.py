@@ -24,11 +24,11 @@ def main_window(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> Generator[Main
     main_window.close()
 
 
-BASE_URL = "https://zenodo.org/records/10367954/files/"
+BASE_URL = "https://zenodo.org/records/11109083/files/"
 DATA__DIR = "data"
 SAMPLE_RESULTS__BASE_NAME = "sample_results"
-SAMPLE_RESULTS__ZIP__SHA256_HASH = "sha256:4f409a111f844cf79990e9e1b3e955b913d5f4cf1fe05e058294a8186be3dd47"
-SAMPLE_RESULTS__COUNT = 36
+SAMPLE_RESULTS__ZIP__SHA256_HASH = "sha256:1a9f5b8bcfe35e5139dc436516fd949dd3f5778d00a6a1a6a6d1bf414ffd5315"
+SAMPLE_RESULTS__COUNT = 56
 
 SAMPLE_RESULTS__DIR = Path(DATA__DIR).joinpath(SAMPLE_RESULTS__BASE_NAME)
 SAMPLE_RESULTS__ZIP = f"{SAMPLE_RESULTS__BASE_NAME}.zip"
