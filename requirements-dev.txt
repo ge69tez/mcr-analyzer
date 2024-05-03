@@ -200,7 +200,7 @@ tomli-w==1.0.0
     # via hatch
 tomlkit==0.12.4
     # via hatch
-tqdm==4.66.2
+tqdm==4.66.3
     # via mcr-analyzer (pyproject.toml)
 trove-classifiers==2024.4.10
     # via hatchling
