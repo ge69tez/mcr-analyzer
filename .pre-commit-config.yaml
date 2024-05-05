@@ -45,12 +45,12 @@ repos:
           - tomli # cSpell:ignore tomli
 
   - repo: https://github.com/streetsidesoftware/cspell-cli
-    rev: v8.7.0
+    rev: v8.8.1
     hooks:
       - id: cspell
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.2
+    rev: v0.4.4
     hooks:
       - id: ruff
         args:
@@ -103,11 +103,9 @@ repos:
           - black
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: 1.8.0
+    rev: 2.0.4
     hooks:
       - id: pyproject-fmt # cSpell:ignore pyproject
-        additional_dependencies:
-          - tox>=4.9
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.10.0

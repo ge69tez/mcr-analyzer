@@ -25,7 +25,7 @@ returns==0.22.0
     # via mcr-analyzer (pyproject.toml)
 scipy==1.13.0
     # via mcr-analyzer (pyproject.toml)
-sqlalchemy==2.0.29
+sqlalchemy==2.0.30
     # via mcr-analyzer (pyproject.toml)
 typing-extensions==4.11.0
     # via

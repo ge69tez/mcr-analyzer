@@ -45,7 +45,6 @@ def _fetch_sample_results() -> None:
         url=SAMPLE_RESULTS__ZIP__URL,
         known_hash=SAMPLE_RESULTS__ZIP__SHA256_HASH,
         processor=Unzip(extract_dir=""),
-        progressbar=True,
     )
 
 

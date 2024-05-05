@@ -9,7 +9,9 @@ name = "mcr-analyzer"
 description = "Analyze and manage MCR measurements"
 readme = "README.rst"
 license = { file = "LICENSE" }
-authors = [{ name = "Martin Knopp", email = "Martin.Knopp@tum.de" }]
+authors = [
+  { name = "Martin Knopp", email = "Martin.Knopp@tum.de" },
+]
 requires-python = "==3.11.*"
 classifiers = [
   "License :: OSI Approved :: MIT License",
@@ -22,16 +24,15 @@ dynamic = [
   "version",
 ]
 dependencies = [
-  "numpy", # cSpell:ignore numpy
+  "numpy",         # cSpell:ignore numpy
   "opencv-python", # cSpell:ignore opencv
-  "PyQt6",
-  "pytz", # cSpell:ignore pytz
+  "pyqt6",
+  "pytz",          # cSpell:ignore pytz
   "returns",
-  "scipy", # cSpell:ignore scipy
-  "SQLAlchemy",
+  "scipy",         # cSpell:ignore scipy
+  "sqlalchemy",
 ]
-[project.optional-dependencies]
-dev = [
+optional-dependencies.dev = [
   "coverage",
   "coverage-badge",
   "hatch",
@@ -46,10 +47,8 @@ dev = [
   "pytest-sugar",
   "ruff",
   "scalene==1.5.31.1", # - With "scalene>1.5.31.1", "hook id: scalene-profile" results in "exit code: 1"
-  "tqdm", # - https://www.fatiando.org/pooch/latest/progressbars.html?highlight=tqdm # cSpell:ignore tqdm
 ]
-[project.gui-scripts]
-mcr_analyzer = "mcr_analyzer.__main__:main"
+gui-scripts.mcr_analyzer = "mcr_analyzer.__main__:main"
 
 [tool.hatch.version]
 path = "src/mcr_analyzer/__about__.py"
@@ -60,71 +59,75 @@ mcr_analyzer = "python -m mcr_analyzer"
 
 [tool.ruff]
 line-length = 120
-src = ["src"]
-namespace-packages = ["docs"]
+src = [
+  "src",
+]
+namespace-packages = [
+  "docs",
+]
 show-fixes = true
 preview = true
 
 [tool.ruff.lint]
 select = [
-  "F", # - Pyflakes # cSpell:ignore Pyflakes
-  "W", # - pycodestyle - Warning
-  "E", # - pycodestyle - Error # cSpell:ignore pycodestyle
+  "F",   # - Pyflakes # cSpell:ignore Pyflakes
+  "W",   # - pycodestyle - Warning
+  "E",   # - pycodestyle - Error # cSpell:ignore pycodestyle
   "C90", # - mccabe # cSpell:ignore mccabe
-  "I", # - isort # cSpell:ignore isort
-  "N", # - pep8-naming
+  "I",   # - isort # cSpell:ignore isort
+  "N",   # - pep8-naming
   #"D", # - pydocstyle # cSpell:ignore pydocstyle
-  "UP", # - pyupgrade # cSpell:ignore pyupgrade
+  "UP",  # - pyupgrade # cSpell:ignore pyupgrade
   "YTT", # - flake8-2020
   #"ANN", # - flake8-annotations
   "ASYNC", # - flake8-async
-  "S", # - flake8-bandit
-  "BLE", # - flake8-blind-except
-  "FBT", # - flake8-boolean-trap
-  "B", # - flake8-bugbear
+  "S",     # - flake8-bandit
+  "BLE",   # - flake8-blind-except
+  "FBT",   # - flake8-boolean-trap
+  "B",     # - flake8-bugbear
   #"A", # - flake8-builtins # cSpell:ignore builtins
   "COM", # - flake8-commas
   #"CPY", # - flake8-copyright
-  "C4", # - flake8-comprehensions
-  "DTZ", # - flake8-datetimez # cSpell:ignore datetimez
-  "T10", # - flake8-debugger
-  "DJ", # - flake8-django
-  "EM", # - flake8-errmsg # cSpell:ignore errmsg
-  "EXE", # - flake8-executable
-  "FA", # - flake8-future-annotations
-  "ISC", # - flake8-implicit-str-concat # cSpell:ignore concat
-  "ICN", # - flake8-import-conventions
-  "G", # - flake8-logging-format
-  "INP", # - flake8-no-pep420
-  "PIE", # - flake8-pie
-  "T20", # - flake8-print
-  "PYI", # - flake8-pyi
-  "PT", # - flake8-pytest-style
-  "Q", # - flake8-quotes
-  "RSE", # - flake8-raise
-  "RET", # - flake8-return
-  "SLF", # - flake8-self
+  "C4",   # - flake8-comprehensions
+  "DTZ",  # - flake8-datetimez # cSpell:ignore datetimez
+  "T10",  # - flake8-debugger
+  "DJ",   # - flake8-django
+  "EM",   # - flake8-errmsg # cSpell:ignore errmsg
+  "EXE",  # - flake8-executable
+  "FA",   # - flake8-future-annotations
+  "ISC",  # - flake8-implicit-str-concat # cSpell:ignore concat
+  "ICN",  # - flake8-import-conventions
+  "G",    # - flake8-logging-format
+  "INP",  # - flake8-no-pep420
+  "PIE",  # - flake8-pie
+  "T20",  # - flake8-print
+  "PYI",  # - flake8-pyi
+  "PT",   # - flake8-pytest-style
+  "Q",    # - flake8-quotes
+  "RSE",  # - flake8-raise
+  "RET",  # - flake8-return
+  "SLF",  # - flake8-self
   "SLOT", # - flake8-slots
-  "SIM", # - flake8-simplify
-  "TID", # - flake8-tidy-imports
-  "TCH", # - flake8-type-checking
-  "INT", # - flake8-gettext # cSpell:ignore gettext
-  "ARG", # - flake8-unused-arguments
-  "PTH", # - flake8-use-pathlib # cSpell:ignore pathlib
-  "TD", # - flake8-todos # cSpell:ignore todos
-  "FIX", # - flake8-fixme
-  "ERA", # - eradicate
-  "PD", # - pandas-vet
-  "PGH", # - pygrep-hooks # cSpell:ignore pygrep
-  "PL", # - Pylint
-  "TRY", # - tryceratops # cSpell:ignore tryceratops
-  "FLY", # - flynt # cSpell:ignore flynt
-  "NPY", # - NumPy-specific rules
-  "AIR", # - Airflow
+  "SIM",  # - flake8-simplify
+  "TID",  # - flake8-tidy-imports
+  "TCH",  # - flake8-type-checking
+  "INT",  # - flake8-gettext # cSpell:ignore gettext
+  "ARG",  # - flake8-unused-arguments
+  "PTH",  # - flake8-use-pathlib # cSpell:ignore pathlib
+  "TD",   # - flake8-todos # cSpell:ignore todos
+  "FIX",  # - flake8-fixme
+  "ERA",  # - eradicate
+  "PD",   # - pandas-vet
+  "PGH",  # - pygrep-hooks # cSpell:ignore pygrep
+  "PL",   # - Pylint
+  "TRY",  # - tryceratops # cSpell:ignore tryceratops
+  "FLY",  # - flynt # cSpell:ignore flynt
+  "NPY",  # - NumPy-specific rules
+  "AIR",  # - Airflow
   "PERF", # - Perflint # cSpell:ignore Perflint
   "FURB", # - refurb # cSpell:ignore FURB refurb
-  "LOG", # - flake8-logging
-  "RUF", # - Ruff-specific rules
+  "LOG",  # - flake8-logging
+  "RUF",  # - Ruff-specific rules
 ]
 unfixable = [ # cSpell:ignore unfixable
   "ERA", # - eradicate
@@ -134,8 +137,8 @@ ignore = [
   "COM812", # - missing-trailing-comma
   "ISC001", # - single-line-implicit-string-concatenation
   #
-  "E203", # - whitespace-before-punctuation
-  "FBT003", # - boolean-positional-value-in-call - "arg__1" in "QtWidgets.QWidget.setDisabled(arg__1)"
+  "E203",    # - whitespace-before-punctuation
+  "FBT003",  # - boolean-positional-value-in-call - "arg__1" in "QtWidgets.QWidget.setDisabled(arg__1)"
   "PLC1901", # - compare-to-empty-string - High false positive rate
 ]
 
@@ -143,7 +146,9 @@ ignore = [
 # - warning: The isort option `isort.split-on-trailing-comma` is incompatible with the formatter `format.skip-magic-trailing-comma=true` option.
 split-on-trailing-comma = false
 
-known-first-party = ["mcr_analyzer"]
+known-first-party = [
+  "mcr_analyzer",
+]
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = [
@@ -156,7 +161,7 @@ ban-relative-imports = "all"
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = [
   "PLR6301", # - no-self-use
-  "S101", # - assert
+  "S101",    # - assert
 ]
 
 [tool.ruff.lint.pydocstyle]
@@ -166,6 +171,12 @@ convention = "google"
 preview = true
 docstring-code-format = true
 skip-magic-trailing-comma = true
+
+[tool.pyproject-fmt] # cSpell:ignore pyproject
+align_comments = false
+allowed_blank_lines = 1
+array_auto_collapse = false
+array_trailing_comma = true
 
 [tool.pytest.ini_options]
 minversion = "7" # cSpell:ignore minversion
@@ -223,6 +234,6 @@ ignore_missing_imports = true
 [tool.pre-commit-update]
 dry_run = true
 exclude = [
-  "blacken-docs", # - 2023-09-26 "pre-commit-update" "v0.0.9": Cannot recognize a tag name pattern change (for example: "blacken-docs" "v1.12.1" -> "1.16.0"
+  "blacken-docs",            # - 2023-09-26 "pre-commit-update" "v0.0.9": Cannot recognize a tag name pattern change (for example: "blacken-docs" "v1.12.1" -> "1.16.0"
   "conventional-pre-commit", # - 2023-10-24 - v2.4.0 -> v2.4.0-pre
 ]
