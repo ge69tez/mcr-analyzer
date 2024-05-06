@@ -6,6 +6,7 @@ from PyQt6.QtGui import QBrush, QPainter, QPen, QWheelEvent
 from PyQt6.QtWidgets import (
     QGraphicsEllipseItem,
     QGraphicsItem,
+    QGraphicsObject,
     QGraphicsPixmapItem,
     QGraphicsRectItem,
     QGraphicsScene,
@@ -17,12 +18,6 @@ from sqlalchemy.sql.expression import select
 
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement
-
-
-class GraphicsMeasurementScene(QGraphicsScene):
-    """Adds event handlers to QGraphicsScene."""
-
-    grid_corner_moved = pyqtSignal()
 
 
 class GraphicsRectTextItem(QGraphicsRectItem):
@@ -80,14 +75,16 @@ class SpotCorner(Spot):
                 if not isinstance(value, QPointF):
                     raise NotImplementedError
 
-                scene = self.scene()
-                if isinstance(scene, GraphicsMeasurementScene):
-                    scene.grid_corner_moved.emit()
+                grid = self.parentItem()
+                if isinstance(grid, Grid):
+                    grid.corner_moved.emit()
 
         return super().itemChange(change, value)
 
 
-class Grid(QGraphicsItem):
+class Grid(QGraphicsObject):
+    corner_moved = pyqtSignal()
+
     def __init__(self, measurement_id: int, parent: QGraphicsItem | None = None) -> None:
         super().__init__(parent)
 

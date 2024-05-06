@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
     QDoubleSpinBox,
     QFormLayout,
     QGraphicsPixmapItem,
+    QGraphicsScene,
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
@@ -34,7 +35,7 @@ from mcr_analyzer.config.qt import Q_SETTINGS__SESSION__SELECTED_DATE
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement
 from mcr_analyzer.processing.measurement import update_results
-from mcr_analyzer.ui.graphics_scene import GraphicsMeasurementScene, Grid, ImageView
+from mcr_analyzer.ui.graphics_scene import Grid, ImageView
 from mcr_analyzer.ui.models import MeasurementTreeItem, MeasurementTreeModel, ResultTableModel
 
 
@@ -187,7 +188,7 @@ class MeasurementWidget(QWidget):
         v_box_layout = QVBoxLayout()
         group_box__visualization.setLayout(v_box_layout)
 
-        self.scene = GraphicsMeasurementScene(self)
+        self.scene = QGraphicsScene(self)
 
         self.image = QGraphicsPixmapItem()  # cSpell:ignore Pixmap
         self.scene.addItem(self.image)
@@ -195,7 +196,6 @@ class MeasurementWidget(QWidget):
         self.view = ImageView(self.scene, self.image)
 
         self.grid: Grid | None = None
-        self.scene.grid_corner_moved.connect(self.update_grid_children)
 
         v_box_layout.addWidget(self.view)
         self.results = QTableView()
@@ -287,6 +287,7 @@ class MeasurementWidget(QWidget):
             if self.grid is not None:
                 self.scene.removeItem(self.grid)
             self.grid = Grid(self.measurement_id)
+            self.grid.corner_moved.connect(self.update_grid_children)
             self.scene.addItem(self.grid)
 
         self.image.setPixmap(QPixmap.fromImage(q_image))
