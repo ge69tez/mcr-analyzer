@@ -195,8 +195,14 @@ addopts = [
   "-ra",
   "--strict-config",
   "--strict-markers",
+
   # - https://docs.pytest.org/en/stable/explanation/goodpractices.html#tests-outside-application-code
-  "--import-mode=importlib", # cSpell:ignore addopts importlib
+  #
+  # - 2024-05-07
+  #   - Fall back to the default import mode `prepend`.
+  #   - Because the import mode `importlib` reduces the useful debugging information pytest provides, such as left-right comparisons.
+  #
+  #"--import-mode=importlib", # cSpell:ignore addopts importlib
 
   "--cov=src",
 
