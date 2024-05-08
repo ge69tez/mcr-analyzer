@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QSlider,
     QSpinBox,
+    QSplitter,
     QTableView,
     QTreeView,
     QVBoxLayout,
@@ -49,14 +50,25 @@ class MeasurementWidget(QWidget):
         layout = QHBoxLayout()
         self.setLayout(layout)
 
+        splitter = QSplitter()
+        layout.addWidget(splitter)
+
         self.tree = QTreeView()
         self.tree.header().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        layout.addWidget(self.tree)
+
+        maximum_width_of_tree = 500
+        self.tree.setMaximumWidth(maximum_width_of_tree)
+
+        splitter.addWidget(self.tree)
 
         group_box__record_data = QGroupBox("Record data")
         form_layout = QFormLayout()
         group_box__record_data.setLayout(form_layout)
-        layout.addWidget(group_box__record_data)
+
+        maximum_width_of_group_box__record_data = maximum_width_of_tree
+        group_box__record_data.setMaximumWidth(maximum_width_of_group_box__record_data)
+
+        splitter.addWidget(group_box__record_data)
 
         self.measurer = QLineEdit()
         form_layout.addRow("Measured by:", self.measurer)
@@ -188,6 +200,8 @@ class MeasurementWidget(QWidget):
         v_box_layout = QVBoxLayout()
         group_box__visualization.setLayout(v_box_layout)
 
+        group_box__visualization.setMinimumSize(PGM__WIDTH, PGM__HEIGHT)
+
         self.scene = QGraphicsScene(self)
 
         self.image = QGraphicsPixmapItem()  # cSpell:ignore Pixmap
@@ -200,7 +214,7 @@ class MeasurementWidget(QWidget):
         v_box_layout.addWidget(self.view)
         self.results = QTableView()
 
-        layout.addWidget(group_box__visualization, stretch=3)
+        splitter.addWidget(group_box__visualization)
 
         self._set_threshold_value_manually_check_box_state_changed()
 
