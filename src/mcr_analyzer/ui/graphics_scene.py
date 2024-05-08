@@ -56,6 +56,8 @@ class Spot(QGraphicsEllipseItem):
         pen_.setStyle(Qt.PenStyle.DotLine)
         self.setPen(pen_)
 
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable)
+
 
 class SpotCorner(Spot):
     def __init__(self, *, x: float, y: float, diameter: float, parent: QGraphicsItem) -> None:
@@ -98,6 +100,8 @@ class Grid(QGraphicsObject):
         self.row_labels: list[GraphicsRectTextItem] = []
 
         self._add_children()
+
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemHasNoContents)
 
     # - References
     #   - https://doc.qt.io/qt-6/qtwidgets-graphicsview-dragdroprobot-example.html
@@ -293,7 +297,7 @@ class ImageView(QGraphicsView):
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
 
-        self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+        self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
 
     def fit_in_view(self) -> None:
         self.fitInView(self.image, Qt.AspectRatioMode.KeepAspectRatio)
