@@ -1,4 +1,4 @@
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import QLabel, QMessageBox, QPushButton, QStyle, QVBoxLayout, QWidget
@@ -12,6 +12,9 @@ from mcr_analyzer.config.qt import (
 )
 from mcr_analyzer.database.database import database
 from mcr_analyzer.utils.q_file_dialog import FileDialog
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class WelcomeWidget(QWidget):
@@ -80,7 +83,7 @@ class WelcomeWidget(QWidget):
             if database.is_valid:
                 break
 
-    def open_file_path(self, file_path: Path) -> None:
+    def open_file_path(self, file_path: "Path") -> None:
         file_name = str(file_path)
 
         if not file_path.exists():

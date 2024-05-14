@@ -5,7 +5,6 @@ from secrets import SystemRandom
 import numpy as np
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from PyQt6.QtCore import QPointF
 from returns.pipeline import is_successful
 
 from mcr_analyzer.config.image import (
@@ -13,6 +12,7 @@ from mcr_analyzer.config.image import (
     OPEN_CV__IMAGE__DATA_TYPE__MAX,
     OPEN_CV__IMAGE__DATA_TYPE__MIN,
     OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE,
+    Position,
     draw_circle_on_image_like,
     get_grid,
     get_image_foreground_and_background_color,
@@ -44,12 +44,9 @@ def test___config__image(image_row_count_column_count: tuple[OPEN_CV__IMAGE__ND_
 
     assert is_successful(grid_result), grid_result.failure()
 
-    (
-        _computed_threshold_value,
-        _reference_spot_radius,
-        (column_count_result, row_count_result),
-        _top_left_top_right_bottom_right_bottom_left,
-    ) = grid_result.unwrap()
+    (_computed_threshold_value, _reference_spot_radius, (column_count_result, row_count_result), _corner_positions) = (
+        grid_result.unwrap()
+    )
 
     # - Allow some calculation errors
     assert abs(column_count_result - column_count) <= 1
@@ -85,7 +82,7 @@ def _generate_random_image(
 
     image = np.full(PGM__SHAPE, OPEN_CV__IMAGE__DATA_TYPE__MIN, dtype=OPEN_CV__IMAGE__DATA_TYPE)  # cSpell:ignore dtype
 
-    spot_list: list[tuple[QPointF, float]] = []
+    spot_list: list[tuple[Position, float]] = []
 
     spot_count = 0
 
@@ -99,7 +96,7 @@ def _generate_random_image(
                 rotation_angle_in_degree=rotation_angle_in_degree, center=(width / 2, height / 2), point=(x, y)
             )
 
-            spot_list.append((QPointF(x_after_rotation, y_after_rotation), spot_radius))
+            spot_list.append((Position(x_after_rotation, y_after_rotation), spot_radius))
 
             spot_count += 1
 

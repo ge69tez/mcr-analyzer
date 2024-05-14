@@ -1,17 +1,21 @@
-from collections.abc import Generator
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from pooch import Unzip, retrieve
-from pytestqt.qtbot import QtBot  # cSpell:ignore pytestqt qtbot
 
 from mcr_analyzer.config.importer import IMPORTER__COLUMN_INDEX__STATUS
 from mcr_analyzer.ui.main_window import MainWindow
 from mcr_analyzer.utils.q_file_dialog import FileDialog
 
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from pytestqt.qtbot import QtBot  # cSpell:ignore pytestqt qtbot
+
 
 @pytest.fixture()
-def main_window(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> Generator[MainWindow, None, None]:
+def main_window(qtbot: "QtBot", monkeypatch: pytest.MonkeyPatch) -> "Generator[MainWindow, None, None]":
     monkeypatch.setattr(MainWindow, "q_settings__restore", lambda _: None)
 
     main_window = MainWindow()
@@ -49,7 +53,7 @@ def _fetch_sample_results() -> None:
 
 
 def test_profile(
-    qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, main_window: MainWindow, tmp_sqlite_file_path: Path
+    qtbot: "QtBot", monkeypatch: pytest.MonkeyPatch, main_window: MainWindow, tmp_sqlite_file_path: Path
 ) -> None:
     monkeypatch.setattr(FileDialog, "get_save_file_path", lambda **_: tmp_sqlite_file_path)
     monkeypatch.setattr(FileDialog, "get_directory_path", lambda **_: SAMPLE_RESULTS__DIR)

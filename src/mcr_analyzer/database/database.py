@@ -1,6 +1,6 @@
 """Database routines for setup and usage."""
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from returns.result import Failure, Result, Success
 from sqlalchemy import create_engine
@@ -12,8 +12,11 @@ from sqlalchemy.sql.expression import select
 from mcr_analyzer.config.database import SQLITE__DRIVER_NAME
 from mcr_analyzer.database.models import Base
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
-def make_url__sqlite(sqlite_file_path: Path | None = None) -> URL:
+
+def make_url__sqlite(sqlite_file_path: "Path | None" = None) -> URL:
     """Given a `Path` or `None`, produce a new sqlite `URL` instance.
 
     Args:
@@ -31,7 +34,7 @@ def make_url__sqlite(sqlite_file_path: Path | None = None) -> URL:
     )
 
 
-def create_engine__sqlite(sqlite_file_path: Path | None = None) -> Engine:
+def create_engine__sqlite(sqlite_file_path: "Path | None" = None) -> Engine:
     return create_engine(url=make_url__sqlite(sqlite_file_path))
 
 
@@ -49,7 +52,7 @@ class _DatabaseSingleton:
     def __init__(self) -> None:
         pass
 
-    def load__sqlite(self, sqlite_file_path: Path | None = None) -> Result[Engine, str]:
+    def load__sqlite(self, sqlite_file_path: "Path | None" = None) -> Result[Engine, str]:
         engine = create_engine__sqlite(sqlite_file_path)
 
         if not _is_engine_compatible_with_base(engine, Base):
@@ -59,7 +62,7 @@ class _DatabaseSingleton:
 
         return Success(engine)
 
-    def create_and_load__sqlite(self, sqlite_file_path: Path | None = None) -> None:
+    def create_and_load__sqlite(self, sqlite_file_path: "Path | None" = None) -> None:
         if sqlite_file_path is not None:
             # - Create an empty file.
             sqlite_file_path.open(mode="w").close()

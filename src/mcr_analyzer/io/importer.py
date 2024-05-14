@@ -1,13 +1,15 @@
-from collections.abc import Callable
 from copy import deepcopy
 from datetime import datetime, timedelta
-from io import TextIOWrapper
-from pathlib import Path
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from mcr_analyzer.config.timezone import TZ_INFO
 from mcr_analyzer.utils.io import readline_skip, readlines
 from mcr_analyzer.utils.re import re_match_unwrap
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from io import TextIOWrapper
+    from pathlib import Path
 
 
 class Point:
@@ -58,7 +60,7 @@ class Rslt:
         * Spot size (`int`): Size (in pixels) of the configured square for result computation.
     """
 
-    def __init__(self, rslt_file_path: Path) -> None:
+    def __init__(self, rslt_file_path: "Path") -> None:
         """Parse file `path` and populate class attributes.
 
         :raises ValueError: An expected RSLT entry was not found.
@@ -110,7 +112,7 @@ class Rslt:
             self.spot_margin_vertical = spot_margin.y
 
 
-def _readline_key_value(file: TextIOWrapper) -> tuple[str, str]:
+def _readline_key_value(file: "TextIOWrapper") -> tuple[str, str]:
     string = file.readline()
 
     match = re_match_unwrap(r"^([^:]+): (.+)$", string)
@@ -121,7 +123,7 @@ def _readline_key_value(file: TextIOWrapper) -> tuple[str, str]:
     return key, value
 
 
-def _readline_get_value(file: TextIOWrapper, key: str) -> str:
+def _readline_get_value(file: "TextIOWrapper", key: str) -> str:
     k, v = _readline_key_value(file)
 
     if k != key:
@@ -134,7 +136,9 @@ def _readline_get_value(file: TextIOWrapper, key: str) -> str:
 T = TypeVar("T")
 
 
-def _read_rslt_table(file: TextIOWrapper, row_count: int, column_count: int, fn: Callable[[str], T]) -> list[list[T]]:
+def _read_rslt_table(
+    file: "TextIOWrapper", row_count: int, column_count: int, fn: "Callable[[str], T]"
+) -> list[list[T]]:
     skip_header_row = 1
     skip_header_column = 1
 
@@ -150,7 +154,7 @@ def _read_rslt_table(file: TextIOWrapper, row_count: int, column_count: int, fn:
     return rslt_table
 
 
-def parse_rslt_in_directory_recursively(directory_path: Path) -> tuple[list[Rslt], list[str]]:
+def parse_rslt_in_directory_recursively(directory_path: "Path") -> tuple[list[Rslt], list[str]]:
     """Collect all measurements in the given path.
 
     This function handles multi-image measurements by copying their base metadata and delaying each image by one second.

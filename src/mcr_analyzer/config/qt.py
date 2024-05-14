@@ -1,9 +1,11 @@
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 from PyQt6.QtCore import QSettings, QSize
-from PyQt6.QtWidgets import QApplication
 
 from mcr_analyzer.utils.list import list_remove_if_exist
+
+if TYPE_CHECKING:
+    from PyQt6.QtWidgets import QApplication
 
 Q_SETTINGS__SESSION__LAST_EXPORT: Final[str] = "Session/LastExport"
 Q_SETTINGS__SESSION__RECENT_FILE_NAME_LIST__MAX_LENGTH: Final[int] = 5
@@ -11,7 +13,7 @@ Q_SETTINGS__SESSION__RECENT_FILE_NAME_LIST: Final[str] = "Session/RecentFileName
 Q_SETTINGS__SESSION__SELECTED_DATE: Final[str] = "Session/SelectedDate"
 
 
-def q_settings__setup(app: QApplication) -> None:
+def q_settings__setup(app: "QApplication") -> None:
     app.setOrganizationName("TranslaTUM")
     app.setOrganizationDomain("www.translatum.tum.de")  # cSpell:ignore translatum
     app.setApplicationName("MCR-Analyzer")

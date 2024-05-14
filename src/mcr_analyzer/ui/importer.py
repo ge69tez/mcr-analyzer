@@ -1,5 +1,5 @@
 import hashlib
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
@@ -26,6 +26,9 @@ from mcr_analyzer.io.image import Image
 from mcr_analyzer.io.importer import Rslt, parse_rslt_in_directory_recursively
 from mcr_analyzer.processing.measurement import update_results
 from mcr_analyzer.utils.q_file_dialog import FileDialog
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class ImportWidget(QWidget):
@@ -99,7 +102,7 @@ class ImportWidget(QWidget):
 
         self.checksum_worker.run(self.rslt_list)
 
-    def update_filelist(self, directory_path: Path | None) -> None:
+    def update_filelist(self, directory_path: "Path | None") -> None:
         self.file_model.removeRows(0, self.file_model.rowCount())
 
         if directory_path is not None:

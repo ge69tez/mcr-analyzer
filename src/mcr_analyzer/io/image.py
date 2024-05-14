@@ -1,7 +1,5 @@
 from enum import Enum
-from io import TextIOWrapper
-from pathlib import Path
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 import numpy as np
 
@@ -17,13 +15,17 @@ from mcr_analyzer.config.netpbm import (  # cSpell:ignore netpbm
 from mcr_analyzer.utils.io import readlines
 from mcr_analyzer.utils.re import re_match_success
 
+if TYPE_CHECKING:
+    from io import TextIOWrapper
+    from pathlib import Path
+
 
 class Image:
     class InputFormat(Enum):
         MCR_TXT: Final[int] = 1  # MCR's own TXT format
         PNM: Final[int] = 2  # Portable AnyMap Format
 
-    def __init__(self, file_path: Path) -> None:
+    def __init__(self, file_path: "Path") -> None:
         with file_path.open(encoding="utf-8") as file:
             header_lines, input_format = self.read_header(file)
 
@@ -32,7 +34,7 @@ class Image:
             self.data = data
             self.height, self.width = data.shape
 
-    def read_header(self, file: TextIOWrapper) -> tuple[list[str], InputFormat]:
+    def read_header(self, file: "TextIOWrapper") -> tuple[list[str], InputFormat]:
         header_line_count = 3
         header_lines = list(readlines(file, header_line_count))
 
@@ -49,7 +51,7 @@ class Image:
         return header_lines, input_format
 
     def read_data(
-        self, file: TextIOWrapper, header_lines: list[str], input_format: InputFormat
+        self, file: "TextIOWrapper", header_lines: list[str], input_format: InputFormat
     ) -> PGM__IMAGE__ND_ARRAY__DATA_TYPE:
         match input_format:
             case self.InputFormat.PNM:

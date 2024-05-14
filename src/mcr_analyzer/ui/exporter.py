@@ -1,11 +1,9 @@
-from collections.abc import Callable
 from datetime import datetime, timedelta
 from operator import eq, ge, gt, le, lt, ne
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 import numpy as np
 from PyQt6.QtCore import QSettings, pyqtSignal, pyqtSlot
-from PyQt6.QtGui import QShowEvent
 from PyQt6.QtWidgets import (
     QComboBox,
     QGroupBox,
@@ -27,6 +25,11 @@ from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement, Result
 from mcr_analyzer.utils.q_file_dialog import FileDialog
 from mcr_analyzer.utils.re import re_match_success
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from PyQt6.QtGui import QShowEvent
 
 
 class ExportWidget(QWidget):
@@ -74,7 +77,7 @@ class ExportWidget(QWidget):
         filter_group.setLayout(self.filter_layout)
         return filter_group
 
-    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802, ARG002
+    def showEvent(self, event: "QShowEvent") -> None:  # noqa: N802, ARG002
         self.update_preview()
 
     def append_add_layout(self) -> None:
@@ -210,7 +213,7 @@ class FilterWidget(QWidget):
         """Slot whenever the user interacted with the filter settings."""
         self.filter_updated.emit()
 
-    def filter(self) -> tuple[InstrumentedAttribute[datetime], Callable[[T, T], ColumnElement[bool]], str]:
+    def filter(self) -> tuple[InstrumentedAttribute[datetime], "Callable[[T, T], ColumnElement[bool]]", str]:
         column_operator = self.column_operator.currentData()
 
         table_column = self.target.currentData()

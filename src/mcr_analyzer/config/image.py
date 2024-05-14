@@ -1,6 +1,6 @@
 import math
-from collections.abc import Sequence
-from typing import Final, TypeAlias
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Final, TypeAlias
 
 import cv2 as cv
 import numpy as np
@@ -11,7 +11,32 @@ from returns.result import Failure, Result, Success
 from scipy.ndimage import maximum_filter  # cSpell:ignore ndimage
 from scipy.stats import mode
 
-from mcr_analyzer.config.netpbm import PGM__IMAGE__ND_ARRAY__DATA_TYPE  # cSpell:ignore netpbm
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Iterator, Sequence
+
+    from mcr_analyzer.config.netpbm import PGM__IMAGE__ND_ARRAY__DATA_TYPE  # cSpell:ignore netpbm
+
+Position: TypeAlias = QPointF
+
+
+@dataclass(frozen=True)
+class CornerPositions:
+    top_left: Position
+    top_right: Position
+    bottom_right: Position
+    bottom_left: Position
+
+
+@dataclass(frozen=True)
+class BoundaryPositions:
+    left: Position
+    right: Position
+    top: Position
+    bottom: Position
+
+    def __iter__(self) -> "Iterator[Position]":
+        return iter(self.__dict__.values())
+
 
 # - cv.findContours(  image, mode, method[, contours[, hierarchy[, offset]]]  ) ->  contours, hierarchy
 #   - Parameters
@@ -56,7 +81,7 @@ def get_grid(
     with_adaptive_threshold: bool = True,
     threshold_value: int | None = None,
     reference_spot_diameter: int | None = None,
-) -> Result[tuple[int, int, tuple[int, int], tuple[QPointF, QPointF, QPointF, QPointF]], str]:
+) -> Result[tuple[int, int, tuple[int, int], CornerPositions], str]:
     # - OTSU threshold works for valid spots with high contrast
     #   - For valid spots with low contrast, OTSU threshold cannot detect many valid spots, which results in many
     #     false negatives.
@@ -107,24 +132,17 @@ def get_grid(
     if not is_successful(analyze_image_with_fourier_transform_result):
         return Failure(analyze_image_with_fourier_transform_result.failure())
 
-    (column_count, row_count), top_left_top_right_bottom_right_bottom_left = (
-        analyze_image_with_fourier_transform_result.unwrap()
-    )
+    (column_count, row_count), corner_positions = analyze_image_with_fourier_transform_result.unwrap()
 
-    return Success((
-        computed_threshold_value,
-        reference_spot_radius,
-        (column_count, row_count),
-        top_left_top_right_bottom_right_bottom_left,
-    ))
+    return Success((computed_threshold_value, reference_spot_radius, (column_count, row_count), corner_positions))
 
 
 def try_to_analyze_image_with_fourier_transform(
     *,
     reference_spot_diameter: int,
-    spot_list: list[QPointF],
+    spot_list: list[Position],
     image_with_fourier_transform: OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE,
-) -> Result[tuple[tuple[int, int], tuple[QPointF, QPointF, QPointF, QPointF]], str]:
+) -> Result[tuple[tuple[int, int], CornerPositions], str]:
     image_height, image_width = image_with_fourier_transform.shape
 
     frequency_row = convert_from_interval_in_original_to_frequency_in_fourier_transform(
@@ -151,10 +169,10 @@ def try_to_analyze_image_with_fourier_transform(
 
 def analyze_image_with_fourier_transform(
     *,
-    image_with_fourier_transform: PGM__IMAGE__ND_ARRAY__DATA_TYPE,
+    image_with_fourier_transform: "PGM__IMAGE__ND_ARRAY__DATA_TYPE",
     reference_spot_diameter: float,
-    spot_list: list[QPointF],
-) -> Result[tuple[tuple[int, int], tuple[QPointF, QPointF, QPointF, QPointF]], str]:
+    spot_list: list[Position],
+) -> Result[tuple[tuple[int, int], CornerPositions], str]:
     fourier_transform_contours_reference_spots_result = get_fourier_transform_contours_reference_spots(
         image_with_fourier_transform=image_with_fourier_transform
     )
@@ -164,79 +182,78 @@ def analyze_image_with_fourier_transform(
 
     fourier_transform_contours_reference_spots = fourier_transform_contours_reference_spots_result.unwrap()
 
-    fourier_transform_left_right_top_bottom = get_fourier_transform_boundary_reference_spots(
+    fourier_transform_boundary_positions = get_fourier_transform_boundary_reference_spots(
         fourier_transform_contours_reference_spots=fourier_transform_contours_reference_spots,
         image_shape=image_with_fourier_transform.shape,
     )
 
-    if not all_unique(fourier_transform_left_right_top_bottom):
-        return Failure(
-            f"Fourier transform reference spots are not all unique: {fourier_transform_left_right_top_bottom=}"
-        )
+    if not all_unique(boundary_positions=fourier_transform_boundary_positions):
+        return Failure(f"Fourier transform reference spots are not all unique: {fourier_transform_boundary_positions=}")
 
     interval_column, interval_row = get_interval_column_and_row(
-        image_with_fourier_transform.shape, fourier_transform_left_right_top_bottom
+        image_with_fourier_transform.shape, fourier_transform_boundary_positions
     )
 
     if not (
-        left_right_top_bottom_are_in_cross_like_position(
+        boundary_positions_are_in_cross_like_position(
             reference_spot_diameter=reference_spot_diameter,
-            fourier_transform_left_right_top_bottom=fourier_transform_left_right_top_bottom,
+            boundary_positions=fourier_transform_boundary_positions,
             interval_column=interval_column,
             interval_row=interval_row,
         )
     ):
         return Failure(
-            f"Fourier transform reference spots are not in an expected cross-like position: {fourier_transform_left_right_top_bottom=}"  # noqa: E501
+            f"Fourier transform reference spots are not in an expected cross-like position: {fourier_transform_boundary_positions=}"  # noqa: E501
         )
 
-    top_left_top_right_bottom_right_bottom_left, (column_count, row_count) = get_grid_position(
+    corner_positions, (column_count, row_count) = get_grid_position(
         spot_list=spot_list,
-        fourier_transform_left_right_top_bottom=fourier_transform_left_right_top_bottom,
+        fourier_transform_boundary_positions=fourier_transform_boundary_positions,
         interval_column_interval_row=(interval_column, interval_row),
     )
 
-    return Success(((column_count, row_count), top_left_top_right_bottom_right_bottom_left))
+    return Success(((column_count, row_count), corner_positions))
 
 
 def get_grid_position(
     *,
-    spot_list: list[QPointF],
-    fourier_transform_left_right_top_bottom: tuple[QPointF, QPointF, QPointF, QPointF],
+    spot_list: list[Position],
+    fourier_transform_boundary_positions: BoundaryPositions,
     interval_column_interval_row: tuple[float, float],
-) -> tuple[tuple[QPointF, QPointF, QPointF, QPointF], tuple[int, int]]:
+) -> tuple[CornerPositions, tuple[int, int]]:
     interval_column, interval_row = interval_column_interval_row
     rotation_column_line, rotation_row_line = get_rotation_column_line_and_row_line(
-        fourier_transform_left_right_top_bottom
+        fourier_transform_boundary_positions
     )
 
-    left_right_top_bottom = get_spots_on_boundary(
+    boundary_positions = get_spots_on_boundary(
         spot_list=spot_list, rotation_column_line=rotation_column_line, rotation_row_line=rotation_row_line
     )
 
-    top_left_top_right_bottom_right_bottom_left = get_corners(
+    corner_positions = get_corner_positions(
         rotation_column_line=rotation_column_line,
         rotation_row_line=rotation_row_line,
-        left_right_top_bottom=left_right_top_bottom,
+        boundary_positions=boundary_positions,
     )
 
     column_count, row_count = get_column_count_and_row_count(
-        interval_column=interval_column,
-        interval_row=interval_row,
-        top_left_top_right_bottom_right_bottom_left=top_left_top_right_bottom_right_bottom_left,
+        interval_column=interval_column, interval_row=interval_row, corner_positions=corner_positions
     )
 
-    return top_left_top_right_bottom_right_bottom_left, (column_count, row_count)
+    return corner_positions, (column_count, row_count)
 
 
-def left_right_top_bottom_are_in_cross_like_position(
+def boundary_positions_are_in_cross_like_position(
     *,
     reference_spot_diameter: float,
-    fourier_transform_left_right_top_bottom: tuple[QPointF, QPointF, QPointF, QPointF],
+    boundary_positions: BoundaryPositions,
     interval_column: float,
     interval_row: float,
 ) -> bool:
-    left, right, top, bottom = fourier_transform_left_right_top_bottom
+    left = boundary_positions.left
+    right = boundary_positions.right
+    top = boundary_positions.top
+    bottom = boundary_positions.bottom
 
     allowed_error = 2
 
@@ -256,11 +273,14 @@ def left_right_top_bottom_are_in_cross_like_position(
 
 
 def get_interval_column_and_row(
-    image_shape: tuple[float, float], fourier_transform_left_right_top_bottom: tuple[QPointF, QPointF, QPointF, QPointF]
+    image_shape: tuple[float, float], fourier_transform_boundary_positions: BoundaryPositions
 ) -> tuple[float, float]:
     image_height, image_width = image_shape
 
-    left, right, top, bottom = fourier_transform_left_right_top_bottom
+    left = fourier_transform_boundary_positions.left
+    right = fourier_transform_boundary_positions.right
+    top = fourier_transform_boundary_positions.top
+    bottom = fourier_transform_boundary_positions.bottom
 
     interval_column = convert_from_frequency_in_fourier_transform_to_interval_in_original(
         total_length_in_original=image_width, frequency_in_fourier_transform=(get_distance(left, right) / 2)
@@ -290,14 +310,14 @@ def division_with_zero(numerator: float, denominator: float) -> float:
     return numerator * np.inf if denominator == 0 else numerator / denominator
 
 
-def all_unique(left_right_top_bottom: Sequence[QPointF]) -> bool:
-    hashable = [(spot.x(), spot.y()) for spot in left_right_top_bottom]
+def all_unique(boundary_positions: "Iterable[Position]") -> bool:
+    hashable = [(spot.x(), spot.y()) for spot in boundary_positions]
     return len(hashable) == len(set(hashable))
 
 
 def get_fourier_transform_boundary_reference_spots(
     *, fourier_transform_contours_reference_spots: tuple[OPEN_CV__CONTOUR__DATA_TYPE], image_shape: tuple[float, float]
-) -> tuple[QPointF, QPointF, QPointF, QPointF]:
+) -> BoundaryPositions:
     image_height, image_width = image_shape
 
     x_min = image_width
@@ -316,30 +336,33 @@ def get_fourier_transform_boundary_reference_spots(
 
         if x < x_min:
             x_min = x
-            left = QPointF(x, y)
+            left = Position(x, y)
 
         if x_max < x:
             x_max = x
-            right = QPointF(x, y)
+            right = Position(x, y)
 
         if y < y_min:
             y_min = y
-            top = QPointF(x, y)
+            top = Position(x, y)
 
         if y_max < y:
             y_max = y
-            bottom = QPointF(x, y)
+            bottom = Position(x, y)
 
     if left is None or right is None or top is None or bottom is None:
         raise NotImplementedError
 
-    return left, right, top, bottom
+    return BoundaryPositions(left=left, right=right, top=top, bottom=bottom)
 
 
 def get_rotation_column_line_and_row_line(
-    fourier_transform_left_right_top_bottom: tuple[QPointF, QPointF, QPointF, QPointF],
+    fourier_transform_boundary_positions: BoundaryPositions,
 ) -> tuple[float, float]:
-    left, right, top, bottom = fourier_transform_left_right_top_bottom
+    left = fourier_transform_boundary_positions.left
+    right = fourier_transform_boundary_positions.right
+    top = fourier_transform_boundary_positions.top
+    bottom = fourier_transform_boundary_positions.bottom
 
     rotation_horizontal_normal = division_with_zero(left.y() - right.y(), left.x() - right.x())
     rotation_vertical_normal = division_with_zero(top.y() - bottom.y(), top.x() - bottom.x())
@@ -396,7 +419,7 @@ def get_centroid(contour: OPEN_CV__CONTOUR__DATA_TYPE) -> tuple[int, int]:
     return x, y
 
 
-def get_intersection_spot(a_1: float, a_2: float, spot_1: QPointF, spot_2: QPointF) -> QPointF:
+def get_intersection_spot(a_1: float, a_2: float, spot_1: Position, spot_2: Position) -> Position:
     b_1 = spot_1.y() - a_1 * spot_1.x()
     b_2 = spot_2.y() - a_2 * spot_2.x()
 
@@ -415,10 +438,10 @@ def get_intersection_spot(a_1: float, a_2: float, spot_1: QPointF, spot_2: QPoin
         x = (b_2 - b_1) / (a_1 - a_2)
         y = (a_2 * b_1 - a_1 * b_2) / (a_2 - a_1)
 
-    return QPointF(x, y)
+    return Position(x, y)
 
 
-def normalize_image(*, image: PGM__IMAGE__ND_ARRAY__DATA_TYPE) -> OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE:
+def normalize_image(*, image: "PGM__IMAGE__ND_ARRAY__DATA_TYPE") -> OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE:
     image_normalized: OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE = (
         image / np.max(image) * OPEN_CV__IMAGE__DATA_TYPE__MAX
     ).astype(dtype=OPEN_CV__IMAGE__DATA_TYPE)  # cSpell:ignore astype dtype
@@ -494,8 +517,8 @@ def get_contours(image: OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE) -> tuple[OPEN_CV__C
 
 def get_spot_with_radius_list_by_roundness(
     *, image: OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE
-) -> list[tuple[QPointF, float]] | None:
-    spot_with_radius_list: list[tuple[QPointF, float]] = []
+) -> list[tuple[Position, float]] | None:
+    spot_with_radius_list: list[tuple[Position, float]] = []
 
     for contour in get_contours(image):
         perimeter = cv.arcLength(curve=contour, closed=True)
@@ -512,7 +535,7 @@ def get_spot_with_radius_list_by_roundness(
             center, radius = cv.minEnclosingCircle(points=contour)
             (x, y) = center
 
-            spot_with_radius = (QPointF(x, y), radius)
+            spot_with_radius = (Position(x, y), radius)
             spot_with_radius_list.append(spot_with_radius)
 
     return spot_with_radius_list if len(spot_with_radius_list) > 0 else None
@@ -521,7 +544,7 @@ def get_spot_with_radius_list_by_roundness(
 def draw_circle_on_image_like(
     *,
     image: OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE,
-    spot_with_radius_list: list[tuple[QPointF, float]],
+    spot_with_radius_list: list[tuple[Position, float]],
     spot_radius: float | None = None,
 ) -> OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE:
     foreground_color, background_color = get_image_foreground_and_background_color(image)
@@ -583,7 +606,7 @@ def is_infinite(x: float) -> bool:
     return abs(x) == np.inf
 
 
-def get_distance(a: QPointF, b: QPointF) -> float:
+def get_distance(a: Position, b: Position) -> float:
     return QLineF(a, b).length()
 
 
@@ -603,14 +626,14 @@ def get_reference_spot_radius(radius_list: list[float]) -> int:
 
 
 def filter_spot_with_radius_outliers(
-    *, spot_with_radius_list: list[tuple[QPointF, float]], reference_spot_radius: int
-) -> list[tuple[QPointF, float]]:
+    *, spot_with_radius_list: list[tuple[Position, float]], reference_spot_radius: int
+) -> list[tuple[Position, float]]:
     return [(spot, radius) for spot, radius in spot_with_radius_list if radius <= reference_spot_radius * 2]
 
 
 def get_spots_on_boundary(
-    *, spot_list: list[QPointF], rotation_column_line: float, rotation_row_line: float
-) -> tuple[QPointF, QPointF, QPointF, QPointF]:
+    *, spot_list: list[Position], rotation_column_line: float, rotation_row_line: float
+) -> BoundaryPositions:
     x_intercept_of_column_line_min = np.inf
     x_intercept_of_column_line_max = -np.inf
     y_intercept_of_row_line_min = np.inf
@@ -625,46 +648,45 @@ def get_spots_on_boundary(
 
         if x_intercept_of_column_line < x_intercept_of_column_line_min:
             x_intercept_of_column_line_min = x_intercept_of_column_line
-            left = QPointF(spot.x(), spot.y())
+            left = Position(spot.x(), spot.y())
 
         if x_intercept_of_column_line_max < x_intercept_of_column_line:
             x_intercept_of_column_line_max = x_intercept_of_column_line
-            right = QPointF(spot.x(), spot.y())
+            right = Position(spot.x(), spot.y())
 
         if y_intercept_of_row_line < y_intercept_of_row_line_min:
             y_intercept_of_row_line_min = y_intercept_of_row_line
-            top = QPointF(spot.x(), spot.y())
+            top = Position(spot.x(), spot.y())
 
         if y_intercept_of_row_line_max < y_intercept_of_row_line:
             y_intercept_of_row_line_max = y_intercept_of_row_line
-            bottom = QPointF(spot.x(), spot.y())
+            bottom = Position(spot.x(), spot.y())
 
-    return (left, right, top, bottom)
+    return BoundaryPositions(left=left, right=right, top=top, bottom=bottom)
 
 
-def get_corners(
-    *,
-    rotation_column_line: float,
-    rotation_row_line: float,
-    left_right_top_bottom: tuple[QPointF, QPointF, QPointF, QPointF],
-) -> tuple[QPointF, QPointF, QPointF, QPointF]:
-    left, right, top, bottom = left_right_top_bottom
+def get_corner_positions(
+    *, rotation_column_line: float, rotation_row_line: float, boundary_positions: BoundaryPositions
+) -> CornerPositions:
+    left = boundary_positions.left
+    right = boundary_positions.right
+    top = boundary_positions.top
+    bottom = boundary_positions.bottom
 
     top_left = get_intersection_spot(rotation_row_line, rotation_column_line, top, left)
     top_right = get_intersection_spot(rotation_row_line, rotation_column_line, top, right)
     bottom_right = get_intersection_spot(rotation_row_line, rotation_column_line, bottom, right)
     bottom_left = get_intersection_spot(rotation_row_line, rotation_column_line, bottom, left)
 
-    return top_left, top_right, bottom_right, bottom_left
+    return CornerPositions(top_left=top_left, top_right=top_right, bottom_right=bottom_right, bottom_left=bottom_left)
 
 
 def get_column_count_and_row_count(
-    *,
-    interval_column: float,
-    interval_row: float,
-    top_left_top_right_bottom_right_bottom_left: tuple[QPointF, QPointF, QPointF, QPointF],
+    *, interval_column: float, interval_row: float, corner_positions: CornerPositions
 ) -> tuple[int, int]:
-    top_left, top_right, _bottom_right, bottom_left = top_left_top_right_bottom_right_bottom_left
+    top_left = corner_positions.top_left
+    top_right = corner_positions.top_right
+    bottom_left = corner_positions.bottom_left
 
     width_length = get_distance(top_left, top_right)
     height_length = get_distance(top_left, bottom_left)

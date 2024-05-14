@@ -1,67 +1,41 @@
+from dataclasses import dataclass
+from enum import Enum
 from string import ascii_uppercase
-from typing import Any
+from typing import TYPE_CHECKING, Any, Final, TypeVar
 
-from PyQt6.QtCore import QPointF, QRectF, Qt, pyqtSignal
-from PyQt6.QtGui import QBrush, QPainter, QPen, QWheelEvent
-from PyQt6.QtWidgets import (
-    QGraphicsEllipseItem,
-    QGraphicsItem,
-    QGraphicsObject,
-    QGraphicsPixmapItem,
-    QGraphicsRectItem,
-    QGraphicsScene,
-    QGraphicsView,
-    QStyleOptionGraphicsItem,
-    QWidget,
-)
+from PyQt6.QtCore import QRectF, Qt, pyqtSignal
+from PyQt6.QtGui import QPen
+from PyQt6.QtWidgets import QGraphicsItem, QGraphicsObject, QStyleOptionGraphicsItem, QWidget
 from sqlalchemy.sql.expression import select
 
+from mcr_analyzer.config.image import CornerPositions, Position
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement
+from mcr_analyzer.ui.graphics_items import GraphicsSquareTextItem, GridCoordinates, Spot, get_items_position
+from mcr_analyzer.utils.set import get_set_differences
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from PyQt6.QtGui import QPainter
+
+T = TypeVar("T", Spot, GraphicsSquareTextItem)
 
 
-class GraphicsRectTextItem(QGraphicsRectItem):
-    """Draws text on a rectangular background."""
+class CornerPosition(Enum):
+    top_left: Final[int] = 1
+    top_right: Final[int] = 2
+    bottom_right: Final[int] = 3
+    bottom_left: Final[int] = 4
 
-    def __init__(  # noqa: PLR0913
-        self, *, x: float, y: float, width: float, height: float, text: str, parent: QGraphicsItem | None
+
+class CornerSpot(Spot):
+    def __init__(
+        self, *, corner_position: CornerPosition, position: Position, size: float, parent: QGraphicsItem
     ) -> None:
-        top_left_x = x - width / 2
-        top_left_y = y - height / 2
-        super().__init__(top_left_x, top_left_y, width, height, parent)
+        super().__init__(position=position, size=size, parent=parent)
 
-        self.text = text
-
-        self.setPen(QPen(Qt.GlobalColor.white))
-        self.setBrush(QBrush(Qt.GlobalColor.white))
-
-    def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget | None = None) -> None:
-        super().paint(painter, option, widget)
-        painter.setPen(Qt.GlobalColor.black)
-        painter.drawText(option.rect, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter, self.text)
-
-
-class Spot(QGraphicsEllipseItem):
-    def __init__(self, *, x: float, y: float, diameter: float, parent: QGraphicsItem) -> None:
-        width = diameter
-        height = diameter
-
-        top_left_x = x - width / 2
-        top_left_y = y - height / 2
-        super().__init__(top_left_x, top_left_y, width, height, parent)
-
-        pen_ = QPen(Qt.GlobalColor.yellow)
-        pen_width = 1
-        pen_.setWidthF(pen_width)
-        pen_.setStyle(Qt.PenStyle.DotLine)
-        self.setPen(pen_)
-
-        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable)
-
-
-class SpotCorner(Spot):
-    def __init__(self, *, x: float, y: float, diameter: float, parent: QGraphicsItem) -> None:
-        super().__init__(x=x, y=y, diameter=diameter, parent=parent)
+        self.corner_position = corner_position
 
         pen_ = QPen(Qt.GlobalColor.green)
         pen_width = 1
@@ -73,35 +47,46 @@ class SpotCorner(Spot):
 
     def itemChange(self, change: QGraphicsItem.GraphicsItemChange, value: Any) -> Any:  # noqa: N802
         match change:
-            case QGraphicsItem.GraphicsItemChange.ItemPositionChange:
-                if not isinstance(value, QPointF):
+            case QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged:
+                if not isinstance(value, Position):
                     raise NotImplementedError
 
                 grid = self.parentItem()
                 if isinstance(grid, Grid):
-                    grid.corner_moved.emit()
+                    grid.corner_moved.emit(self)
 
         return super().itemChange(change, value)
 
+    def update_(self, *, position: Position, size: float) -> None:
+        self._set_position_without_item_sends_geometry_changes(position)
+
+        self._set_size(size=size)
+
+    def _set_position_without_item_sends_geometry_changes(self, position: Position) -> None:
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges, False)
+        self._set_position(position=position)
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges)
+
+
+@dataclass(frozen=True)
+class CornerSpots:
+    top_left: CornerSpot
+    top_right: CornerSpot
+    bottom_right: CornerSpot
+    bottom_left: CornerSpot
+
 
 class Grid(QGraphicsObject):
-    corner_moved = pyqtSignal()
+    corner_moved = pyqtSignal(CornerSpot)
 
     def __init__(self, measurement_id: int, parent: QGraphicsItem | None = None) -> None:
         super().__init__(parent)
 
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemHasNoContents)
+
         self.measurement_id = measurement_id
 
-        self._initialize_spot_corners()
-
-        self.spots: list[Spot] = []
-
-        self.column_labels: list[GraphicsRectTextItem] = []
-        self.row_labels: list[GraphicsRectTextItem] = []
-
-        self._add_children()
-
-        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemHasNoContents)
+        self._initialize_instance_variables(measurement_id=measurement_id)
 
     # - References
     #   - https://doc.qt.io/qt-6/qtwidgets-graphicsview-dragdroprobot-example.html
@@ -116,205 +101,189 @@ class Grid(QGraphicsObject):
         return QRectF()
 
     # - NotImplementedError: QGraphicsItem.paint() is abstract and must be overridden
-    def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget | None = None) -> None:
+    def paint(self, painter: "QPainter", option: QStyleOptionGraphicsItem, widget: QWidget | None = None) -> None:
         pass
 
-    def _initialize_spot_corners(self) -> None:
+    def _initialize_instance_variables(self, *, measurement_id: int) -> None:
         with database.Session() as session:
-            statement = select(Measurement).where(Measurement.id == self.measurement_id)
+            statement = select(Measurement).where(Measurement.id == measurement_id)
             measurement = session.execute(statement).scalar_one()
 
-            self.column_count = measurement.chip.column_count
-            self.row_count = measurement.chip.row_count
-            self.spot_size = measurement.chip.spot_size
+            column_count = measurement.chip.column_count
+            row_count = measurement.chip.row_count
+            spot_size = measurement.chip.spot_size
 
-            self.spot_corner_top_left_x = measurement.chip.spot_corner_top_left_x
-            self.spot_corner_top_left_y = measurement.chip.spot_corner_top_left_y
-            self.spot_corner_top_right_x = measurement.chip.spot_corner_top_right_x
-            self.spot_corner_top_right_y = measurement.chip.spot_corner_top_right_y
-            self.spot_corner_bottom_right_x = measurement.chip.spot_corner_bottom_right_x
-            self.spot_corner_bottom_right_y = measurement.chip.spot_corner_bottom_right_y
-            self.spot_corner_bottom_left_x = measurement.chip.spot_corner_bottom_left_x
-            self.spot_corner_bottom_left_y = measurement.chip.spot_corner_bottom_left_y
+            spot_corner_top_left_x = measurement.chip.spot_corner_top_left_x
+            spot_corner_top_left_y = measurement.chip.spot_corner_top_left_y
+            spot_corner_top_right_x = measurement.chip.spot_corner_top_right_x
+            spot_corner_top_right_y = measurement.chip.spot_corner_top_right_y
+            spot_corner_bottom_right_x = measurement.chip.spot_corner_bottom_right_x
+            spot_corner_bottom_right_y = measurement.chip.spot_corner_bottom_right_y
+            spot_corner_bottom_left_x = measurement.chip.spot_corner_bottom_left_x
+            spot_corner_bottom_left_y = measurement.chip.spot_corner_bottom_left_y
 
-        # - Why does QGraphicsItem::scenePos() keep returning (0,0)
-        #   - https://stackoverflow.com/a/1151955
-        #
-        # - the items position is initialized to (0, 0) in the scene.
-        #   - https://doc.qt.io/qt-6/qgraphicsscene.html#details
-        #
-        x = 0
-        y = x
+        self.corner_spots = CornerSpots(
+            top_left=CornerSpot(
+                corner_position=CornerPosition.top_left,
+                position=Position(spot_corner_top_left_x, spot_corner_top_left_y),
+                size=spot_size,
+                parent=self,
+            ),
+            top_right=CornerSpot(
+                corner_position=CornerPosition.top_right,
+                position=Position(spot_corner_top_right_x, spot_corner_top_right_y),
+                size=spot_size,
+                parent=self,
+            ),
+            bottom_right=CornerSpot(
+                corner_position=CornerPosition.bottom_right,
+                position=Position(spot_corner_bottom_right_x, spot_corner_bottom_right_y),
+                size=spot_size,
+                parent=self,
+            ),
+            bottom_left=CornerSpot(
+                corner_position=CornerPosition.bottom_left,
+                position=Position(spot_corner_bottom_left_x, spot_corner_bottom_left_y),
+                size=spot_size,
+                parent=self,
+            ),
+        )
 
-        self.spot_corner_top_left = SpotCorner(x=x, y=y, diameter=self.spot_size, parent=self)
-        self.spot_corner_top_right = SpotCorner(x=x, y=y, diameter=self.spot_size, parent=self)
-        self.spot_corner_bottom_right = SpotCorner(x=x, y=y, diameter=self.spot_size, parent=self)
-        self.spot_corner_bottom_left = SpotCorner(x=x, y=y, diameter=self.spot_size, parent=self)
+        self.spots: dict[GridCoordinates, Spot] = {}
+        self.column_labels: dict[GridCoordinates, GraphicsSquareTextItem] = {}
+        self.row_labels: dict[GridCoordinates, GraphicsSquareTextItem] = {}
 
-        self.spot_corner_top_left.setPos(self.spot_corner_top_left_x, self.spot_corner_top_left_y)
-        self.spot_corner_top_right.setPos(self.spot_corner_top_right_x, self.spot_corner_top_right_y)
-        self.spot_corner_bottom_right.setPos(self.spot_corner_bottom_right_x, self.spot_corner_bottom_right_y)
-        self.spot_corner_bottom_left.setPos(self.spot_corner_bottom_left_x, self.spot_corner_bottom_left_y)
+        self.update_(row_count=row_count, column_count=column_count)
 
-    def _clear_children(self) -> None:
-        scene = self.scene()
+        self.corner_moved.connect(self.update_)
 
-        for column_header in self.column_labels:
-            scene.removeItem(column_header)
-        self.column_labels.clear()
+    def _update_children(
+        self, *, row_count: int, column_count: int, corner_positions: CornerPositions, spot_size: float
+    ) -> None:
+        row_labels_new_position, column_labels_new_position, spots_new_position = get_items_position(
+            row_count=row_count, column_count=column_count, corner_positions=corner_positions
+        )
 
-        for row_header in self.row_labels:
-            scene.removeItem(row_header)
-        self.row_labels.clear()
+        self._update_row_labels(row_labels_new_position=row_labels_new_position, spot_size=spot_size)
 
-        for spot in self.spots:
-            scene.removeItem(spot)
-        self.spots.clear()
+        self._update_column_labels(column_labels_new_position=column_labels_new_position, spot_size=spot_size)
 
-    def _add_children(self) -> None:  # noqa: PLR0914
-        corner_top_left = self.spot_corner_top_left.scenePos()
-        corner_top_right = self.spot_corner_top_right.scenePos()
-        corner_bottom_right = self.spot_corner_bottom_right.scenePos()
-        corner_bottom_left = self.spot_corner_bottom_left.scenePos()
+        self._update_spots(spots_new_position=spots_new_position, spot_size=spot_size)
 
-        row_count = self.row_count
-        column_count = self.column_count
+    def _get_corner_positions(self) -> CornerPositions:
+        top_left = self.corner_spots.top_left.get_position()
+        top_right = self.corner_spots.top_right.get_position()
+        bottom_right = self.corner_spots.bottom_right.get_position()
+        bottom_left = self.corner_spots.bottom_left.get_position()
 
-        i_min = 0
-        i_max = row_count - 1
-        j_min = 0
-        j_max = column_count - 1
+        return CornerPositions(
+            top_left=top_left, top_right=top_right, bottom_right=bottom_right, bottom_left=bottom_left
+        )
 
-        label_index = -1
+    def _update_corner_spots(self, *, corner_positions: CornerPositions, spot_size: float) -> None:
+        top_left = corner_positions.top_left
+        top_right = corner_positions.top_right
+        bottom_right = corner_positions.bottom_right
+        bottom_left = corner_positions.bottom_left
 
-        for i in range(label_index, row_count):
-            row_i_left = corner_top_left + (corner_bottom_left - corner_top_left) * i / (row_count - 1)
-            row_i_right = corner_top_right + (corner_bottom_right - corner_top_right) * i / (row_count - 1)
+        self.corner_spots.top_left.update_(position=top_left, size=spot_size)
+        self.corner_spots.top_right.update_(position=top_right, size=spot_size)
+        self.corner_spots.bottom_right.update_(position=bottom_right, size=spot_size)
+        self.corner_spots.bottom_left.update_(position=bottom_left, size=spot_size)
 
-            for j in range(label_index, column_count):
-                spot = row_i_left + (row_i_right - row_i_left) * j / (column_count - 1)
-                x = spot.x()
-                y = spot.y()
-
-                is_top_left_corner = i == label_index and j == label_index
-
-                is_row_label = j == label_index
-                is_column_label = i == label_index
-
-                is_spot = i >= 0 and j >= 0
-
-                is_spot_corner = (i, j) in {(i_min, j_min), (i_min, j_max), (i_max, j_min), (i_max, j_max)}
-
-                if not is_top_left_corner:
-                    if is_row_label:
-                        row_label = GraphicsRectTextItem(
-                            x=x, y=y, width=self.spot_size, height=self.spot_size, text=ascii_uppercase[i], parent=self
-                        )
-                        self.row_labels.append(row_label)
-
-                    elif is_column_label:
-                        column_label = GraphicsRectTextItem(
-                            x=x, y=y, width=self.spot_size, height=self.spot_size, text=str(j), parent=self
-                        )
-                        self.column_labels.append(column_label)
-
-                    elif is_spot and not is_spot_corner:
-                        spot_item = Spot(x=x, y=y, diameter=self.spot_size, parent=self)
-                        self.spots.append(spot_item)
-
-    def update_(  # noqa: PLR0913
+    def update_graphics_items(
         self,
         *,
-        column_count: int,
-        row_count: int,
-        spot_size: int,
-        spot_corner_top_left_x: float,
-        spot_corner_top_left_y: float,
-        spot_corner_top_right_x: float,
-        spot_corner_top_right_y: float,
-        spot_corner_bottom_right_x: float,
-        spot_corner_bottom_right_y: float,
-        spot_corner_bottom_left_x: float,
-        spot_corner_bottom_left_y: float,
+        items_current: dict[GridCoordinates, T],
+        items_new_position: dict[GridCoordinates, Position],
+        item_new_size: float,
+        item_new_fn: "Callable[[GridCoordinates, Position, float], T]",
     ) -> None:
-        self._clear_children()
+        items_grid_coordinates_current = set(items_current.keys())
+        items_grid_coordinates_next = set(items_new_position.keys())
 
-        self.column_count = column_count
-        self.row_count = row_count
+        to_remove, to_update, to_add = get_set_differences(
+            set_current=items_grid_coordinates_current, set_next=items_grid_coordinates_next
+        )
 
-        self.spot_size = spot_size
+        for grid_coordinates in to_remove:
+            self.scene().removeItem(items_current[grid_coordinates])
+            del items_current[grid_coordinates]
 
-        self.spot_corner_top_left_x = spot_corner_top_left_x
-        self.spot_corner_top_left_y = spot_corner_top_left_y
-        self.spot_corner_top_right_x = spot_corner_top_right_x
-        self.spot_corner_top_right_y = spot_corner_top_right_y
-        self.spot_corner_bottom_right_x = spot_corner_bottom_right_x
-        self.spot_corner_bottom_right_y = spot_corner_bottom_right_y
-        self.spot_corner_bottom_left_x = spot_corner_bottom_left_x
-        self.spot_corner_bottom_left_y = spot_corner_bottom_left_y
+        for grid_coordinates in to_update:
+            position = items_new_position[grid_coordinates]
+            items_current[grid_coordinates].update_(position=position, size=item_new_size)
 
-        # - Why does QGraphicsItem::scenePos() keep returning (0,0)
-        #   - https://stackoverflow.com/a/1151955
-        #
-        # - the items position is initialized to (0, 0) in the scene.
-        #   - https://doc.qt.io/qt-6/qgraphicsscene.html#details
-        #
-        x = 0
-        y = x
-        top_left_x = x - spot_size / 2
-        top_left_y = y - spot_size / 2
-        self.spot_corner_top_left.setRect(top_left_x, top_left_y, spot_size, spot_size)
-        self.spot_corner_top_right.setRect(top_left_x, top_left_y, spot_size, spot_size)
-        self.spot_corner_bottom_right.setRect(top_left_x, top_left_y, spot_size, spot_size)
-        self.spot_corner_bottom_left.setRect(top_left_x, top_left_y, spot_size, spot_size)
+        for grid_coordinates in to_add:
+            position = items_new_position[grid_coordinates]
+            items_current[grid_coordinates] = item_new_fn(grid_coordinates, position, item_new_size)
 
-        self.spot_corner_top_left.setPos(self.spot_corner_top_left_x, self.spot_corner_top_left_y)
-        self.spot_corner_top_right.setPos(self.spot_corner_top_right_x, self.spot_corner_top_right_y)
-        self.spot_corner_bottom_right.setPos(self.spot_corner_bottom_right_x, self.spot_corner_bottom_right_y)
-        self.spot_corner_bottom_left.setPos(self.spot_corner_bottom_left_x, self.spot_corner_bottom_left_y)
+    def _update_row_labels(self, *, row_labels_new_position: dict[GridCoordinates, Position], spot_size: float) -> None:
+        self.update_graphics_items(
+            items_current=self.row_labels,
+            items_new_position=row_labels_new_position,
+            item_new_size=spot_size,
+            item_new_fn=lambda grid_coordinates, position, spot_size: GraphicsSquareTextItem(
+                position=position,
+                size=spot_size,
+                text=ascii_uppercase[grid_coordinates.row % len(ascii_uppercase)],
+                parent=self,
+            ),
+        )
 
-        self._add_children()
+    def _update_column_labels(
+        self, *, column_labels_new_position: dict[GridCoordinates, Position], spot_size: float
+    ) -> None:
+        self.update_graphics_items(
+            items_current=self.column_labels,
+            items_new_position=column_labels_new_position,
+            item_new_size=spot_size,
+            item_new_fn=lambda grid_coordinates, position, spot_size: GraphicsSquareTextItem(
+                position=position, size=spot_size, text=str(grid_coordinates.column), parent=self
+            ),
+        )
 
-    def update_children(self, *, column_count: int, row_count: int, spot_size: int) -> None:
-        self._clear_children()
+    def _update_spots(self, *, spots_new_position: dict[GridCoordinates, Position], spot_size: float) -> None:
+        self.update_graphics_items(
+            items_current=self.spots,
+            items_new_position=spots_new_position,
+            item_new_size=spot_size,
+            item_new_fn=lambda _grid_coordinates, position, spot_size: Spot(
+                position=position, size=spot_size, parent=self
+            ),
+        )
 
-        self.column_count = column_count
-        self.row_count = row_count
+    def update_(
+        self,
+        *,
+        column_count: int | None = None,
+        row_count: int | None = None,
+        spot_size: float | None = None,
+        corner_positions: CornerPositions | None = None,
+    ) -> None:
+        if column_count is None:
+            column_count = self._get_column_count()
 
-        self.spot_size = spot_size
+        if row_count is None:
+            row_count = self._get_row_count()
 
-        self._add_children()
+        if spot_size is None:
+            spot_size = self._get_spot_size()
 
-
-class ImageView(QGraphicsView):
-    def __init__(self, scene: QGraphicsScene, image: QGraphicsPixmapItem) -> None:  # cSpell:ignore Pixmap
-        super().__init__(scene)
-
-        self.zoom_level = 0
-
-        self.image = image
-
-        self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
-        self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
-
-        self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
-
-    def fit_in_view(self) -> None:
-        self.fitInView(self.image, Qt.AspectRatioMode.KeepAspectRatio)
-
-    def wheelEvent(self, event: QWheelEvent) -> None:  # noqa: N802
-        zoom_in_factor = 1.25
-        zoom_out_factor = 1 / zoom_in_factor
-
-        if event.angleDelta().y() > 0:
-            factor = zoom_in_factor
-            self.zoom_level += 1
+        if corner_positions is None:
+            corner_positions = self._get_corner_positions()
         else:
-            factor = zoom_out_factor
-            self.zoom_level -= 1
+            self._update_corner_spots(corner_positions=corner_positions, spot_size=spot_size)
 
-        if self.zoom_level > 0:
-            self.scale(factor, factor)
-        else:
-            self.zoom_level = 0
-            self.fit_in_view()
+        self._update_children(
+            row_count=row_count, column_count=column_count, corner_positions=corner_positions, spot_size=spot_size
+        )
+
+    def _get_column_count(self) -> int:
+        return len(self.column_labels)
+
+    def _get_row_count(self) -> int:
+        return len(self.row_labels)
+
+    def _get_spot_size(self) -> float:
+        return self.corner_spots.top_left.get_size()

@@ -1,17 +1,20 @@
 """Interface and classes for spot analysis."""
 
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
 import numpy as np
 
-from mcr_analyzer.config.netpbm import PGM__IMAGE__ND_ARRAY__DATA_TYPE  # cSpell:ignore netpbm
 from mcr_analyzer.config.spot import SPOT__NUMBER__OF__BRIGHTEST_PIXELS
+
+if TYPE_CHECKING:
+    from mcr_analyzer.config.netpbm import PGM__IMAGE__ND_ARRAY__DATA_TYPE  # cSpell:ignore netpbm
 
 
 class Spot(ABC):
     """Base class defining spot analysis interface."""
 
-    def __init__(self, data: PGM__IMAGE__ND_ARRAY__DATA_TYPE) -> None:  # cSpell:ignore ndarray
+    def __init__(self, data: "PGM__IMAGE__ND_ARRAY__DATA_TYPE") -> None:  # cSpell:ignore ndarray
         """Initialize spot object.
 
         :param data: (PGM__IMAGE__ND_ARRAY__DATA_TYPE) Pixel data of the spot in question.

@@ -1,6 +1,8 @@
 """Object Relational Models defining the database."""
 
-from datetime import datetime
+from datetime import (
+    datetime,  # noqa: TCH003  # - sqlalchemy.exc.ArgumentError: Could not resolve all types within mapped annotation: "sqlalchemy.orm.base.Mapped[ForwardRef('datetime | None')]".
+)
 from typing import Annotated
 
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, declared_attr, mapped_column, relationship
