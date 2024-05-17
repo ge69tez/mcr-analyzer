@@ -11,7 +11,6 @@ from mcr_analyzer.config.qt import (
     q_settings__session__recent_file_name_list__remove,
 )
 from mcr_analyzer.database.database import database
-from mcr_analyzer.ui.exporter import ExportWidget
 from mcr_analyzer.ui.importer import ImportWidget
 from mcr_analyzer.ui.measurement import MeasurementWidget
 from mcr_analyzer.ui.welcome import WelcomeWidget
@@ -29,7 +28,6 @@ class MainWindow(QMainWindow):
         self.welcome_widget = WelcomeWidget()
         self.import_widget = ImportWidget()
         self.measurement_widget = MeasurementWidget()
-        self.export_widget = ExportWidget()
 
         self.create_actions()
         self.create_menus()
@@ -39,7 +37,6 @@ class MainWindow(QMainWindow):
         self.tab_widget.addTab(self.welcome_widget, "&Welcome")
         self.tab_widget.addTab(self.import_widget, "&Import measurements")
         self.tab_widget.addTab(self.measurement_widget, "&Measurement && Data Entry")
-        self.tab_widget.addTab(self.export_widget, "&Export")
 
         self.welcome_widget.database_created.connect(self.switch_to_import)
         self.welcome_widget.database_opened.connect(self.switch_to_measurement)

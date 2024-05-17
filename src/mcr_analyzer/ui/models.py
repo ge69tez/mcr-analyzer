@@ -1,14 +1,11 @@
 from datetime import datetime, time
-from string import ascii_uppercase
 from typing import Any, Self, overload
 
-import numpy as np
-from PyQt6.QtCore import QAbstractItemModel, QAbstractTableModel, QModelIndex, QObject, Qt
-from PyQt6.QtGui import QBrush, QFont
+from PyQt6.QtCore import QAbstractItemModel, QModelIndex, QObject, Qt
 from sqlalchemy.sql.expression import func, select
 
 from mcr_analyzer.database.database import database
-from mcr_analyzer.database.models import Measurement, Result
+from mcr_analyzer.database.models import Measurement
 
 
 class MeasurementTreeItem:
@@ -206,142 +203,3 @@ class MeasurementTreeModel(QAbstractItemModel):
                             date_row_tree_item,
                         )
                     )
-
-
-class ResultTableModel(QAbstractTableModel):
-    def __init__(self, measurement_id: int, parent: QObject | None = None):
-        super().__init__(parent)
-
-        self.measurement_id = measurement_id
-
-        with database.Session() as session:
-            statement = select(Measurement).where(Measurement.id == measurement_id)
-            measurement = session.execute(statement).scalar_one()
-
-            self.row_count: int = measurement.chip.row_count
-            self.column_count: int = measurement.chip.column_count
-
-        self.row_index_max = self.row_count - 1
-
-        self.update()
-
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802, ARG002
-        # - 2 additional rows:
-        #   - Mean
-        #   - Standard deviation
-        return self.row_count + 2
-
-    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802, ARG002
-        return self.column_count
-
-    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
-        if not index.isValid():
-            return None
-
-        row_index = index.row()
-        column_index = index.column()
-
-        result = None
-
-        if row_index < self.results.shape[0] and column_index < self.results.shape[1]:
-            result = self.results[row_index][column_index]
-
-        return_value: Any = None
-
-        match role:
-            case Qt.ItemDataRole.DisplayRole:
-                if result:
-                    return_value = f"{result.value or np.nan:5.0f}"
-
-                elif row_index == self.row_index_max + 1:
-                    return_value = f"{self.means[column_index]:5.0f}"
-
-                elif row_index == self.row_index_max + 2:
-                    return_value = f"{self.standard_deviations[column_index]:5.0f}"
-
-            # - Set font bold for 2 additional rows:
-            #   - Mean
-            #   - Standard deviation
-            case Qt.ItemDataRole.FontRole if self.row_index_max < row_index:
-                return_value = _get_qtgui_qfont_bold()
-
-            case Qt.ItemDataRole.ForegroundRole if result:
-                color = Qt.GlobalColor.darkGreen if result.valid else Qt.GlobalColor.darkRed
-                return_value = QBrush(color)
-
-            case Qt.ItemDataRole.TextAlignmentRole:
-                return_value = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-
-        return return_value
-
-    def headerData(  # noqa: N802
-        self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole
-    ) -> Any:
-        return_value: Any = None
-
-        match role:
-            case Qt.ItemDataRole.DisplayRole:
-                match orientation:
-                    case Qt.Orientation.Horizontal:
-                        return_value = section + 1
-
-                    case Qt.Orientation.Vertical:
-                        if section <= self.row_index_max:
-                            return_value = ascii_uppercase[section]
-
-                        elif section == self.row_index_max + 1:
-                            return_value = "Mean"
-
-                        elif section == self.row_index_max + 2:
-                            return_value = "Std."
-
-            case Qt.ItemDataRole.FontRole if (orientation == Qt.Orientation.Vertical and self.row_index_max < section):
-                return_value = _get_qtgui_qfont_bold()
-
-        return return_value
-
-    def update(self) -> None:
-        self.results = np.empty([self.row_count, self.column_count], dtype=Result)  # cSpell:ignore dtype
-
-        self.means = np.empty([self.column_count])
-        self.standard_deviations = np.empty([self.column_count])
-
-        with database.Session() as session:
-            for column in range(self.column_count):
-                for row in range(self.row_count):
-                    result = session.execute(
-                        select(Result)
-                        .where(Result.measurement_id == self.measurement_id)
-                        .where(Result.column == column)
-                        .where(Result.row == row)
-                    ).scalar_one()
-
-                    self.results[row][column] = result
-
-                values = (
-                    session.execute(
-                        select(Result.value)
-                        .where(Result.measurement_id == self.measurement_id)
-                        .where(Result.column == column)
-                        .where(Result.valid.is_(True))
-                        .where(Result.value.is_not(None))
-                    )
-                    .scalars()
-                    .all()
-                )
-
-                values_array = np.array(values, dtype=float)
-
-                values_not_empty = len(values_array) > 0
-
-                mean = np.mean(values_array) if values_not_empty else np.nan
-                standard_deviation = np.std(values_array, ddof=1) if values_not_empty else np.nan  # cSpell:ignore ddof
-
-                self.means[column] = mean
-                self.standard_deviations[column] = standard_deviation
-
-
-def _get_qtgui_qfont_bold() -> QFont:  # cSpell:ignore qtgui qfont
-    font_bold = QFont()
-    font_bold.setBold(True)
-    return font_bold

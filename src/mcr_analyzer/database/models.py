@@ -6,7 +6,7 @@ from datetime import (
 from typing import Annotated
 
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, declared_attr, mapped_column, relationship
-from sqlalchemy.schema import ForeignKey, UniqueConstraint
+from sqlalchemy.schema import ForeignKey
 from sqlalchemy.types import BINARY, Text
 
 from mcr_analyzer.config.hash import HASH__DIGEST_SIZE
@@ -79,23 +79,6 @@ class Device(Base):
 
 
 column_type__foreign_key__device = Annotated[int, mapped_column(ForeignKey(f"{Device.__tablename__}.id"))]
-
-
-class Reagent(Base):
-    """Substance used on a chip.
-
-    This class handles column specific information (for end-users), so depending on what information is more useful,
-    this is about the reagent which should be detected or the reagent which is initially put on the chip.
-    """
-
-    name: Mapped[str]
-    """Name of the substance."""
-
-    results: Mapped[list["Result"]] = relationship(back_populates="reagent", order_by="Result.id", default_factory=list)
-    """Many-to-One relationship referencing the Spots of this substance."""
-
-
-column_type__foreign_key__reagent = Annotated[int, mapped_column(ForeignKey(f"{Reagent.__tablename__}.id"))]
 
 
 class User(Base):
@@ -211,45 +194,3 @@ class Measurement(Base):
 
     user: Mapped["User"] = relationship(back_populates="measurements", default=None)
     """One-to-Many relationship referencing the user who did the measurement."""
-
-    results: Mapped[list["Result"]] = relationship(
-        back_populates="measurement", order_by="Result.id", default_factory=list
-    )
-    """Many-to-One relationship referencing all results of this measurement."""
-
-
-column_type__foreign_key__measurement = Annotated[int, mapped_column(ForeignKey(f"{Measurement.__tablename__}.id"))]
-
-
-class Result(Base):
-    """Analysis information about a single spot."""
-
-    __table_args__ = (UniqueConstraint("measurement_id", "row", "column"),)
-
-    measurement_id: Mapped[column_type__foreign_key__measurement] = mapped_column(init=False)
-    """Reference to the :class:`Measurement` to which the result belongs."""
-
-    row: Mapped[int]
-    """Row index, counted from 0."""
-
-    column: Mapped[int]
-    """Column index, counted from 0."""
-
-    value: Mapped[float | None] = mapped_column(default=None)
-    """Calculated brightness of the spot."""
-
-    reagent_id: Mapped[column_type__foreign_key__reagent | None] = mapped_column(init=False)
-    """Reference to :class:`Reagent`."""
-
-    concentration: Mapped[float | None] = mapped_column(default=None)
-    """Additional concentration information to specify the :attr:`reagent` more precisely."""
-
-    valid: Mapped[bool | None] = mapped_column(default=None)
-    """Is this a valid result which can be used in calculations? Invalid results can be caused by the process (bleeding
-    of nearby results, air bubbles, or dirt) or determination as an outlier (mathematical postprocessing)."""
-
-    measurement: Mapped["Measurement"] = relationship(back_populates="results", default=None)
-    """One-to-Many relationship referencing the measurement which yielded this result."""
-
-    reagent: Mapped["Reagent"] = relationship(back_populates="results", default=None)
-    """One-to-Many relationship referencing the substance of this spot."""

@@ -82,7 +82,3 @@ def test_profile(
                 ).text()
                 == status
             )
-
-            main_window.export_widget.update_preview()
-            qtbot.waitUntil(lambda: len(main_window.export_widget.preview_edit.toPlainText().splitlines()) > 0)
-            assert len(main_window.export_widget.preview_edit.toPlainText().splitlines()) == SAMPLE_RESULTS__COUNT

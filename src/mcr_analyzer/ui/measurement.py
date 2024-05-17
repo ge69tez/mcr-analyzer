@@ -17,7 +17,6 @@ from PyQt6.QtWidgets import (
     QSlider,
     QSpinBox,
     QSplitter,
-    QTableView,
     QTreeView,
     QVBoxLayout,
     QWidget,
@@ -37,10 +36,9 @@ from mcr_analyzer.config.netpbm import PGM__HEIGHT, PGM__IMAGE__DATA_TYPE, PGM__
 from mcr_analyzer.config.qt import Q_SETTINGS__SESSION__SELECTED_DATE
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement
-from mcr_analyzer.processing.measurement import update_results
 from mcr_analyzer.ui.graphics_scene import CornerPosition, CornerSpot, Grid
 from mcr_analyzer.ui.graphics_view import ImageView
-from mcr_analyzer.ui.models import MeasurementTreeItem, MeasurementTreeModel, ResultTableModel
+from mcr_analyzer.ui.models import MeasurementTreeItem, MeasurementTreeModel
 
 
 class MeasurementWidget(QWidget):
@@ -48,7 +46,6 @@ class MeasurementWidget(QWidget):
         super().__init__(parent)
         self.measurement_id: int | None = None
         self.model: MeasurementTreeModel | None = None
-        self.result_model: ResultTableModel | None = None
 
         layout = QHBoxLayout()
         self.setLayout(layout)
@@ -153,10 +150,10 @@ class MeasurementWidget(QWidget):
         self.spot_corner_bottom_left_x.valueChanged.connect(self._update_grid)
         self.spot_corner_bottom_left_y.valueChanged.connect(self._update_grid)
 
-        self.save_grid_and_update_results_button = QPushButton("Save grid and update results")
-        self.save_grid_and_update_results_button.setEnabled(False)
-        self.save_grid_and_update_results_button.clicked.connect(self._save_grid_and_update_results)
-        form_layout.addRow(self.save_grid_and_update_results_button)
+        self.save_grid_button = QPushButton("Save grid")
+        self.save_grid_button.setEnabled(False)
+        self.save_grid_button.clicked.connect(self._save_grid)
+        form_layout.addRow(self.save_grid_button)
 
         self.reset_grid_button = QPushButton("Reset grid")
         self.reset_grid_button.setEnabled(False)
@@ -212,7 +209,6 @@ class MeasurementWidget(QWidget):
         self.grid: Grid | None = None
 
         v_box_layout.addWidget(self.view)
-        self.results = QTableView()
 
         splitter.addWidget(group_box__visualization)
 
@@ -294,10 +290,6 @@ class MeasurementWidget(QWidget):
                 QImage.Format.Format_Grayscale16,
             )
 
-            self.result_model = ResultTableModel(self.measurement_id)
-            self.results.setModel(self.result_model)
-            self.results.resizeColumnsToContents()
-
             if self.grid is not None:
                 self.scene.removeItem(self.grid)
             self.grid = Grid(self.measurement_id)
@@ -352,14 +344,11 @@ class MeasurementWidget(QWidget):
                 field_y.setValue(y)
 
     @pyqtSlot()
-    def _save_grid_and_update_results(self) -> None:
+    def _save_grid(self) -> None:
         if self.measurement_id is None:
             return
 
         if self.grid is None:
-            return
-
-        if self.result_model is None:
             return
 
         with database.Session() as session, session.begin():
@@ -382,13 +371,7 @@ class MeasurementWidget(QWidget):
             chip.spot_corner_bottom_left_x = self.spot_corner_bottom_left_x.value()
             chip.spot_corner_bottom_left_y = self.spot_corner_bottom_left_y.value()
 
-        update_results(self.measurement_id)
-
         self._editing_mode_set_enabled(enabled=False)
-
-        self.result_model.update()
-
-        self.results.resizeColumnsToContents()
 
     @pyqtSlot()
     def _reset_grid(self) -> None:
@@ -598,9 +581,8 @@ class MeasurementWidget(QWidget):
             field_threshold_value_slider.setValue(threshold_value)
 
     def _editing_mode_set_enabled(self, *, enabled: bool) -> None:
-        self.save_grid_and_update_results_button.setEnabled(enabled)
+        self.save_grid_button.setEnabled(enabled)
         self.reset_grid_button.setEnabled(enabled)
-        self.results.setEnabled(not enabled)
 
 
 class StatefulPlainTextEdit(QPlainTextEdit):

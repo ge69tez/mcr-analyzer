@@ -24,7 +24,6 @@ from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Chip, Device, Measurement, Sample
 from mcr_analyzer.io.image import Image
 from mcr_analyzer.io.importer import Rslt, parse_rslt_in_directory_recursively
-from mcr_analyzer.processing.measurement import update_results
 from mcr_analyzer.utils.q_file_dialog import FileDialog
 
 if TYPE_CHECKING:
@@ -44,7 +43,7 @@ class ImportWidget(QWidget):
         self.rslt_list: list[Rslt] = []
         self.rslt_file_name_parse_fail_list: list[str] = []
         self.checksum_worker = ChecksumWorker()
-        self.checksum_worker.progress.connect(self.update_status)
+        self.checksum_worker.progress.connect(self._write_rslt_to_database)
         self.checksum_worker.finished.connect(self.import_finished.emit)
 
         layout = QVBoxLayout()
@@ -55,7 +54,7 @@ class ImportWidget(QWidget):
             "Select Folder...",
         )
         self.select_folder_button.setIconSize(BUTTON__ICON_SIZE)
-        self.select_folder_button.clicked.connect(self._select_folder_dialog)
+        self.select_folder_button.clicked.connect(self._select_folder_to_parse_rslt)
         self.select_folder_button.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         layout.addWidget(self.select_folder_button)
 
@@ -79,7 +78,7 @@ class ImportWidget(QWidget):
         layout.addWidget(self.progress_bar)
 
     @pyqtSlot()
-    def _select_folder_dialog(self) -> None:
+    def _select_folder_to_parse_rslt(self) -> None:
         if not database.is_valid:
             QMessageBox.warning(self, "No valid database", "You must first open or create a database.")
             self.database_missing.emit()
@@ -87,7 +86,7 @@ class ImportWidget(QWidget):
 
         directory_path = FileDialog.get_directory_path(parent=self)
 
-        self.update_filelist(directory_path)
+        self._parse_rslt(directory_path)
 
         self.progress_bar.hide()
 
@@ -102,7 +101,7 @@ class ImportWidget(QWidget):
 
         self.checksum_worker.run(self.rslt_list)
 
-    def update_filelist(self, directory_path: "Path | None") -> None:
+    def _parse_rslt(self, directory_path: "Path | None") -> None:
         self.file_model.removeRows(0, self.file_model.rowCount())
 
         if directory_path is not None:
@@ -138,7 +137,7 @@ class ImportWidget(QWidget):
         self.progress_bar.setValue(0)
 
     @pyqtSlot(int, bytes)
-    def update_status(self, step: int, checksum: bytes) -> None:
+    def _write_rslt_to_database(self, step: int, checksum: bytes) -> None:
         with database.Session() as session:
             exists = session.execute(
                 select(select(Measurement).where(Measurement.checksum == checksum).exists())
@@ -197,12 +196,6 @@ class ImportWidget(QWidget):
                 )
 
                 session.add_all([chip, sample, measurement])
-
-                # Store (new) primary key, needs result calculation afterwards
-                session.flush()
-                measurement_id = measurement.id
-
-            update_results(measurement_id)
 
             file_model_item_text = "Import successful"
             file_model_item_icon_pixmap = QStyle.StandardPixmap.SP_DialogYesButton
