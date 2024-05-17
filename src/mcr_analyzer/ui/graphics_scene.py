@@ -234,12 +234,16 @@ class Grid(QGraphicsObject):
     def _update_column_labels(
         self, *, column_labels_new_position: dict[GridCoordinates, Position], spot_size: float
     ) -> None:
+        convert_from_zero_based_to_one_based_numbering = 1
         self.update_graphics_items(
             items_current=self.column_labels,
             items_new_position=column_labels_new_position,
             item_new_size=spot_size,
             item_new_fn=lambda grid_coordinates, position, spot_size: GraphicsSquareTextItem(
-                position=position, size=spot_size, text=str(grid_coordinates.column), parent=self
+                position=position,
+                size=spot_size,
+                text=str(grid_coordinates.column + convert_from_zero_based_to_one_based_numbering),
+                parent=self,
             ),
         )
 
