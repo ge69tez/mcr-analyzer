@@ -79,7 +79,6 @@ def get_grid(
     *,
     image: OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE,
     with_adaptive_threshold: bool = True,
-    threshold_value: int | None = None,
     reference_spot_diameter: int | None = None,
 ) -> Result[tuple[int, int, tuple[int, int], CornerPositions], str]:
     # - OTSU threshold works for valid spots with high contrast
@@ -93,16 +92,10 @@ def get_grid(
 
     reference_spot_radius = get_reference_spot_radius([radius for spot, radius in spot_with_radius_list])
 
-    if threshold_value is None:
-        if with_adaptive_threshold:
-            # - Adaptive threshold works for valid spots with low contrast
-            #   - For valid spots with high contrast, it gives many false positives (e.g. noise)
-            image_with_threshold = adaptive_threshold(image=image, radius=reference_spot_radius)
-            spot_with_radius_list = get_spot_with_radius_list_by_roundness(image=image_with_threshold)
-
-    else:
-        computed_threshold_value, image_with_threshold = threshold(image=image, threshold_value=threshold_value)
-
+    if with_adaptive_threshold:
+        # - Adaptive threshold works for valid spots with low contrast
+        #   - For valid spots with high contrast, it might give more false positives (e.g. noise)
+        image_with_threshold = adaptive_threshold(image=image, radius=reference_spot_radius)
         spot_with_radius_list = get_spot_with_radius_list_by_roundness(image=image_with_threshold)
 
     if spot_with_radius_list is None:

@@ -2,7 +2,6 @@ import numpy as np
 from PyQt6.QtCore import QItemSelection, QModelIndex, QSettings, QSignalBlocker, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QFocusEvent, QImage, QPixmap
 from PyQt6.QtWidgets import (
-    QCheckBox,
     QDoubleSpinBox,
     QFormLayout,
     QGraphicsPixmapItem,
@@ -165,23 +164,6 @@ class MeasurementWidget(QWidget):
         self.adjust_grid_automatically_button.setToolTip("More sensitive to noise")
         form_layout.addRow(self.adjust_grid_automatically_button)
 
-        self.set_threshold_value_manually_check_box = QCheckBox("Set threshold value manually")
-        self.set_threshold_value_manually_check_box.stateChanged.connect(
-            self._set_threshold_value_manually_check_box_state_changed
-        )
-
-        self.threshold_value_slider = QSlider(Qt.Orientation.Horizontal)
-        self.threshold_value_slider.setMinimum(OPEN_CV__IMAGE__DATA_TYPE__MIN)
-        self.threshold_value_slider.setMaximum(OPEN_CV__IMAGE__DATA_TYPE__MAX)
-
-        self.threshold_value_slider.sliderReleased.connect(self._adjust_grid_automatically)
-
-        h_box_layout = QHBoxLayout()
-
-        h_box_layout.addWidget(self.set_threshold_value_manually_check_box)
-        h_box_layout.addWidget(self.threshold_value_slider)
-        form_layout.addRow(h_box_layout)
-
         self.adjust_grid_automatically_with_noise_reduction_filter_button = QPushButton(
             "Adjust grid automatically with &noise reduction filter"
         )
@@ -211,8 +193,6 @@ class MeasurementWidget(QWidget):
         v_box_layout.addWidget(self.view)
 
         splitter.addWidget(group_box__visualization)
-
-        self._set_threshold_value_manually_check_box_state_changed()
 
     @pyqtSlot()
     def reload_database(self) -> None:
@@ -244,8 +224,6 @@ class MeasurementWidget(QWidget):
         if not isinstance(measurement_id, int):
             return
 
-        self.set_threshold_value_manually_check_box.setChecked(False)
-
         self.measurement_id = measurement_id
 
         with database.Session() as session:
@@ -275,7 +253,6 @@ class MeasurementWidget(QWidget):
                 spot_corner_bottom_right_y=measurement.chip.spot_corner_bottom_right_y,
                 spot_corner_bottom_left_x=measurement.chip.spot_corner_bottom_left_x,
                 spot_corner_bottom_left_y=measurement.chip.spot_corner_bottom_left_y,
-                threshold_value=0,
             )
 
             if measurement.notes:
@@ -398,7 +375,6 @@ class MeasurementWidget(QWidget):
                 spot_corner_bottom_right_y=measurement.chip.spot_corner_bottom_right_y,
                 spot_corner_bottom_left_x=measurement.chip.spot_corner_bottom_left_x,
                 spot_corner_bottom_left_y=measurement.chip.spot_corner_bottom_left_y,
-                threshold_value=0,
             )
 
         self._update_grid()
@@ -422,27 +398,17 @@ class MeasurementWidget(QWidget):
 
         image_normalized = normalize_image(image=image)
 
-        threshold_value = (
-            self.threshold_value_slider.value() if self.set_threshold_value_manually_check_box.isChecked() else None
-        )
-
-        grid_result = get_grid(
-            image=image_normalized,
-            with_adaptive_threshold=not use_noise_reduction_filter,
-            threshold_value=threshold_value,
-        )
+        grid_result = get_grid(image=image_normalized, with_adaptive_threshold=not use_noise_reduction_filter)
 
         if not is_successful(grid_result):
             if not use_noise_reduction_filter:
-                grid_result = get_grid(
-                    image=image_normalized, with_adaptive_threshold=False, threshold_value=threshold_value
-                )
+                grid_result = get_grid(image=image_normalized, with_adaptive_threshold=False)
 
             if not is_successful(grid_result):
                 QMessageBox.warning(self, "Failed to adjust grid automatically", "Please adjust grid manually.")
                 return
 
-        (computed_threshold_value, reference_spot_radius, (column_count, row_count), corner_positions) = (
+        (_computed_threshold_value, reference_spot_radius, (column_count, row_count), corner_positions) = (
             grid_result.unwrap()
         )
 
@@ -465,7 +431,6 @@ class MeasurementWidget(QWidget):
             spot_corner_bottom_right_y=bottom_right.y(),
             spot_corner_bottom_left_x=bottom_left.x(),
             spot_corner_bottom_left_y=bottom_left.y(),
-            threshold_value=computed_threshold_value,
         )
 
         self._update_grid()
@@ -495,13 +460,6 @@ class MeasurementWidget(QWidget):
             for idx in matches:
                 self.tree.expand(idx)
 
-    @pyqtSlot()
-    def _set_threshold_value_manually_check_box_state_changed(self) -> None:
-        is_checked = self.set_threshold_value_manually_check_box.isChecked()
-        self.threshold_value_slider.setEnabled(is_checked)
-        self.adjust_grid_automatically_button.setEnabled(not is_checked)
-        self.adjust_grid_automatically_with_noise_reduction_filter_button.setEnabled(not is_checked)
-
     def _get_fields_corner_positions(self) -> CornerPositions:
         return CornerPositions(
             top_left=Position(self.spot_corner_top_left_x.value(), self.spot_corner_top_left_y.value()),
@@ -526,7 +484,6 @@ class MeasurementWidget(QWidget):
         spot_corner_bottom_right_y: float,
         spot_corner_bottom_left_x: float,
         spot_corner_bottom_left_y: float,
-        threshold_value: int,
     ) -> None:
         field_column_count = self.column_count
         field_row_count = self.row_count
@@ -544,8 +501,6 @@ class MeasurementWidget(QWidget):
         field_spot_corner_bottom_left_x = self.spot_corner_bottom_left_x
         field_spot_corner_bottom_left_y = self.spot_corner_bottom_left_y
 
-        field_threshold_value_slider = self.threshold_value_slider
-
         with (
             QSignalBlocker(field_column_count),
             QSignalBlocker(field_row_count),
@@ -560,7 +515,6 @@ class MeasurementWidget(QWidget):
             QSignalBlocker(field_spot_corner_bottom_right_y),
             QSignalBlocker(field_spot_corner_bottom_left_x),
             QSignalBlocker(field_spot_corner_bottom_left_y),
-            QSignalBlocker(field_threshold_value_slider),
         ):
             field_column_count.setValue(column_count)
             field_row_count.setValue(row_count)
@@ -577,8 +531,6 @@ class MeasurementWidget(QWidget):
             field_spot_corner_bottom_right_y.setValue(spot_corner_bottom_right_y)
             field_spot_corner_bottom_left_x.setValue(spot_corner_bottom_left_x)
             field_spot_corner_bottom_left_y.setValue(spot_corner_bottom_left_y)
-
-            field_threshold_value_slider.setValue(threshold_value)
 
     def _editing_mode_set_enabled(self, *, enabled: bool) -> None:
         self.save_grid_button.setEnabled(enabled)
