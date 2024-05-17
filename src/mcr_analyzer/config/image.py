@@ -115,19 +115,24 @@ def get_grid(
         spot_with_radius_list=spot_with_radius_list, reference_spot_radius=reference_spot_radius
     )
 
-    image_with_detected_spot = draw_circle_on_image_like(
-        image=image_with_threshold,
-        spot_with_radius_list=spot_with_radius_list_without_outliers,
-        spot_radius=reference_spot_radius,
-    )
+    max_residual_factor_to_grid = reference_spot_radius
+    for residual_factor in range(1, max_residual_factor_to_grid + 1):
+        image_with_detected_spot = draw_circle_on_image_like(
+            image=image_with_threshold,
+            spot_with_radius_list=spot_with_radius_list_without_outliers,
+            spot_radius=residual_factor,
+        )
 
-    image_with_fourier_transform = normalize_image(image=abs(fourier_transform(image_with_detected_spot)))
+        image_with_fourier_transform = normalize_image(image=abs(fourier_transform(image_with_detected_spot)))
 
-    analyze_image_with_fourier_transform_result = try_to_analyze_image_with_fourier_transform(
-        reference_spot_diameter=reference_spot_diameter,
-        spot_list=[spot for spot, _radius in spot_with_radius_list_without_outliers],
-        image_with_fourier_transform=image_with_fourier_transform,
-    )
+        analyze_image_with_fourier_transform_result = try_to_analyze_image_with_fourier_transform(
+            reference_spot_diameter=reference_spot_diameter,
+            spot_list=[spot for spot, _radius in spot_with_radius_list_without_outliers],
+            image_with_fourier_transform=image_with_fourier_transform,
+        )
+
+        if is_successful(analyze_image_with_fourier_transform_result):
+            break
 
     if not is_successful(analyze_image_with_fourier_transform_result):
         return Failure(analyze_image_with_fourier_transform_result.failure())
