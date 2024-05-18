@@ -30,20 +30,8 @@ class Chip(Base):
     column_count: Mapped[int]
     """Number of columns. Different anti-bodies or anti-gens."""
 
-    margin_left: Mapped[int]
-    """Distance between left border of the image and first column of spots."""
-
-    margin_top: Mapped[int]
-    """Distance between top border of the image and first row of spots."""
-
     spot_size: Mapped[int]
     """Size (in pixels) of a single spot. Side length of the square used for processing."""
-
-    spot_margin_horizontal: Mapped[int]
-    """Horizontal margin between two adjacent spots: skip N pixels before processing the next spot."""
-
-    spot_margin_vertical: Mapped[int]
-    """Vertical margin between two adjacent spots: skip N pixels before processing the next spot."""
 
     spot_corner_top_left_x: Mapped[float]
     spot_corner_top_left_y: Mapped[float]

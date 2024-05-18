@@ -2,6 +2,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, TypeVar
 
+from mcr_analyzer.config.image import CornerPositions, Position
 from mcr_analyzer.config.timezone import TZ_INFO
 from mcr_analyzer.utils.io import readline_skip, readlines
 from mcr_analyzer.utils.re import re_match_unwrap
@@ -10,33 +11,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from io import TextIOWrapper
     from pathlib import Path
-
-
-class Point:
-    def __init__(self, string: str | None = None, *, x: int | None = None, y: int | None = None) -> None:
-        if string is not None and x is None and y is None:
-            self.x, self.y = self.parse(string)
-        elif string is None and x is not None and y is not None:
-            self.x = x
-            self.y = y
-        else:
-            msg = "invalid parameters for Point"
-            raise ValueError(msg)
-
-    def __add__(self, other: "Point") -> "Point":
-        return Point(x=self.x.__add__(other.x), y=self.y.__add__(other.y))
-
-    def __sub__(self, other: "Point") -> "Point":
-        return Point(x=self.x.__sub__(other.x), y=self.y.__sub__(other.y))
-
-    @staticmethod
-    def parse(string: str) -> tuple[int, int]:
-        match = re_match_unwrap(r"X=(\d+)Y=(\d+)", string)
-
-        x = int(match.group(1))
-        y = int(match.group(2))
-
-        return x, y
 
 
 class Rslt:
@@ -101,15 +75,19 @@ class Rslt:
 
             self.spot_size = int(_readline_get_value(file, "Spot size"))
 
-            self.spots = _read_rslt_table(file, self.row_count, self.column_count, Point)
+            self.spots = _read_rslt_table(file, self.row_count, self.column_count, _parse_spot)
             """Two dimensional `list[list[Point]]` with Point defining the upper left corner of a result tile."""
 
-            # Compute grid settings from spots
-            self.margin_left = self.spots[0][0].x
-            self.margin_top = self.spots[0][0].y
-            spot_margin = self.spots[1][1] - self.spots[0][0] - Point(x=self.spot_size, y=self.spot_size)
-            self.spot_margin_horizontal = spot_margin.x
-            self.spot_margin_vertical = spot_margin.y
+            row_min = 0
+            column_min = row_min
+            row_max = self.row_count - 1
+            column_max = self.column_count - 1
+            self.corner_positions = CornerPositions(
+                top_left=self.spots[row_min][column_min],
+                top_right=self.spots[row_min][column_max],
+                bottom_right=self.spots[row_max][column_max],
+                bottom_left=self.spots[row_max][column_min],
+            )
 
 
 def _readline_key_value(file: "TextIOWrapper") -> tuple[str, str]:
@@ -152,6 +130,15 @@ def _read_rslt_table(
         raise ValueError(msg)
 
     return rslt_table
+
+
+def _parse_spot(string: str) -> Position:
+    match = re_match_unwrap(r"X=(\d+)Y=(\d+)", string)
+
+    x = int(match.group(1))
+    y = int(match.group(2))
+
+    return Position(x, y)
 
 
 def parse_rslt_in_directory_recursively(directory_path: "Path") -> tuple[list[Rslt], list[str]]:

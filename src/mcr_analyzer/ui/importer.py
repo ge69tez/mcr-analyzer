@@ -157,23 +157,15 @@ class ImportWidget(QWidget):
                     chip_id=rslt.chip_id,
                     row_count=rslt.row_count,
                     column_count=rslt.column_count,
-                    margin_left=rslt.margin_left,
-                    margin_top=rslt.margin_top,
                     spot_size=rslt.spot_size,
-                    spot_margin_horizontal=rslt.spot_margin_horizontal,
-                    spot_margin_vertical=rslt.spot_margin_vertical,
-                    spot_corner_top_left_x=rslt.margin_left,
-                    spot_corner_top_left_y=rslt.margin_top,
-                    spot_corner_top_right_x=rslt.margin_left
-                    + (rslt.column_count - 1) * (rslt.spot_margin_horizontal + rslt.spot_size),
-                    spot_corner_top_right_y=rslt.margin_top,
-                    spot_corner_bottom_right_x=rslt.margin_left
-                    + (rslt.column_count - 1) * (rslt.spot_margin_horizontal + rslt.spot_size),
-                    spot_corner_bottom_right_y=rslt.margin_top
-                    + (rslt.row_count - 1) * (rslt.spot_margin_vertical + rslt.spot_size),
-                    spot_corner_bottom_left_x=rslt.margin_left,
-                    spot_corner_bottom_left_y=rslt.margin_top
-                    + (rslt.row_count - 1) * (rslt.spot_margin_vertical + rslt.spot_size),
+                    spot_corner_top_left_x=rslt.corner_positions.top_left.x(),
+                    spot_corner_top_left_y=rslt.corner_positions.top_left.y(),
+                    spot_corner_top_right_x=rslt.corner_positions.top_right.x(),
+                    spot_corner_top_right_y=rslt.corner_positions.top_right.y(),
+                    spot_corner_bottom_right_x=rslt.corner_positions.bottom_right.x(),
+                    spot_corner_bottom_right_y=rslt.corner_positions.bottom_right.y(),
+                    spot_corner_bottom_left_x=rslt.corner_positions.bottom_left.x(),
+                    spot_corner_bottom_left_y=rslt.corner_positions.bottom_left.y(),
                 )
 
                 statement = sqlite_upsert(Device).values([{Device.serial: rslt.device_id}])
