@@ -5,6 +5,7 @@ from PyQt6.QtGui import QAction, QCloseEvent, QKeySequence
 from PyQt6.QtWidgets import QMainWindow, QMessageBox, QTabWidget, QWidget
 from returns.pipeline import is_successful
 
+from mcr_analyzer.__about__ import __version__
 from mcr_analyzer.config.qt import (
     MAIN_WINDOW__SIZE_HINT,
     q_settings__session__recent_file_name_list__get,
@@ -144,8 +145,10 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self,
             f"About {self.windowTitle()}",
-            """
+            f"""
                 <h1>MCR-Analyzer</h1>
+
+                {__version__}
 
                 <p>Copyright &copy; 2021 Martin Knopp, Technical University of Munich</p>
 
