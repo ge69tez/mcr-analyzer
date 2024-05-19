@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Final
 
-from PyQt6.QtCore import QSettings, QSize
+from PyQt6.QtCore import QSettings, QSize, Qt
+from PyQt6.QtGui import QColor
 
 from mcr_analyzer.utils.list import list_remove_if_exist
 
@@ -65,3 +66,13 @@ _BUTTON__ICON_SIZE__WIDTH: Final[int] = 48
 _BUTTON__ICON_SIZE__HEIGHT: Final[int] = _BUTTON__ICON_SIZE__WIDTH
 
 BUTTON__ICON_SIZE: Final[QSize] = QSize(_BUTTON__ICON_SIZE__WIDTH, _BUTTON__ICON_SIZE__HEIGHT)
+
+
+# - In the range 0.0 ~ 1.0
+ALPHA_CHANNEL_FLOAT: Final[float] = 0.5
+
+
+def q_color(global_color: Qt.GlobalColor, alpha: float = ALPHA_CHANNEL_FLOAT) -> QColor:
+    color = QColor(global_color)
+    color.setAlphaF(alpha)
+    return color

@@ -5,6 +5,7 @@ from PyQt6.QtGui import QBrush, QPainter, QPen
 from PyQt6.QtWidgets import QGraphicsEllipseItem, QGraphicsItem, QGraphicsRectItem, QStyleOptionGraphicsItem, QWidget
 
 from mcr_analyzer.config.image import CornerPositions, Position
+from mcr_analyzer.config.qt import q_color
 
 
 @dataclass(frozen=True)
@@ -183,7 +184,7 @@ class Spot(GraphicsCircleItem):
     def __init__(self, *, position: Position, size: float, parent: QGraphicsItem) -> None:
         super().__init__(position=position, size=size, parent=parent)
 
-        pen_ = QPen(Qt.GlobalColor.yellow)
+        pen_ = QPen(q_color(Qt.GlobalColor.yellow))
         pen_width = 1
         pen_.setWidthF(pen_width)
         pen_.setStyle(Qt.PenStyle.DotLine)
@@ -198,10 +199,10 @@ class GraphicsSquareTextItem(GraphicsSquareItem):
 
         self.text = text
 
-        self.setPen(QPen(Qt.GlobalColor.white))
-        self.setBrush(QBrush(Qt.GlobalColor.white))
+        self.setPen(QPen(q_color(Qt.GlobalColor.white)))
+        self.setBrush(QBrush(q_color(Qt.GlobalColor.white)))
 
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget | None = None) -> None:
         super().paint(painter, option, widget)
-        painter.setPen(Qt.GlobalColor.black)
+        painter.setPen(q_color(Qt.GlobalColor.black))
         painter.drawText(option.rect, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter, self.text)

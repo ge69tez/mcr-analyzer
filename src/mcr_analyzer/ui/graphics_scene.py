@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import QGraphicsItem, QGraphicsObject, QStyleOptionGraphics
 from sqlalchemy.sql.expression import select
 
 from mcr_analyzer.config.image import CornerPositions, Position
+from mcr_analyzer.config.qt import q_color
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement
 from mcr_analyzer.ui.graphics_items import GraphicsSquareTextItem, GridCoordinates, Spot, get_items_position
@@ -37,7 +38,7 @@ class CornerSpot(Spot):
 
         self.corner_position = corner_position
 
-        pen_ = QPen(Qt.GlobalColor.green)
+        pen_ = QPen(q_color(Qt.GlobalColor.green))
         pen_width = 1
         pen_.setWidthF(pen_width)
         self.setPen(pen_)
