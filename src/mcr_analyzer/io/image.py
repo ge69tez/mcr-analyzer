@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, auto
 from typing import TYPE_CHECKING, Final
 
 import numpy as np
@@ -22,8 +22,8 @@ if TYPE_CHECKING:
 
 class Image:
     class InputFormat(Enum):
-        MCR_TXT: Final[int] = 1  # MCR's own TXT format
-        PNM: Final[int] = 2  # Portable AnyMap Format
+        mcr_txt: Final[int] = auto()  # MCR's own TXT format # cSpell:ignore MCR's
+        pnm: Final[int] = auto()  # Portable AnyMap Format
 
     def __init__(self, file_path: "Path") -> None:
         with file_path.open(encoding="utf-8") as file:
@@ -43,7 +43,7 @@ class Image:
             and re_match_success(PGM__WIDTH__PATTERN + r" " + PGM__HEIGHT__PATTERN, header_lines[1])
             and re_match_success(str(PGM__COLOR_RANGE_MAX), header_lines[2])
         ):
-            input_format = self.InputFormat.PNM
+            input_format = self.InputFormat.pnm
 
         else:
             raise NotImplementedError
@@ -54,12 +54,12 @@ class Image:
         self, file: "TextIOWrapper", header_lines: list[str], input_format: InputFormat
     ) -> PGM__IMAGE__ND_ARRAY__DATA_TYPE:
         match input_format:
-            case self.InputFormat.PNM:
+            case self.InputFormat.pnm:
                 width, height = (int(x) for x in header_lines[1].split())
 
                 magic_number = NetpbmMagicNumber(header_lines[0])
                 match magic_number.type, magic_number.encoding:
-                    case NetpbmMagicNumber.Type.PGM, NetpbmMagicNumber.Encoding.ASCII_PLAIN:
+                    case NetpbmMagicNumber.Type.pgm, NetpbmMagicNumber.Encoding.ascii_plain:
                         data = np.fromfile(file, dtype=PGM__IMAGE__DATA_TYPE, count=height * width, sep=" ").reshape(
                             height, width
                         )  # cSpell:ignore dtype

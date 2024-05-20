@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, auto
 from string import ascii_uppercase
 from typing import TYPE_CHECKING, Any, Final, TypeVar
 
@@ -24,10 +24,10 @@ T = TypeVar("T", Spot, GraphicsSquareTextItem)
 
 
 class CornerPosition(Enum):
-    top_left: Final[int] = 1
-    top_right: Final[int] = 2
-    bottom_right: Final[int] = 3
-    bottom_left: Final[int] = 4
+    top_left: Final[int] = auto()
+    top_right: Final[int] = auto()
+    bottom_right: Final[int] = auto()
+    bottom_left: Final[int] = auto()
 
 
 class CornerSpot(Spot):

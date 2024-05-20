@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, auto
 from typing import Final, TypeAlias
 
 import numpy as np
@@ -26,21 +26,21 @@ PGM__WIDTH__PATTERN: Final[str] = str(PGM__WIDTH)
 
 class NetpbmMagicNumber:  # cSpell:ignore Netpbm
     class Type(Enum):
-        PBM: Final[int] = 1  # Portable BitMap
-        PGM: Final[int] = 2  # Portable GrayMap
-        PPM: Final[int] = 3  # Portable PixMap
+        pbm: Final[int] = auto()  # Portable BitMap
+        pgm: Final[int] = auto()  # Portable GrayMap
+        ppm: Final[int] = auto()  # Portable PixMap
 
     class Encoding(Enum):
-        ASCII_PLAIN: Final[int] = 1
-        BINARY_RAW: Final[int] = 2
+        ascii_plain: Final[int] = auto()
+        binary_raw: Final[int] = auto()
 
     def __init__(self, string: str) -> None:
         match = re_match_unwrap(NETPBM_MAGIC_NUMBER__PATTERN, string)
 
         match match.group():
             case "P2":
-                type = self.Type.PGM
-                encoding = self.Encoding.ASCII_PLAIN
+                type = self.Type.pgm
+                encoding = self.Encoding.ascii_plain
             case _:
                 raise NotImplementedError
 
