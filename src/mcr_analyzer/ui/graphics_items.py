@@ -205,4 +205,4 @@ class GraphicsSquareTextItem(GraphicsSquareItem):
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget | None = None) -> None:
         super().paint(painter, option, widget)
         painter.setPen(q_color(Qt.GlobalColor.black))
-        painter.drawText(option.rect, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter, self.text)
+        painter.drawText(option.rect, Qt.AlignmentFlag.AlignCenter, self.text)
