@@ -277,8 +277,8 @@ class Grid(QGraphicsObject):
 
         if corner_positions is None:
             corner_positions = self._get_corner_positions()
-        else:
-            self._update_corner_spots(corner_positions=corner_positions, spot_size=spot_size)
+
+        self._update_corner_spots(corner_positions=corner_positions, spot_size=spot_size)
 
         self._update_children(
             row_count=row_count, column_count=column_count, corner_positions=corner_positions, spot_size=spot_size
