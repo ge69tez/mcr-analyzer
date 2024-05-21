@@ -172,7 +172,7 @@ pytz==2024.1
     # via mcr-analyzer (pyproject.toml)
 pyyaml==6.0.1
     # via pre-commit
-requests==2.31.0
+requests==2.32.0
     # via pooch
 returns==0.22.0
     # via mcr-analyzer (pyproject.toml)
