@@ -69,27 +69,6 @@ class Device(Base):
 column_type__foreign_key__device = Annotated[int, mapped_column(ForeignKey(f"{Device.__tablename__}.id"))]
 
 
-class User(Base):
-    """Researcher who did the measurement or took the sample."""
-
-    name: Mapped[str]
-    """Name of the researcher."""
-
-    login_id: Mapped[str]
-    """User ID of the researcher, to be used for automatic association."""
-
-    samples: Mapped[list["Sample"]] = relationship(back_populates="user", order_by="Sample.id", default_factory=list)
-    """Many-to-One relationship referencing all samples taken by a user."""
-
-    measurements: Mapped[list["Measurement"]] = relationship(
-        back_populates="user", order_by="Measurement.timestamp", default_factory=list
-    )
-    """Many-to-One relationship referencing all measurements done by a user."""
-
-
-column_type__foreign_key__user = Annotated[int, mapped_column(ForeignKey(f"{User.__tablename__}.id"))]
-
-
 class SampleType(Base):
     """Information about the kind of sample."""
 
@@ -117,17 +96,11 @@ class Sample(Base):
     sample_type_id: Mapped[column_type__foreign_key__sample_type | None] = mapped_column(init=False)
     """Refers to :class:`SampleType`."""
 
-    user_id: Mapped[column_type__foreign_key__user | None] = mapped_column(init=False)
-    """Refers to the :class:`User` who took the sample."""
-
     timestamp: Mapped[datetime | None] = mapped_column(default=None)
     """Date and time of the sample taking."""
 
     sample_type: Mapped["SampleType"] = relationship(back_populates="samples", default=None)
     """One-to-Many relationship referencing the type of this sample."""
-
-    user: Mapped["User"] = relationship(back_populates="samples", default=None)
-    """One-to-Many relationship referencing the user who took this sample."""
 
     measurements: Mapped[list["Measurement"]] = relationship(
         back_populates="sample", order_by="Measurement.timestamp", default_factory=list
@@ -162,9 +135,6 @@ class Measurement(Base):
     timestamp: Mapped[datetime] = mapped_column(index=True)
     """Date and time of the measurement."""
 
-    user_id: Mapped[column_type__foreign_key__user | None] = mapped_column(init=False)
-    """Refers to the :class:`User` who did the measurement."""
-
     chip_failure: Mapped[bool] = mapped_column(default=False)
     """Was there a failure during measurement (leaky chip). Defaults to `False`."""
 
@@ -179,6 +149,3 @@ class Measurement(Base):
 
     sample: Mapped["Sample"] = relationship(back_populates="measurements", default=None)
     """One-to-Many relationship referencing the analyzed sample."""
-
-    user: Mapped["User"] = relationship(back_populates="measurements", default=None)
-    """One-to-Many relationship referencing the user who did the measurement."""

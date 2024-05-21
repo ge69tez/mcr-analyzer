@@ -60,9 +60,6 @@ class MeasurementWidget(QWidget):
 
         splitter.addWidget(group_box__record_data)
 
-        self.measurer = QLineEdit()
-        form_layout.addRow("Measured by:", self.measurer)
-
         self.device = QLineEdit()
         self.device.setReadOnly(True)
         form_layout.addRow("Device:", self.device)
@@ -178,11 +175,6 @@ class MeasurementWidget(QWidget):
 
         with database.Session() as session:
             measurement = session.execute(select(Measurement).where(Measurement.id == self.measurement_id)).scalar_one()
-
-            if measurement.user_id is not None:
-                self.measurer.setText(measurement.user.name)
-            else:
-                self.measurer.clear()
 
             self.device.setText(measurement.device.serial)
             self.timestamp.setText(measurement.timestamp.strftime("%Y-%m-%d %H:%M:%S"))
