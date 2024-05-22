@@ -11,7 +11,6 @@ if TYPE_CHECKING:
 Q_SETTINGS__SESSION__LAST_EXPORT: Final[str] = "Session/LastExport"
 Q_SETTINGS__SESSION__RECENT_FILE_NAME_LIST__MAX_LENGTH: Final[int] = 5
 Q_SETTINGS__SESSION__RECENT_FILE_NAME_LIST: Final[str] = "Session/RecentFileNameList"
-Q_SETTINGS__SESSION__SELECTED_DATE: Final[str] = "Session/SelectedDate"
 
 
 def q_settings__setup(app: "QApplication") -> None:

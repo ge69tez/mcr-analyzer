@@ -46,7 +46,7 @@ class Chip(Base):
     spot_corner_bottom_left_y: Mapped[float]
 
     measurements: Mapped[list["Measurement"]] = relationship(
-        back_populates="chip", order_by="Measurement.timestamp", default_factory=list
+        back_populates="chip", order_by="Measurement.date_time", default_factory=list
     )
     """Many-to-One relationship referencing all measurements the chip was used for."""
 
@@ -61,7 +61,7 @@ class Device(Base):
     """Serial number of the device."""
 
     measurements: Mapped[list["Measurement"]] = relationship(
-        back_populates="device", order_by="Measurement.timestamp", default_factory=list
+        back_populates="device", order_by="Measurement.date_time", default_factory=list
     )
     """Many-to-One relationship referencing all measurements done with this device."""
 
@@ -96,14 +96,14 @@ class Sample(Base):
     sample_type_id: Mapped[column_type__foreign_key__sample_type | None] = mapped_column(init=False)
     """Refers to :class:`SampleType`."""
 
-    timestamp: Mapped[datetime | None] = mapped_column(default=None)
+    date_time: Mapped[datetime | None] = mapped_column(default=None)
     """Date and time of the sample taking."""
 
     sample_type: Mapped["SampleType"] = relationship(back_populates="samples", default=None)
     """One-to-Many relationship referencing the type of this sample."""
 
     measurements: Mapped[list["Measurement"]] = relationship(
-        back_populates="sample", order_by="Measurement.timestamp", default_factory=list
+        back_populates="sample", order_by="Measurement.date_time", default_factory=list
     )
     """Many-to-One relationship referencing the measurements done with this sample."""
 
@@ -132,7 +132,7 @@ class Measurement(Base):
     checksum: Mapped[bytes] = mapped_column(BINARY(HASH__DIGEST_SIZE))
     """SHA256 hash of the raw 16-bit image data. Used for duplicate detection."""
 
-    timestamp: Mapped[datetime] = mapped_column(index=True)
+    date_time: Mapped[datetime] = mapped_column(index=True)
     """Date and time of the measurement."""
 
     chip_failure: Mapped[bool] = mapped_column(default=False)

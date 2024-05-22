@@ -41,7 +41,7 @@ class MainWindow(QMainWindow):
 
         self.welcome_widget.database_created.connect(self.switch_to_import)
         self.welcome_widget.database_opened.connect(self.switch_to_measurement)
-        self.welcome_widget.database_changed.connect(self.measurement_widget.update__measurement_widget__tree_view)
+        self.welcome_widget.database_changed.connect(self.measurement_widget.update__measurement_list_view)
         self.welcome_widget.database_changed.connect(self.refresh__menu_file__submenu_recent_files)
 
         self.import_widget.database_missing.connect(self.switch_to_welcome)

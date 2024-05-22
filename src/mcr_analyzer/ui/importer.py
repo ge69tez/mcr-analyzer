@@ -23,7 +23,7 @@ from mcr_analyzer.config.qt import BUTTON__ICON_SIZE
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Chip, Device, Measurement, Sample
 from mcr_analyzer.io.image import Image
-from mcr_analyzer.io.importer import Rslt, parse_rslt_in_directory_recursively
+from mcr_analyzer.io.importer import MCR_RSLT__DATE_TIME__FORMAT, McrRslt, parse_mcr_rslt_in_directory_recursively
 from mcr_analyzer.utils.q_file_dialog import FileDialog
 
 if TYPE_CHECKING:
@@ -38,16 +38,20 @@ class ImportWidget(QWidget):
         super().__init__(parent)
 
         self.file_model = QStandardItemModel(self)
-        self.file_model.setHorizontalHeaderLabels(["Date", "Time", "Sample", "Chip", "Status"])
+        self.file_model.setHorizontalHeaderLabels([
+            McrRslt.AttributeName.date_time.value.display,
+            McrRslt.AttributeName.probe_id.value.display,
+            McrRslt.AttributeName.chip_id.value.display,
+            "Status",
+        ])
 
-        self.rslt_list: list[Rslt] = []
-        self.rslt_file_name_parse_fail_list: list[str] = []
+        self.mcr_rslt_list: list[McrRslt] = []
+        self.mcr_rslt_file_name_parse_fail_list: list[str] = []
         self.checksum_worker = ChecksumWorker()
-        self.checksum_worker.progress.connect(self._write_rslt_to_database)
+        self.checksum_worker.progress.connect(self._write_mcr_rslt_to_database)
         self.checksum_worker.finished.connect(self.import_finished.emit)
 
-        layout = QVBoxLayout()
-        self.setLayout(layout)
+        layout = QVBoxLayout(self)
 
         self.select_folder_button = QPushButton(
             self.style().standardIcon(QStyle.StandardPixmap.SP_DirOpenIcon),  # cSpell:ignore Pixmap
@@ -96,39 +100,43 @@ class ImportWidget(QWidget):
     @pyqtSlot()
     def start_import(self) -> None:
         self.import_button.hide()
-        self.progress_bar.setMaximum(len(self.rslt_list))
+        self.progress_bar.setMaximum(len(self.mcr_rslt_list))
         self.progress_bar.show()
 
-        self.checksum_worker.run(self.rslt_list)
+        self.checksum_worker.run(self.mcr_rslt_list)
 
     def _parse_rslt(self, directory_path: "Path | None") -> None:
         self.file_model.removeRows(0, self.file_model.rowCount())
 
         if directory_path is not None:
-            self.rslt_list, self.rslt_file_name_parse_fail_list = parse_rslt_in_directory_recursively(directory_path)
+            self.mcr_rslt_list, self.mcr_rslt_file_name_parse_fail_list = parse_mcr_rslt_in_directory_recursively(
+                directory_path
+            )
 
-            for rslt_file_name_parse_fail in self.rslt_file_name_parse_fail_list:
-                error_item = QStandardItem(f"Failed to load '{rslt_file_name_parse_fail}', might be a corrupted file.")
+            for mcr_rslt_file_name_parse_fail in self.mcr_rslt_file_name_parse_fail_list:
+                status_error_item = QStandardItem(
+                    f"Failed to load '{mcr_rslt_file_name_parse_fail}', might be a corrupted file."
+                )
 
-                error_item.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_DialogNoButton))
+                status_error_item.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_DialogNoButton))
 
                 measurement = [
                     QStandardItem("n. a."),
                     QStandardItem("n. a."),
                     QStandardItem("n. a."),
-                    QStandardItem("n. a."),
-                    error_item,
+                    status_error_item,
                 ]
 
                 self.file_model.appendRow(measurement)
 
-            for rslt in self.rslt_list:
+            for rslt in self.mcr_rslt_list:
+                status_success_item = QStandardItem("")
+
                 measurement = [
-                    QStandardItem(rslt.date_time.strftime("%Y-%m-%d")),
-                    QStandardItem(rslt.date_time.strftime("%H:%M:%S")),
+                    QStandardItem(rslt.date_time.strftime(MCR_RSLT__DATE_TIME__FORMAT)),
                     QStandardItem(rslt.probe_id),
                     QStandardItem(rslt.chip_id),
-                    QStandardItem(""),
+                    status_success_item,
                 ]
                 self.file_model.appendRow(measurement)
 
@@ -137,7 +145,7 @@ class ImportWidget(QWidget):
         self.progress_bar.setValue(0)
 
     @pyqtSlot(int, bytes)
-    def _write_rslt_to_database(self, step: int, checksum: bytes) -> None:
+    def _write_mcr_rslt_to_database(self, step: int, checksum: bytes) -> None:
         with database.Session() as session:
             exists = session.execute(
                 select(select(Measurement).where(Measurement.checksum == checksum).exists())
@@ -148,7 +156,7 @@ class ImportWidget(QWidget):
             file_model_item_icon_pixmap = QStyle.StandardPixmap.SP_DialogNoButton
 
         else:
-            rslt = self.rslt_list[step]
+            rslt = self.mcr_rslt_list[step]
 
             image = Image(rslt.dir.joinpath(rslt.result_image_pgm))
 
@@ -184,7 +192,7 @@ class ImportWidget(QWidget):
                     image_data=image.data.tobytes(),  # cSpell:ignore ascontiguousarray
                     image_height=image.height,
                     image_width=image.width,
-                    timestamp=rslt.date_time,
+                    date_time=rslt.date_time,
                 )
 
                 session.add_all([chip, sample, measurement])
@@ -193,7 +201,7 @@ class ImportWidget(QWidget):
             file_model_item_icon_pixmap = QStyle.StandardPixmap.SP_DialogYesButton
 
         file_model_item = self.file_model.item(
-            step + len(self.rslt_file_name_parse_fail_list), IMPORTER__COLUMN_INDEX__STATUS
+            step + len(self.mcr_rslt_file_name_parse_fail_list), IMPORTER__COLUMN_INDEX__STATUS
         )
 
         file_model_item.setText(file_model_item_text)
@@ -207,7 +215,7 @@ class ChecksumWorker(QObject):
     progress = pyqtSignal(int, bytes)
 
     @pyqtSlot()
-    def run(self, results: list[Rslt]) -> None:
+    def run(self, results: list[McrRslt]) -> None:
         for i, result in enumerate(results):
             image = Image(result.dir.joinpath(result.result_image_pgm))
             sha = hashlib.sha256(image.data.tobytes())  # cSpell:ignore tobytes

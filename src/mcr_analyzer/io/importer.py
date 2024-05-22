@@ -1,6 +1,8 @@
 from copy import deepcopy
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, TypeVar
+from enum import Enum
+from typing import TYPE_CHECKING, Final, TypeVar
 
 from mcr_analyzer.config.image import CornerPositions, Position
 from mcr_analyzer.config.timezone import TZ_INFO
@@ -13,70 +15,76 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-class Rslt:
-    """Reads in RSLT file produced by the MCR.
+MCR_RSLT__DATE_TIME__FORMAT: Final[str] = "%Y-%m-%d %H:%M"
 
-    :Attributes:
-        * Date/time (`datetime`): Date and time of the measurement.
-        * Device ID (`str`): Serial number of the MCR.
-        * Probe ID (`str`): User input during measurement.
-        * Chip ID (`str`): User input during measurement.
-        * Result image PGM (`str`): File name of the 16 bit measurement result.
-        * Result image PNG (`str`): File name of the result visualization shown on the MCR.
-        * Dark frame image PGM (`str`): File name of the dark frame (typically empty).
-        * Temperature ok (`bool`): Did the temperature stay within +/-0.5°C of the set target temperature.
-        * Clean image (`bool`): Is the result produced by subtracting the dark frame from the raw image (typically
-            True).
 
-        * X (`int`): Number of spot columns.
-        * Y (`int`): Number of spot rows.
+@dataclass()
+class Name:
+    original: str
+    display: str = ""
 
-        * Spot size (`int`): Size (in pixels) of the configured square for result computation.
-    """
+    def __post_init__(self) -> None:
+        if self.display == "":
+            self.display = self.original
 
-    def __init__(self, rslt_file_path: "Path") -> None:
-        """Parse file `path` and populate class attributes.
 
-        :raises ValueError: An expected RSLT entry was not found.
-        """
-        self.path = rslt_file_path
+class McrRslt:
+    class AttributeName(Enum):
+        date_time: Final[Name] = Name("Date/time", "Date time")
+        device_id: Final[Name] = Name("Device ID")
+        probe_id: Final[Name] = Name("Probe ID")
+        chip_id: Final[Name] = Name("Chip ID")
+        result_image_pgm: Final[Name] = Name("Result image PGM")
+        result_image_png: Final[Name] = Name("Result image PNG")
+        dark_frame_image_pgm: Final[Name] = Name("Dark frame image PGM")
+        temperature_ok: Final[Name] = Name("Temperature ok")
+        clean_image: Final[Name] = Name("Clean image")
+        thresholds: Final[Name] = Name("Thresholds")
+
+        column_count: Final[Name] = Name("X", "Column count")
+        row_count: Final[Name] = Name("Y", "Row count")
+
+        spot_size: Final[Name] = Name("Spot size")
+
+    def __init__(self, mcr_rslt_file_path: "Path") -> None:
+        self.path = mcr_rslt_file_path
         self.dir = self.path.parent
 
         with self.path.open(encoding="utf-8") as file:
-            self.date_time = datetime.strptime(_readline_get_value(file, "Date/time"), "%Y-%m-%d %H:%M").replace(
-                tzinfo=TZ_INFO
-            )
-            self.device_id = _readline_get_value(file, "Device ID")
-            self.probe_id = _readline_get_value(file, "Probe ID")
-            self.chip_id = _readline_get_value(file, "Chip ID")
-            self.result_image_pgm = _readline_get_value(file, "Result image PGM")
-            self.result_image_png = _readline_get_value(file, "Result image PNG")
+            self.date_time = datetime.strptime(
+                _readline_get_value(file, self.AttributeName.date_time.value.original), MCR_RSLT__DATE_TIME__FORMAT
+            ).replace(tzinfo=TZ_INFO)
+            self.device_id = _readline_get_value(file, self.AttributeName.device_id.value.original)
+            self.probe_id = _readline_get_value(file, self.AttributeName.probe_id.value.original)
+            self.chip_id = _readline_get_value(file, self.AttributeName.chip_id.value.original)
+            self.result_image_pgm = _readline_get_value(file, self.AttributeName.result_image_pgm.value.original)
+            self.result_image_png = _readline_get_value(file, self.AttributeName.result_image_png.value.original)
 
-            dark_frame_image_pgm = _readline_get_value(file, "Dark frame image PGM")
+            dark_frame_image_pgm = _readline_get_value(file, self.AttributeName.dark_frame_image_pgm.value.original)
             self.dark_frame_image_pgm = (
                 "" if dark_frame_image_pgm == "Do not store PGM file for dark frame any more" else dark_frame_image_pgm
             )
 
-            self.temperature_ok = _readline_get_value(file, "Temperature ok") == "yes"
-            self.clean_image = _readline_get_value(file, "Clean image") == "yes"
-            self.thresholds = [int(x) for x in _readline_get_value(file, "Thresholds").split(sep=", ")]
+            self.temperature_ok = _readline_get_value(file, self.AttributeName.temperature_ok.value.original) == "yes"
+            self.clean_image = _readline_get_value(file, self.AttributeName.clean_image.value.original) == "yes"
+            self.thresholds = [
+                int(x) for x in _readline_get_value(file, self.AttributeName.thresholds.value.original).split(sep=", ")
+            ]
 
             readline_skip(file)
 
-            self.column_count = int(_readline_get_value(file, "X"))
-            self.row_count = int(_readline_get_value(file, "Y"))
+            self.column_count = int(_readline_get_value(file, self.AttributeName.column_count.value.original))
+            self.row_count = int(_readline_get_value(file, self.AttributeName.row_count.value.original))
 
             readline_skip(file)
 
-            self.results = _read_rslt_table(file, self.row_count, self.column_count, int)
-            """Two dimensional `list[list[int]]` with spot results calculated by the MCR."""
+            self.results = _read_mcr_rslt_table(file, self.row_count, self.column_count, int)
 
             readline_skip(file, 2)
 
-            self.spot_size = int(_readline_get_value(file, "Spot size"))
+            self.spot_size = int(_readline_get_value(file, self.AttributeName.spot_size.value.original))
 
-            self.spots = _read_rslt_table(file, self.row_count, self.column_count, _parse_spot)
-            """Two dimensional `list[list[Point]]` with Point defining the upper left corner of a result tile."""
+            self.spots = _read_mcr_rslt_table(file, self.row_count, self.column_count, _parse_spot)
 
             row_min = 0
             column_min = row_min
@@ -114,7 +122,7 @@ def _readline_get_value(file: "TextIOWrapper", key: str) -> str:
 T = TypeVar("T")
 
 
-def _read_rslt_table(
+def _read_mcr_rslt_table(
     file: "TextIOWrapper", row_count: int, column_count: int, fn: "Callable[[str], T]"
 ) -> list[list[T]]:
     skip_header_row = 1
@@ -122,14 +130,14 @@ def _read_rslt_table(
 
     readline_skip(file, skip_header_row)
 
-    rslt_table = [[fn(item) for item in line.split()[skip_header_column:]] for line in readlines(file, row_count)]
+    mcr_rslt_table = [[fn(item) for item in line.split()[skip_header_column:]] for line in readlines(file, row_count)]
 
-    number_of_columns_result = len(rslt_table[0])
+    number_of_columns_result = len(mcr_rslt_table[0])
     if column_count != number_of_columns_result:
         msg = f"not matched: {column_count} != {number_of_columns_result}"
         raise ValueError(msg)
 
-    return rslt_table
+    return mcr_rslt_table
 
 
 def _parse_spot(string: str) -> Position:
@@ -141,37 +149,37 @@ def _parse_spot(string: str) -> Position:
     return Position(x, y)
 
 
-def parse_rslt_in_directory_recursively(directory_path: "Path") -> tuple[list[Rslt], list[str]]:
+def parse_mcr_rslt_in_directory_recursively(directory_path: "Path") -> tuple[list[McrRslt], list[str]]:
     """Collect all measurements in the given path.
 
     This function handles multi-image measurements by copying their base metadata and delaying each image by one second.
     """
-    rslt_list: list[Rslt] = []
-    rslt_file_name_parse_fail_list: list[str] = []
+    mcr_rslt_list: list[McrRslt] = []
+    mcr_rslt_file_name_parse_fail_list: list[str] = []
 
-    rslt_file_path_generator = directory_path.glob("**/*.rslt")
-    for rslt_file_path in rslt_file_path_generator:
+    mcr_rslt_file_path_generator = directory_path.glob("**/*.rslt")
+    for mcr_rslt_file_path in mcr_rslt_file_path_generator:
         try:
-            rslt = Rslt(rslt_file_path)
+            rslt = McrRslt(mcr_rslt_file_path)
         except ValueError:
-            rslt_file_name_parse_fail_list.append(rslt_file_path.name)
+            mcr_rslt_file_name_parse_fail_list.append(mcr_rslt_file_path.name)
             continue
 
         image_pgm_file_path = rslt.dir.joinpath(rslt.result_image_pgm)
 
         if image_pgm_file_path.exists():
-            rslt_list.append(rslt)
+            mcr_rslt_list.append(rslt)
 
         else:
             # Check for multi image measurements and mock them as individual
 
             image_pgm_file_stem = image_pgm_file_path.stem
             for i, image_pgm_file_path_i in enumerate(sorted(rslt.dir.glob(f"{image_pgm_file_stem}-*.pgm"))):
-                rslt_copy = deepcopy(rslt)
+                mcr_rslt_copy = deepcopy(rslt)
 
-                rslt_copy.result_image_pgm = image_pgm_file_path_i.name
-                rslt_copy.date_time += timedelta(seconds=i)
+                mcr_rslt_copy.result_image_pgm = image_pgm_file_path_i.name
+                mcr_rslt_copy.date_time += timedelta(seconds=i)
 
-                rslt_list.append(rslt_copy)
+                mcr_rslt_list.append(mcr_rslt_copy)
 
-    return rslt_list, rslt_file_name_parse_fail_list
+    return mcr_rslt_list, mcr_rslt_file_name_parse_fail_list

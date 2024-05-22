@@ -1,5 +1,13 @@
 import numpy as np
-from PyQt6.QtCore import QItemSelection, QModelIndex, QSettings, QSignalBlocker, Qt, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import (
+    QItemSelection,
+    QRegularExpression,
+    QSignalBlocker,
+    QSortFilterProxyModel,
+    Qt,
+    pyqtSignal,
+    pyqtSlot,
+)
 from PyQt6.QtGui import QFocusEvent, QImage, QPixmap
 from PyQt6.QtWidgets import (
     QFormLayout,
@@ -23,74 +31,107 @@ from sqlalchemy.sql.expression import select
 
 from mcr_analyzer.config.image import CornerPositions, Position, get_grid, normalize_image
 from mcr_analyzer.config.netpbm import PGM__HEIGHT, PGM__IMAGE__DATA_TYPE, PGM__WIDTH  # cSpell:ignore netpbm
-from mcr_analyzer.config.qt import Q_SETTINGS__SESSION__SELECTED_DATE
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement
+from mcr_analyzer.io.importer import MCR_RSLT__DATE_TIME__FORMAT, McrRslt
 from mcr_analyzer.ui.graphics_scene import Grid
 from mcr_analyzer.ui.graphics_view import ImageView
-from mcr_analyzer.ui.models import MeasurementTreeItem, MeasurementTreeModel
+from mcr_analyzer.ui.models import ModelColumnIndex, get_measurement_list_model_from_database
 
 
 class MeasurementWidget(QWidget):
-    def __init__(self, parent: QWidget | None = None) -> None:  # noqa: PLR0915
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+
         self.measurement_id: int | None = None
-        self.model: MeasurementTreeModel | None = None
+        self.measurement_list_model: QSortFilterProxyModel | None = None
+        self.grid: Grid | None = None
 
-        layout = QHBoxLayout()
-        self.setLayout(layout)
+        self._initialize_layout()
 
+    def _initialize_layout(self) -> None:
+        layout = QHBoxLayout(self)
         splitter = QSplitter()
         layout.addWidget(splitter)
 
-        self.tree = QTreeView()
-        self.tree.header().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        maximum_width_of_widget__measurement_list = 500
 
-        maximum_width_of_tree = 500
-        self.tree.setMaximumWidth(maximum_width_of_tree)
+        splitter.addWidget(self._initialize_measurement_list(maximum_width=maximum_width_of_widget__measurement_list))
+        splitter.addWidget(self._initialize_information_list(maximum_width=maximum_width_of_widget__measurement_list))
+        splitter.addWidget(self._initialize_image_and_grid_view())
 
-        splitter.addWidget(self.tree)
+    def _initialize_measurement_list(self, *, maximum_width: int) -> QWidget:
+        widget = QGroupBox("Measurement list")
+        layout = QVBoxLayout(widget)
 
-        group_box__record_data = QGroupBox("Record data")
-        form_layout = QFormLayout()
-        group_box__record_data.setLayout(form_layout)
+        widget.setMaximumWidth(maximum_width)
 
-        maximum_width_of_group_box__record_data = maximum_width_of_tree
-        group_box__record_data.setMaximumWidth(maximum_width_of_group_box__record_data)
+        self.measurement_list_filter = QLineEdit()
+        self.measurement_list_filter.setClearButtonEnabled(True)
+        self.measurement_list_filter.setPlaceholderText("Filter")
+        layout.addWidget(self.measurement_list_filter)
 
-        splitter.addWidget(group_box__record_data)
+        self.measurement_list_filter.textChanged.connect(self.measurement_list_filter_changed)
 
-        self.device = QLineEdit()
-        self.device.setReadOnly(True)
-        form_layout.addRow("Device:", self.device)
+        self.measurement_list_view = QTreeView()
+        self.measurement_list_view.setRootIsDecorated(False)
+        self.measurement_list_view.setAlternatingRowColors(True)
+        self.measurement_list_view.header().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        layout.addWidget(self.measurement_list_view)
 
-        self.timestamp = QLineEdit()
-        self.timestamp.setReadOnly(True)
-        form_layout.addRow("Date/time:", self.timestamp)
+        return widget
 
-        self.chip = QLineEdit()
-        form_layout.addRow("Chip ID:", self.chip)
+    def _initialize_information_list(self, *, maximum_width: int) -> QWidget:
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
 
-        self.sample = QLineEdit()
-        form_layout.addRow("Sample ID:", self.sample)
+        widget.setMaximumWidth(maximum_width)
+
+        layout.addWidget(self._initialize_metadata())
+        layout.addWidget(self._initialize_grid_control())
+        return widget
+
+    def _initialize_metadata(self) -> QWidget:
+        widget = QGroupBox("Metadata")
+        layout = QFormLayout(widget)
+
+        self.device_id = QLineEdit()
+        self.device_id.setReadOnly(True)
+        layout.addRow(f"{McrRslt.AttributeName.device_id.value.display}:", self.device_id)
+
+        self.date_time = QLineEdit()
+        self.date_time.setReadOnly(True)
+        layout.addRow(f"{McrRslt.AttributeName.date_time.value.display}:", self.date_time)
+
+        self.chip_id = QLineEdit()
+        layout.addRow(f"{McrRslt.AttributeName.chip_id.value.display}:", self.chip_id)
+
+        self.probe_id = QLineEdit()
+        layout.addRow(f"{McrRslt.AttributeName.probe_id.value.display}:", self.probe_id)
 
         self.notes = StatefulPlainTextEdit()
         self.notes.setPlaceholderText("Please enter additional notes here.")
         self.notes.setMinimumWidth(250)
         self.notes.editing_finished.connect(self._save_notes)
-        form_layout.addRow("Notes:", self.notes)
-        form_layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        layout.addRow("Notes:", self.notes)
+        layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+
+        return widget
+
+    def _initialize_grid_control(self) -> QWidget:
+        widget = QGroupBox("Grid control")
+        layout = QFormLayout(widget)
 
         self.column_count = QSpinBox()
         self.column_count.setMinimum(2)
-        form_layout.addRow("Number of Columns:", self.column_count)
+        layout.addRow(f"{McrRslt.AttributeName.column_count.value.display}:", self.column_count)
 
         self.row_count = QSpinBox()
         self.row_count.setMinimum(2)
-        form_layout.addRow("Number of Rows:", self.row_count)
+        layout.addRow(f"{McrRslt.AttributeName.row_count.value.display}:", self.row_count)
 
         self.spot_size = QSpinBox()
-        form_layout.addRow("Spot size:", self.spot_size)
+        layout.addRow(f"{McrRslt.AttributeName.spot_size.value.display}:", self.spot_size)
 
         self.column_count.valueChanged.connect(self._update_grid)
         self.row_count.valueChanged.connect(self._update_grid)
@@ -99,7 +140,7 @@ class MeasurementWidget(QWidget):
         self.adjust_grid_automatically_button = QPushButton("&Adjust grid automatically")
         self.adjust_grid_automatically_button.clicked.connect(self._adjust_grid_automatically)
         self.adjust_grid_automatically_button.setToolTip("More sensitive to noise")
-        form_layout.addRow(self.adjust_grid_automatically_button)
+        layout.addRow(self.adjust_grid_automatically_button)
 
         self.adjust_grid_automatically_with_noise_reduction_filter_button = QPushButton(
             "Adjust grid automatically with &noise reduction filter"
@@ -110,76 +151,82 @@ class MeasurementWidget(QWidget):
         self.adjust_grid_automatically_with_noise_reduction_filter_button.setToolTip(
             "Less sensitive to weak positive results"
         )
-        form_layout.addRow(self.adjust_grid_automatically_with_noise_reduction_filter_button)
+        layout.addRow(self.adjust_grid_automatically_with_noise_reduction_filter_button)
 
         self.save_grid_button = QPushButton("Save grid")
         self.save_grid_button.setEnabled(False)
         self.save_grid_button.clicked.connect(self._save_grid)
-        form_layout.addRow(self.save_grid_button)
+        layout.addRow(self.save_grid_button)
 
         self.reset_grid_button = QPushButton("Reset grid")
         self.reset_grid_button.setEnabled(False)
         self.reset_grid_button.clicked.connect(self._reset_grid)
-        form_layout.addRow(self.reset_grid_button)
+        layout.addRow(self.reset_grid_button)
 
-        group_box__visualization = QGroupBox("Visualization")
-        v_box_layout = QVBoxLayout()
-        group_box__visualization.setLayout(v_box_layout)
+        return widget
 
-        group_box__visualization.setMinimumSize(PGM__WIDTH, PGM__HEIGHT)
+    def _initialize_image_and_grid_view(self) -> QWidget:
+        widget = QGroupBox("Image and grid view")
+        layout = QVBoxLayout(widget)
+
+        widget.setMinimumSize(PGM__WIDTH, PGM__HEIGHT)
 
         self.scene = QGraphicsScene(self)
 
         self.image = QGraphicsPixmapItem()  # cSpell:ignore Pixmap
         self.scene.addItem(self.image)
 
-        self.view = ImageView(self.scene, self.image)
+        self.image_view = ImageView(self.scene, self.image)
 
-        self.grid: Grid | None = None
+        layout.addWidget(self.image_view)
 
-        v_box_layout.addWidget(self.view)
-
-        splitter.addWidget(group_box__visualization)
+        return widget
 
     @pyqtSlot()
     def reload_database(self) -> None:
-        if self.model is None:
+        if self.measurement_list_model is None:
             return
 
-        self.model.reload_model()
-
-        self._expand_rows_with_selected_date()
+        self.measurement_list_model.setSourceModel(get_measurement_list_model_from_database())
 
     @pyqtSlot()
-    def update__measurement_widget__tree_view(self) -> None:
+    def update__measurement_list_view(self) -> None:
         if not database.is_valid:
             raise NotImplementedError
 
-        self.model = MeasurementTreeModel()
+        self.measurement_list_model = QSortFilterProxyModel()
 
-        self.tree.setModel(self.model)
-        self.tree.selectionModel().selectionChanged.connect(self.selection_changed)
+        self.measurement_list_model.setSourceModel(get_measurement_list_model_from_database())
+        self.measurement_list_model.setFilterKeyColumn(ModelColumnIndex.all.value)
 
-        self._expand_rows_with_selected_date()
+        self.measurement_list_view.setModel(self.measurement_list_model)
+        self.measurement_list_view.selectionModel().selectionChanged.connect(self.selection_changed)
+        self.measurement_list_view.setColumnHidden(ModelColumnIndex.id.value, True)
+
+        self.measurement_list_view.setSortingEnabled(True)
+        self.measurement_list_view.sortByColumn(ModelColumnIndex.chip_id.value, Qt.SortOrder.AscendingOrder)
 
     @pyqtSlot(QItemSelection, QItemSelection)
     def selection_changed(self, selected: QItemSelection, deselected: QItemSelection) -> None:  # noqa: ARG002
-        model_index = selected.indexes()[0]
-        measurement_tree_item: MeasurementTreeItem = model_index.internalPointer()
-        measurement_id = measurement_tree_item.data(3)
+        if self.measurement_list_model is None:
+            return
 
-        if not isinstance(measurement_id, int):
+        measurement_id = self.measurement_list_model.data(selected.indexes()[ModelColumnIndex.id.value])
+
+        try:
+            measurement_id = int(measurement_id)
+        except ValueError:
             return
 
         self.measurement_id = measurement_id
 
         with database.Session() as session:
-            measurement = session.execute(select(Measurement).where(Measurement.id == self.measurement_id)).scalar_one()
+            measurement = session.execute(select(Measurement).where(Measurement.id == measurement_id)).scalar_one()
 
-            self.device.setText(measurement.device.serial)
-            self.timestamp.setText(measurement.timestamp.strftime("%Y-%m-%d %H:%M:%S"))
-            self.chip.setText(measurement.chip.chip_id)
-            self.sample.setText(measurement.sample.probe_id)
+            self.device_id.setText(measurement.device.serial)
+            self.date_time.setText(measurement.date_time.strftime(MCR_RSLT__DATE_TIME__FORMAT))
+            self.chip_id.setText(measurement.chip.chip_id)
+            self.probe_id.setText(measurement.sample.probe_id)
 
             self._update_fields_with_signal_blocked(
                 column_count=measurement.chip.column_count,
@@ -192,7 +239,7 @@ class MeasurementWidget(QWidget):
             else:
                 self.notes.clear()
 
-            q_image = QImage(
+            image = QImage(
                 measurement.image_data,
                 measurement.image_width,
                 measurement.image_height,
@@ -201,16 +248,11 @@ class MeasurementWidget(QWidget):
 
             if self.grid is not None:
                 self.scene.removeItem(self.grid)
-            self.grid = Grid(self.measurement_id)
+            self.grid = Grid(measurement_id)
             self.scene.addItem(self.grid)
 
-        self.image.setPixmap(QPixmap.fromImage(q_image))
-        self.view.fit_in_view()
-
-        # Store date of last used measurement for expanding tree on next launch
-        parent_index = model_index.parent()
-        if parent_index.isValid():
-            QSettings().setValue(Q_SETTINGS__SESSION__SELECTED_DATE, parent_index.data())
+        self.image.setPixmap(QPixmap.fromImage(image))
+        self.image_view.fit_in_view()
 
     @pyqtSlot()
     def _update_grid(
@@ -353,16 +395,16 @@ class MeasurementWidget(QWidget):
             measurement = session.execute(select(Measurement).where(Measurement.id == self.measurement_id)).scalar_one()
             measurement.notes = notes
 
-    def _expand_rows_with_selected_date(self) -> None:
-        if self.model is None:
+    @pyqtSlot()
+    def measurement_list_filter_changed(self) -> None:
+        if self.measurement_list_model is None:
             return
 
-        current_date = QSettings().value(Q_SETTINGS__SESSION__SELECTED_DATE)
-        if current_date:
-            root = self.model.index(0, 0, QModelIndex())
-            matches = self.model.match(root, Qt.ItemDataRole.DisplayRole, current_date)
-            for idx in matches:
-                self.tree.expand(idx)
+        pattern = QRegularExpression.escape(self.measurement_list_filter.text())
+
+        regular_expression = QRegularExpression(pattern, QRegularExpression.PatternOption.CaseInsensitiveOption)
+
+        self.measurement_list_model.setFilterRegularExpression(regular_expression)
 
     def _update_fields_with_signal_blocked(self, *, column_count: int, row_count: int, spot_size: int) -> None:
         field_column_count = self.column_count

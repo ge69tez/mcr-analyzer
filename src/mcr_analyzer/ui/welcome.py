@@ -25,7 +25,7 @@ class WelcomeWidget(QWidget):
             <p>You can create a new database or open an existing one.</p>
             """
 
-        layout = QVBoxLayout()
+        layout = QVBoxLayout(self)
 
         self.text = QLabel(welcome_msg)
         layout.addWidget(self.text)
@@ -43,8 +43,6 @@ class WelcomeWidget(QWidget):
         self.open_button.setIconSize(BUTTON__ICON_SIZE)
         self.open_button.clicked.connect(self.clicked_open_button)
         layout.addWidget(self.open_button)
-
-        self.setLayout(layout)
 
     database_changed = pyqtSignal()
     database_created = pyqtSignal()
