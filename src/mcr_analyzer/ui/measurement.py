@@ -211,7 +211,13 @@ class MeasurementWidget(QWidget):
         if self.measurement_list_model is None:
             return
 
-        measurement_id = self.measurement_list_model.data(selected.indexes()[ModelColumnIndex.id.value])
+        selected_indexes = selected.indexes()
+
+        selection_is_empty = len(selected_indexes) == 0
+        if selection_is_empty:
+            return
+
+        measurement_id = self.measurement_list_model.data(selected_indexes[ModelColumnIndex.id.value])
 
         try:
             measurement_id = int(measurement_id)
