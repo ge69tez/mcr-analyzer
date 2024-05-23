@@ -194,8 +194,9 @@ class Spot(GraphicsCircleItem):
 
 
 class GraphicsSquareTextItem(GraphicsSquareItem):
-    def __init__(self, *, position: Position, size: float, text: str, parent: QGraphicsItem) -> None:
-        super().__init__(position=position, size=size, parent=parent)
+    def __init__(self, *, position: Position, size: float, text: str, parent: QGraphicsItem) -> None:  # noqa: ARG002
+        fix_size_for_appropriate_font_size = 15
+        super().__init__(position=position, size=fix_size_for_appropriate_font_size, parent=parent)
 
         self.text = text
 
@@ -206,3 +207,6 @@ class GraphicsSquareTextItem(GraphicsSquareItem):
         super().paint(painter, option, widget)
         painter.setPen(q_color(Qt.GlobalColor.black))
         painter.drawText(option.rect, Qt.AlignmentFlag.AlignCenter, self.text)
+
+    def update_(self, *, position: Position, size: float) -> None:  # noqa: ARG002
+        self._set_position(position=position)
