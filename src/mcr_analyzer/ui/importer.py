@@ -201,10 +201,12 @@ class ImportWidget(QWidget):
             file_model_item_text = "Import successful"
             file_model_item_icon_pixmap = QStyle.StandardPixmap.SP_DialogYesButton
 
-        file_model_item = self.file_model.item(
-            step + len(self.mcr_rslt_file_name_parse_fail_list), IMPORTER__COLUMN_INDEX__STATUS
-        )
+        row = step + len(self.mcr_rslt_file_name_parse_fail_list)
+        column = IMPORTER__COLUMN_INDEX__STATUS
 
+        self.measurements_table.scrollTo(self.file_model.index(row, column))
+
+        file_model_item = self.file_model.item(row, column)
         file_model_item.setText(file_model_item_text)
         file_model_item.setIcon(self.style().standardIcon(file_model_item_icon_pixmap))
 
