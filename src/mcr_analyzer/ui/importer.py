@@ -49,7 +49,6 @@ class ImportWidget(QWidget):
         self.mcr_rslt_file_name_parse_fail_list: list[str] = []
         self.checksum_worker = ChecksumWorker()
         self.checksum_worker.progress.connect(self._write_mcr_rslt_to_database)
-        self.checksum_worker.finished.connect(self.import_finished.emit)
 
         layout = QVBoxLayout(self)
 
@@ -66,7 +65,7 @@ class ImportWidget(QWidget):
             self.style().standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton), "Import into Database"
         )
         self.import_button.setIconSize(BUTTON__ICON_SIZE)
-        self.import_button.clicked.connect(self.start_import)
+        self.import_button.clicked.connect(self._import)
         self.import_button.hide()
         layout.addWidget(self.import_button)
 
@@ -98,12 +97,14 @@ class ImportWidget(QWidget):
         self.import_button.show()
 
     @pyqtSlot()
-    def start_import(self) -> None:
+    def _import(self) -> None:
         self.import_button.hide()
         self.progress_bar.setMaximum(len(self.mcr_rslt_list))
         self.progress_bar.show()
 
         self.checksum_worker.run(self.mcr_rslt_list)
+
+        self.import_finished.emit()
 
     def _parse_rslt(self, directory_path: "Path | None") -> None:
         self.file_model.removeRows(0, self.file_model.rowCount())
@@ -211,7 +212,6 @@ class ImportWidget(QWidget):
 
 
 class ChecksumWorker(QObject):
-    finished = pyqtSignal()
     progress = pyqtSignal(int, bytes)
 
     @pyqtSlot()
@@ -224,5 +224,3 @@ class ChecksumWorker(QObject):
                 raise ValueError(msg)
 
             self.progress.emit(i, sha.digest())
-
-        self.finished.emit()
