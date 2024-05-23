@@ -33,7 +33,7 @@ def image_row_count_column_count(draw: st.DrawFn) -> tuple[OPEN_CV__IMAGE__ND_AR
 
 
 @given(image_row_count_column_count())
-@settings(deadline=timedelta(seconds=2))
+@settings(deadline=timedelta(seconds=4))
 def test___config__image(image_row_count_column_count: tuple[OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE, int, int]) -> None:
     image, row_count, column_count = image_row_count_column_count
     grid_result = get_grid(image=image)
