@@ -23,7 +23,7 @@ from mcr_analyzer.config.qt import BUTTON__ICON_SIZE
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Chip, Device, Measurement, Sample
 from mcr_analyzer.io.image import Image
-from mcr_analyzer.io.importer import MCR_RSLT__DATE_TIME__FORMAT, McrRslt, parse_mcr_rslt_in_directory_recursively
+from mcr_analyzer.io.mcr_rslt import MCR_RSLT__DATE_TIME__FORMAT, McrRslt, parse_mcr_rslt_in_directory_recursively
 from mcr_analyzer.utils.q_file_dialog import FileDialog
 
 if TYPE_CHECKING:

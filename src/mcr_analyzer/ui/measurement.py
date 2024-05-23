@@ -33,7 +33,7 @@ from mcr_analyzer.config.image import CornerPositions, Position, get_grid, norma
 from mcr_analyzer.config.netpbm import PGM__HEIGHT, PGM__IMAGE__DATA_TYPE, PGM__WIDTH  # cSpell:ignore netpbm
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement
-from mcr_analyzer.io.importer import MCR_RSLT__DATE_TIME__FORMAT, McrRslt
+from mcr_analyzer.io.mcr_rslt import MCR_RSLT__DATE_TIME__FORMAT, McrRslt
 from mcr_analyzer.ui.graphics_scene import Grid
 from mcr_analyzer.ui.graphics_view import ImageView
 from mcr_analyzer.ui.models import ModelColumnIndex, get_measurement_list_model_from_database

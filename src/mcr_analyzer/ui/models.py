@@ -6,7 +6,7 @@ from sqlalchemy.sql.expression import select
 
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement
-from mcr_analyzer.io.importer import MCR_RSLT__DATE_TIME__FORMAT, McrRslt
+from mcr_analyzer.io.mcr_rslt import MCR_RSLT__DATE_TIME__FORMAT, McrRslt
 
 
 class ModelColumnIndex(Enum):
