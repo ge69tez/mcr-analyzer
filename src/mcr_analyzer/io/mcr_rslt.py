@@ -84,17 +84,19 @@ class McrRslt:
 
             self.spot_size = int(_readline_get_value(file, self.AttributeName.spot_size.value.original))
 
-            self.spots = _read_mcr_rslt_table(file, self.row_count, self.column_count, _parse_spot)
+            spots = _read_mcr_rslt_table(file, self.row_count, self.column_count, _parse_spot)
+
+            offset_from_top_left_to_center = Position(self.spot_size / 2, self.spot_size / 2)
 
             row_min = 0
             column_min = row_min
             row_max = self.row_count - 1
             column_max = self.column_count - 1
             self.corner_positions = CornerPositions(
-                top_left=self.spots[row_min][column_min],
-                top_right=self.spots[row_min][column_max],
-                bottom_right=self.spots[row_max][column_max],
-                bottom_left=self.spots[row_max][column_min],
+                top_left=spots[row_min][column_min] + offset_from_top_left_to_center,
+                top_right=spots[row_min][column_max] + offset_from_top_left_to_center,
+                bottom_right=spots[row_max][column_max] + offset_from_top_left_to_center,
+                bottom_left=spots[row_max][column_min] + offset_from_top_left_to_center,
             )
 
 
