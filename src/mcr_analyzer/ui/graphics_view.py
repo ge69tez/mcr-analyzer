@@ -7,13 +7,13 @@ if TYPE_CHECKING:
     from PyQt6.QtGui import QWheelEvent
 
 
-class ImageView(QGraphicsView):
-    def __init__(self, scene: QGraphicsScene, image: QGraphicsPixmapItem) -> None:  # cSpell:ignore Pixmap
+class GraphicsView(QGraphicsView):
+    def __init__(self, scene: QGraphicsScene, pixmap: QGraphicsPixmapItem) -> None:  # cSpell:ignore Pixmap
         super().__init__(scene)
 
         self.zoom_level = 0
 
-        self.image = image
+        self.pixmap = pixmap
 
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
@@ -21,7 +21,7 @@ class ImageView(QGraphicsView):
         self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
 
     def fit_in_view(self) -> None:
-        self.fitInView(self.image, Qt.AspectRatioMode.KeepAspectRatio)
+        self.fitInView(self.pixmap, Qt.AspectRatioMode.KeepAspectRatio)
 
     def wheelEvent(self, event: "QWheelEvent") -> None:  # noqa: N802
         zoom_in_factor = 1.25

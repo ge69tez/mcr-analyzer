@@ -5,6 +5,7 @@ import pytest
 from pooch import Unzip, retrieve
 from PyQt6.QtCore import QSortFilterProxyModel
 
+from mcr_analyzer.config.image import OPEN_CV__IMAGE__BRIGHTNESS__MAX, OPEN_CV__IMAGE__BRIGHTNESS__MIN
 from mcr_analyzer.config.importer import IMPORTER__COLUMN_INDEX__STATUS
 from mcr_analyzer.ui.main_window import MainWindow
 from mcr_analyzer.ui.models import ModelColumnIndex
@@ -14,6 +15,8 @@ if TYPE_CHECKING:
     from collections.abc import Generator
 
     from pytestqt.qtbot import QtBot  # cSpell:ignore pytestqt qtbot
+
+    from mcr_analyzer.ui.graphics_scene import Grid
 
 
 @pytest.fixture()
@@ -166,6 +169,20 @@ def _assert_measurement(
     qtbot.waitUntil(lambda: len(grid.row_labels) == row_count_test)
 
     main_window.measurement_widget.spot_size.setValue(spot_size_test)
+    _assert_spot_size(qtbot=qtbot, grid=grid, spot_size_test=spot_size_test)
+
+    # - Adjust grid automatically test
+    main_window.measurement_widget.adjust_grid_automatically_button.click()
+
+    qtbot.waitUntil(lambda: len(grid.column_labels) == column_count_expected)
+    qtbot.waitUntil(lambda: len(grid.row_labels) == row_count_expected)
+
+    _assert_spot_size(qtbot=qtbot, grid=grid, spot_size_test=spot_size_expected)
+
+    _assert_image_brightness(main_window)
+
+
+def _assert_spot_size(qtbot: "QtBot", grid: "Grid", spot_size_test: int) -> None:
     qtbot.waitUntil(lambda: grid.corner_spots.top_left.get_size() == spot_size_test)
     qtbot.waitUntil(lambda: grid.corner_spots.top_right.get_size() == spot_size_test)
     qtbot.waitUntil(lambda: grid.corner_spots.bottom_left.get_size() == spot_size_test)
@@ -174,16 +191,7 @@ def _assert_measurement(
     for spot in grid.spots.values():
         qtbot.waitUntil(lambda spot=spot: spot.get_size() == spot_size_test)
 
-    # - Adjust grid automatically test
-    main_window.measurement_widget.adjust_grid_automatically_button.click()
 
-    qtbot.waitUntil(lambda: len(grid.column_labels) == column_count_expected)
-    qtbot.waitUntil(lambda: len(grid.row_labels) == row_count_expected)
-
-    qtbot.waitUntil(lambda: grid.corner_spots.top_left.get_size() == spot_size_expected)
-    qtbot.waitUntil(lambda: grid.corner_spots.top_right.get_size() == spot_size_expected)
-    qtbot.waitUntil(lambda: grid.corner_spots.bottom_left.get_size() == spot_size_expected)
-    qtbot.waitUntil(lambda: grid.corner_spots.bottom_right.get_size() == spot_size_expected)
-
-    for spot in grid.spots.values():
-        qtbot.waitUntil(lambda spot=spot: spot.get_size() == spot_size_expected)
+def _assert_image_brightness(main_window: MainWindow) -> None:
+    main_window.measurement_widget.image_brightness.setValue(OPEN_CV__IMAGE__BRIGHTNESS__MIN)
+    main_window.measurement_widget.image_brightness.setValue(OPEN_CV__IMAGE__BRIGHTNESS__MAX)

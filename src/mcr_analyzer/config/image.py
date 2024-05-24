@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
     from mcr_analyzer.config.netpbm import PGM__IMAGE__ND_ARRAY__DATA_TYPE  # cSpell:ignore netpbm
 
+
 Position: TypeAlias = QPointF
 
 
@@ -45,9 +46,12 @@ class BoundaryPositions:
 #
 OPEN_CV__IMAGE__DATA_TYPE: Final[TypeAlias] = np.uint8
 OPEN_CV__IMAGE__DATA_TYPE__MIN: Final[int] = np.iinfo(OPEN_CV__IMAGE__DATA_TYPE).min  # cSpell:ignore iinfo
-OPEN_CV__IMAGE__DATA_TYPE__MAX: Final[int] = np.iinfo(OPEN_CV__IMAGE__DATA_TYPE).max  # cSpell:ignore iinfo
+OPEN_CV__IMAGE__DATA_TYPE__MAX: Final[int] = np.iinfo(OPEN_CV__IMAGE__DATA_TYPE).max
 OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE: Final[TypeAlias] = npt.NDArray[OPEN_CV__IMAGE__DATA_TYPE]
 
+
+OPEN_CV__IMAGE__BRIGHTNESS__MIN: Final[int] = -np.iinfo(OPEN_CV__IMAGE__DATA_TYPE).max // 2
+OPEN_CV__IMAGE__BRIGHTNESS__MAX: Final[int] = -OPEN_CV__IMAGE__BRIGHTNESS__MIN - 1
 
 OPEN_CV__CONTOUR__DATA_TYPE: Final[TypeAlias] = npt.NDArray[np.int32]
 

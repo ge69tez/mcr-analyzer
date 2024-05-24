@@ -1,3 +1,4 @@
+import cv2 as cv
 import numpy as np
 from PyQt6.QtCore import QItemSelection, QRegularExpression, QSignalBlocker, QSortFilterProxyModel, Qt, pyqtSlot
 from PyQt6.QtGui import QImage, QPixmap
@@ -12,6 +13,7 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QSlider,
     QSpinBox,
     QSplitter,
     QTreeView,
@@ -21,13 +23,26 @@ from PyQt6.QtWidgets import (
 from returns.pipeline import is_successful
 from sqlalchemy.sql.expression import select
 
-from mcr_analyzer.config.image import CornerPositions, Position, get_grid, normalize_image
-from mcr_analyzer.config.netpbm import PGM__HEIGHT, PGM__IMAGE__DATA_TYPE, PGM__WIDTH  # cSpell:ignore netpbm
+from mcr_analyzer.config.image import (
+    OPEN_CV__IMAGE__BRIGHTNESS__MAX,
+    OPEN_CV__IMAGE__BRIGHTNESS__MIN,
+    OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE,
+    CornerPositions,
+    Position,
+    get_grid,
+    normalize_image,
+)
+from mcr_analyzer.config.netpbm import (  # cSpell:ignore netpbm
+    PGM__HEIGHT,
+    PGM__IMAGE__DATA_TYPE,
+    PGM__IMAGE__ND_ARRAY__DATA_TYPE,
+    PGM__WIDTH,
+)
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement
 from mcr_analyzer.io.mcr_rslt import MCR_RSLT__DATE_TIME__FORMAT, McrRslt
 from mcr_analyzer.ui.graphics_scene import Grid
-from mcr_analyzer.ui.graphics_view import ImageView
+from mcr_analyzer.ui.graphics_view import GraphicsView
 from mcr_analyzer.ui.models import ModelColumnIndex, get_measurement_list_model_from_database
 
 
@@ -37,6 +52,8 @@ class MeasurementWidget(QWidget):
 
         self.measurement_id: int | None = None
         self.measurement_list_model: QSortFilterProxyModel | None = None
+        self.image_original: PGM__IMAGE__ND_ARRAY__DATA_TYPE | None = None
+        self.image_display: OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE | None = None
         self.grid: Grid | None = None
 
         self._initialize_layout()
@@ -80,7 +97,7 @@ class MeasurementWidget(QWidget):
         widget.setMaximumWidth(maximum_width)
 
         layout.addWidget(self._initialize_metadata())
-        layout.addWidget(self._initialize_grid_control())
+        layout.addWidget(self._initialize_image_and_grid_control())
 
         self.save_button = QPushButton("Save")
         self.save_button.clicked.connect(self._save)
@@ -95,6 +112,8 @@ class MeasurementWidget(QWidget):
     def _initialize_metadata(self) -> QWidget:
         widget = QGroupBox("Metadata")
         layout = QFormLayout(widget)
+
+        layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
 
         self.device_id = QLineEdit()
         self.device_id.setReadOnly(True)
@@ -116,13 +135,20 @@ class MeasurementWidget(QWidget):
         self.notes.setPlaceholderText("Please enter additional notes here.")
         self.notes.setMinimumWidth(250)
         layout.addRow("Notes:", self.notes)
-        layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
 
         return widget
 
-    def _initialize_grid_control(self) -> QWidget:
-        widget = QGroupBox("Grid control")
+    def _initialize_image_and_grid_control(self) -> QWidget:
+        widget = QGroupBox("Image and grid control")
         layout = QFormLayout(widget)
+
+        self.image_brightness = QSlider(Qt.Orientation.Horizontal)
+        self.image_brightness.setMinimum(OPEN_CV__IMAGE__BRIGHTNESS__MIN)
+        self.image_brightness.setMaximum(OPEN_CV__IMAGE__BRIGHTNESS__MAX)
+
+        self.image_brightness.valueChanged.connect(self._image_brightness_changed)
+
+        layout.addRow("Image brightness:", self.image_brightness)
 
         self.adjust_grid_automatically_button = QPushButton("&Adjust grid automatically")
         self.adjust_grid_automatically_button.clicked.connect(self._adjust_grid_automatically)
@@ -165,12 +191,12 @@ class MeasurementWidget(QWidget):
 
         self.scene = QGraphicsScene(self)
 
-        self.image = QGraphicsPixmapItem()  # cSpell:ignore Pixmap
-        self.scene.addItem(self.image)
+        self.pixmap = QGraphicsPixmapItem()  # cSpell:ignore Pixmap
+        self.scene.addItem(self.pixmap)
 
-        self.image_view = ImageView(self.scene, self.image)
+        self.graphics_view = GraphicsView(self.scene, self.pixmap)
 
-        layout.addWidget(self.image_view)
+        layout.addWidget(self.graphics_view)
 
         return widget
 
@@ -230,12 +256,9 @@ class MeasurementWidget(QWidget):
                 column_count=measurement.column_count, row_count=measurement.row_count, spot_size=measurement.spot_size
             )
 
-            image = QImage(
-                measurement.image_data,
-                measurement.image_width,
-                measurement.image_height,
-                QImage.Format.Format_Grayscale16,
-            )
+            image_data = measurement.image_data
+            image_height = measurement.image_height
+            image_width = measurement.image_width
 
             self.notes.setPlainText(measurement.notes)
 
@@ -244,8 +267,30 @@ class MeasurementWidget(QWidget):
             self.grid = Grid(measurement_id)
             self.scene.addItem(self.grid)
 
-        self.image.setPixmap(QPixmap.fromImage(image))
-        self.image_view.fit_in_view()
+        image = (
+            np.frombuffer(image_data, dtype=PGM__IMAGE__DATA_TYPE).reshape(image_height, image_width).copy()
+        )  # cSpell:ignore frombuffer dtype
+
+        self.image_original = image
+        self.image_display = normalize_image(image=image)
+
+        self._set_image_display(image_display=self.image_display)
+        self.image_brightness.setValue(0)
+        self.graphics_view.fit_in_view()
+
+    def _set_image_display(self, *, image_display: OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE) -> None:
+        image_height, image_width = image_display.shape
+
+        self.pixmap.setPixmap(
+            QPixmap(
+                QImage(
+                    image_display.tobytes(),  # cSpell:ignore tobytes
+                    image_width,
+                    image_height,
+                    QImage.Format.Format_Grayscale8,
+                )
+            )
+        )
 
     @pyqtSlot()
     def _update_grid(
@@ -340,14 +385,7 @@ class MeasurementWidget(QWidget):
         if self.grid is None:
             return
 
-        with database.Session() as session, session.begin():
-            measurement = session.execute(select(Measurement).where(Measurement.id == self.measurement_id)).scalar_one()
-
-            image = np.frombuffer(measurement.image_data, dtype=PGM__IMAGE__DATA_TYPE).reshape(
-                measurement.image_height, measurement.image_width
-            )  # cSpell:ignore frombuffer dtype
-
-        image_normalized = normalize_image(image=image)
+        image_normalized = self.image_display
 
         grid_result = get_grid(image=image_normalized, with_adaptive_threshold=not use_noise_reduction_filter)
 
@@ -380,6 +418,17 @@ class MeasurementWidget(QWidget):
 
         self.measurement_list_model.setFilterRegularExpression(regular_expression)
 
+    @pyqtSlot()
+    def _image_brightness_changed(self) -> None:
+        if self.image_display is None:
+            return
+
+        self._set_image_display(
+            image_display=_change_image_brightness(
+                input_image=self.image_display, brightness=self.image_brightness.value()
+            )
+        )
+
     def _update_fields_with_signal_blocked(self, *, column_count: int, row_count: int, spot_size: int) -> None:
         field_column_count = self.column_count
         field_row_count = self.row_count
@@ -389,3 +438,11 @@ class MeasurementWidget(QWidget):
             field_column_count.setValue(column_count)
             field_row_count.setValue(row_count)
             field_spot_size.setValue(spot_size)
+
+
+# - https://docs.opencv.org/4.x/d3/dc1/tutorial_basic_linear_transform.html
+# - https://stackoverflow.com/a/72325974
+def _change_image_brightness(
+    *, input_image: OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE, brightness: int
+) -> OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE:
+    return cv.convertScaleAbs(src=input_image, beta=brightness)
