@@ -181,6 +181,7 @@ class ImportWidget(QWidget):
                     spot_corner_bottom_right_y=rslt.corner_positions.bottom_right.y(),
                     spot_corner_bottom_left_x=rslt.corner_positions.bottom_left.x(),
                     spot_corner_bottom_left_y=rslt.corner_positions.bottom_left.y(),
+                    notes="",
                 )
 
                 session.add(measurement)

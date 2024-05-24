@@ -45,4 +45,4 @@ class Measurement(Base):
     spot_corner_bottom_left_x: Mapped[float]
     spot_corner_bottom_left_y: Mapped[float]
 
-    notes: Mapped[str | None] = mapped_column(default=None)
+    notes: Mapped[str]

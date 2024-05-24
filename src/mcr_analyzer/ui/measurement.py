@@ -1,14 +1,6 @@
 import numpy as np
-from PyQt6.QtCore import (
-    QItemSelection,
-    QRegularExpression,
-    QSignalBlocker,
-    QSortFilterProxyModel,
-    Qt,
-    pyqtSignal,
-    pyqtSlot,
-)
-from PyQt6.QtGui import QFocusEvent, QImage, QPixmap
+from PyQt6.QtCore import QItemSelection, QRegularExpression, QSignalBlocker, QSortFilterProxyModel, Qt, pyqtSlot
+from PyQt6.QtGui import QImage, QPixmap
 from PyQt6.QtWidgets import (
     QFormLayout,
     QGraphicsPixmapItem,
@@ -71,7 +63,7 @@ class MeasurementWidget(QWidget):
         self.measurement_list_filter.setPlaceholderText("Filter")
         layout.addWidget(self.measurement_list_filter)
 
-        self.measurement_list_filter.textChanged.connect(self.measurement_list_filter_changed)
+        self.measurement_list_filter.textChanged.connect(self._measurement_list_filter_changed)
 
         self.measurement_list_view = QTreeView()
         self.measurement_list_view.setRootIsDecorated(False)
@@ -89,6 +81,15 @@ class MeasurementWidget(QWidget):
 
         layout.addWidget(self._initialize_metadata())
         layout.addWidget(self._initialize_grid_control())
+
+        self.save_button = QPushButton("Save")
+        self.save_button.clicked.connect(self._save)
+        layout.addWidget(self.save_button)
+
+        self.reset_button = QPushButton("Reset")
+        self.reset_button.clicked.connect(self._reset)
+        layout.addWidget(self.reset_button)
+
         return widget
 
     def _initialize_metadata(self) -> QWidget:
@@ -104,15 +105,16 @@ class MeasurementWidget(QWidget):
         layout.addRow(f"{McrRslt.AttributeName.date_time.value.display}:", self.date_time)
 
         self.chip_id = QLineEdit()
+        self.chip_id.setReadOnly(True)
         layout.addRow(f"{McrRslt.AttributeName.chip_id.value.display}:", self.chip_id)
 
         self.probe_id = QLineEdit()
+        self.probe_id.setReadOnly(True)
         layout.addRow(f"{McrRslt.AttributeName.probe_id.value.display}:", self.probe_id)
 
-        self.notes = StatefulPlainTextEdit()
+        self.notes = QPlainTextEdit()
         self.notes.setPlaceholderText("Please enter additional notes here.")
         self.notes.setMinimumWidth(250)
-        self.notes.editing_finished.connect(self._save_notes)
         layout.addRow("Notes:", self.notes)
         layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
 
@@ -121,21 +123,6 @@ class MeasurementWidget(QWidget):
     def _initialize_grid_control(self) -> QWidget:
         widget = QGroupBox("Grid control")
         layout = QFormLayout(widget)
-
-        self.column_count = QSpinBox()
-        self.column_count.setMinimum(2)
-        layout.addRow(f"{McrRslt.AttributeName.column_count.value.display}:", self.column_count)
-
-        self.row_count = QSpinBox()
-        self.row_count.setMinimum(2)
-        layout.addRow(f"{McrRslt.AttributeName.row_count.value.display}:", self.row_count)
-
-        self.spot_size = QSpinBox()
-        layout.addRow(f"{McrRslt.AttributeName.spot_size.value.display}:", self.spot_size)
-
-        self.column_count.valueChanged.connect(self._update_grid)
-        self.row_count.valueChanged.connect(self._update_grid)
-        self.spot_size.valueChanged.connect(self._update_grid)
 
         self.adjust_grid_automatically_button = QPushButton("&Adjust grid automatically")
         self.adjust_grid_automatically_button.clicked.connect(self._adjust_grid_automatically)
@@ -153,15 +140,20 @@ class MeasurementWidget(QWidget):
         )
         layout.addRow(self.adjust_grid_automatically_with_noise_reduction_filter_button)
 
-        self.save_grid_button = QPushButton("Save grid")
-        self.save_grid_button.setEnabled(False)
-        self.save_grid_button.clicked.connect(self._save_grid)
-        layout.addRow(self.save_grid_button)
+        self.column_count = QSpinBox()
+        self.column_count.setMinimum(2)
+        layout.addRow(f"{McrRslt.AttributeName.column_count.value.display}:", self.column_count)
 
-        self.reset_grid_button = QPushButton("Reset grid")
-        self.reset_grid_button.setEnabled(False)
-        self.reset_grid_button.clicked.connect(self._reset_grid)
-        layout.addRow(self.reset_grid_button)
+        self.row_count = QSpinBox()
+        self.row_count.setMinimum(2)
+        layout.addRow(f"{McrRslt.AttributeName.row_count.value.display}:", self.row_count)
+
+        self.spot_size = QSpinBox()
+        layout.addRow(f"{McrRslt.AttributeName.spot_size.value.display}:", self.spot_size)
+
+        self.column_count.valueChanged.connect(self._update_grid)
+        self.row_count.valueChanged.connect(self._update_grid)
+        self.spot_size.valueChanged.connect(self._update_grid)
 
         return widget
 
@@ -200,14 +192,14 @@ class MeasurementWidget(QWidget):
         self.measurement_list_model.setFilterKeyColumn(ModelColumnIndex.all.value)
 
         self.measurement_list_view.setModel(self.measurement_list_model)
-        self.measurement_list_view.selectionModel().selectionChanged.connect(self.selection_changed)
+        self.measurement_list_view.selectionModel().selectionChanged.connect(self._selection_changed)
         self.measurement_list_view.setColumnHidden(ModelColumnIndex.id.value, True)
 
         self.measurement_list_view.setSortingEnabled(True)
         self.measurement_list_view.sortByColumn(ModelColumnIndex.chip_id.value, Qt.SortOrder.AscendingOrder)
 
     @pyqtSlot(QItemSelection, QItemSelection)
-    def selection_changed(self, selected: QItemSelection, deselected: QItemSelection) -> None:  # noqa: ARG002
+    def _selection_changed(self, selected: QItemSelection, deselected: QItemSelection) -> None:  # noqa: ARG002
         if self.measurement_list_model is None:
             return
 
@@ -238,17 +230,14 @@ class MeasurementWidget(QWidget):
                 column_count=measurement.column_count, row_count=measurement.row_count, spot_size=measurement.spot_size
             )
 
-            if measurement.notes:
-                self.notes.setPlainText(measurement.notes)
-            else:
-                self.notes.clear()
-
             image = QImage(
                 measurement.image_data,
                 measurement.image_width,
                 measurement.image_height,
                 QImage.Format.Format_Grayscale16,
             )
+
+            self.notes.setPlainText(measurement.notes)
 
             if self.grid is not None:
                 self.scene.removeItem(self.grid)
@@ -277,14 +266,12 @@ class MeasurementWidget(QWidget):
             if spot_size is None:
                 spot_size = self.spot_size.value()
 
-            self._editing_mode_set_enabled(enabled=True)
-
             self.grid.update_(
                 row_count=row_count, column_count=column_count, spot_size=spot_size, corner_positions=corner_positions
             )
 
     @pyqtSlot()
-    def _save_grid(self) -> None:
+    def _save(self) -> None:
         if self.measurement_id is None:
             return
 
@@ -308,10 +295,10 @@ class MeasurementWidget(QWidget):
             measurement.spot_corner_bottom_left_x = self.grid.corner_spots.bottom_left.x()
             measurement.spot_corner_bottom_left_y = self.grid.corner_spots.bottom_left.y()
 
-        self._editing_mode_set_enabled(enabled=False)
+            measurement.notes = self.notes.toPlainText()
 
     @pyqtSlot()
-    def _reset_grid(self) -> None:
+    def _reset(self) -> None:
         if self.measurement_id is None:
             return
 
@@ -341,9 +328,9 @@ class MeasurementWidget(QWidget):
                 bottom_left=Position(spot_corner_bottom_left_x, spot_corner_bottom_left_y),
             )
 
-        self._update_grid(corner_positions=corner_positions)
+            self.notes.setPlainText(measurement.notes)
 
-        self._editing_mode_set_enabled(enabled=False)
+        self._update_grid(corner_positions=corner_positions)
 
     @pyqtSlot()
     def _adjust_grid_automatically(self, *, use_noise_reduction_filter: bool = False) -> None:
@@ -383,21 +370,7 @@ class MeasurementWidget(QWidget):
         self._update_grid(corner_positions=corner_positions)
 
     @pyqtSlot()
-    def _save_notes(self) -> None:
-        if self.measurement_id is None:
-            return
-
-        notes: str | None = self.notes.toPlainText()
-
-        if notes == "":
-            notes = None
-
-        with database.Session() as session, session.begin():
-            measurement = session.execute(select(Measurement).where(Measurement.id == self.measurement_id)).scalar_one()
-            measurement.notes = notes
-
-    @pyqtSlot()
-    def measurement_list_filter_changed(self) -> None:
+    def _measurement_list_filter_changed(self) -> None:
         if self.measurement_list_model is None:
             return
 
@@ -416,30 +389,3 @@ class MeasurementWidget(QWidget):
             field_column_count.setValue(column_count)
             field_row_count.setValue(row_count)
             field_spot_size.setValue(spot_size)
-
-    def _editing_mode_set_enabled(self, *, enabled: bool) -> None:
-        self.save_grid_button.setEnabled(enabled)
-        self.reset_grid_button.setEnabled(enabled)
-
-
-class StatefulPlainTextEdit(QPlainTextEdit):
-    editing_finished = pyqtSignal()
-
-    def __init__(self) -> None:
-        super().__init__()
-        self._content = ""
-
-    def check_changes(self) -> None:
-        if self._content != self.toPlainText():
-            self._content = self.toPlainText()
-            self.editing_finished.emit()
-
-    def focusInEvent(self, event: QFocusEvent) -> None:  # noqa: N802
-        if event.reason() != Qt.FocusReason.PopupFocusReason:
-            self._content = self.toPlainText()
-        super().focusInEvent(event)
-
-    def focusOutEvent(self, event: QFocusEvent) -> None:  # noqa: N802
-        if event.reason() != Qt.FocusReason.PopupFocusReason:
-            self.check_changes()
-        super().focusOutEvent(event)
