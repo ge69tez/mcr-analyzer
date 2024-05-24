@@ -34,8 +34,8 @@ def get_measurement_list_model_from_database() -> QStandardItemModel:
             model.appendRow([
                 QStandardItem(str(measurement.id)),
                 QStandardItem(measurement.date_time.strftime(MCR_RSLT__DATE_TIME__FORMAT)),
-                QStandardItem(measurement.chip.chip_id),
-                QStandardItem(measurement.sample.probe_id),
+                QStandardItem(measurement.chip_id),
+                QStandardItem(measurement.probe_id),
             ])
 
     return model

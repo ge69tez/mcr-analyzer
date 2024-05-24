@@ -110,18 +110,18 @@ class Grid(QGraphicsObject):
             statement = select(Measurement).where(Measurement.id == measurement_id)
             measurement = session.execute(statement).scalar_one()
 
-            column_count = measurement.chip.column_count
-            row_count = measurement.chip.row_count
-            spot_size = measurement.chip.spot_size
+            column_count = measurement.column_count
+            row_count = measurement.row_count
+            spot_size = measurement.spot_size
 
-            spot_corner_top_left_x = measurement.chip.spot_corner_top_left_x
-            spot_corner_top_left_y = measurement.chip.spot_corner_top_left_y
-            spot_corner_top_right_x = measurement.chip.spot_corner_top_right_x
-            spot_corner_top_right_y = measurement.chip.spot_corner_top_right_y
-            spot_corner_bottom_right_x = measurement.chip.spot_corner_bottom_right_x
-            spot_corner_bottom_right_y = measurement.chip.spot_corner_bottom_right_y
-            spot_corner_bottom_left_x = measurement.chip.spot_corner_bottom_left_x
-            spot_corner_bottom_left_y = measurement.chip.spot_corner_bottom_left_y
+            spot_corner_top_left_x = measurement.spot_corner_top_left_x
+            spot_corner_top_left_y = measurement.spot_corner_top_left_y
+            spot_corner_top_right_x = measurement.spot_corner_top_right_x
+            spot_corner_top_right_y = measurement.spot_corner_top_right_y
+            spot_corner_bottom_right_x = measurement.spot_corner_bottom_right_x
+            spot_corner_bottom_right_y = measurement.spot_corner_bottom_right_y
+            spot_corner_bottom_left_x = measurement.spot_corner_bottom_left_x
+            spot_corner_bottom_left_y = measurement.spot_corner_bottom_left_y
 
         self.corner_spots = CornerSpots(
             top_left=CornerSpot(

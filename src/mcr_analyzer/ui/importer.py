@@ -14,14 +14,13 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from sqlalchemy.dialects.sqlite import insert as sqlite_upsert
 from sqlalchemy.sql.expression import select
 
 from mcr_analyzer.config.hash import HASH__DIGEST_SIZE
 from mcr_analyzer.config.importer import IMPORTER__COLUMN_INDEX__STATUS
 from mcr_analyzer.config.qt import BUTTON__ICON_SIZE
 from mcr_analyzer.database.database import database
-from mcr_analyzer.database.models import Chip, Device, Measurement, Sample
+from mcr_analyzer.database.models import Measurement
 from mcr_analyzer.io.image import Image
 from mcr_analyzer.io.mcr_rslt import MCR_RSLT__DATE_TIME__FORMAT, McrRslt, parse_mcr_rslt_in_directory_recursively
 from mcr_analyzer.utils.q_file_dialog import FileDialog
@@ -162,8 +161,15 @@ class ImportWidget(QWidget):
             image = Image(rslt.dir.joinpath(rslt.result_image_pgm))
 
             with database.Session() as session, session.begin():
-                chip = Chip(
+                measurement = Measurement(
+                    date_time=rslt.date_time,
+                    device_id=rslt.device_id,
+                    probe_id=rslt.probe_id,
                     chip_id=rslt.chip_id,
+                    image_data=image.data.tobytes(),  # cSpell:ignore ascontiguousarray
+                    image_height=image.height,
+                    image_width=image.width,
+                    checksum=checksum,
                     row_count=rslt.row_count,
                     column_count=rslt.column_count,
                     spot_size=rslt.spot_size,
@@ -177,26 +183,7 @@ class ImportWidget(QWidget):
                     spot_corner_bottom_left_y=rslt.corner_positions.bottom_left.y(),
                 )
 
-                statement = sqlite_upsert(Device).values([{Device.serial: rslt.device_id}])
-                statement = statement.on_conflict_do_update(
-                    index_elements=[Device.serial], set_={Device.serial: statement.excluded.serial}
-                )
-                device = session.execute(statement.returning(Device)).scalar_one()
-
-                sample = Sample(probe_id=rslt.probe_id)
-
-                measurement = Measurement(
-                    checksum=checksum,
-                    chip=chip,
-                    device=device,
-                    sample=sample,
-                    image_data=image.data.tobytes(),  # cSpell:ignore ascontiguousarray
-                    image_height=image.height,
-                    image_width=image.width,
-                    date_time=rslt.date_time,
-                )
-
-                session.add_all([chip, sample, measurement])
+                session.add(measurement)
 
             file_model_item_text = "Import successful"
             file_model_item_icon_pixmap = QStyle.StandardPixmap.SP_DialogYesButton

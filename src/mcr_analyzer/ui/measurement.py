@@ -229,15 +229,13 @@ class MeasurementWidget(QWidget):
         with database.Session() as session:
             measurement = session.execute(select(Measurement).where(Measurement.id == measurement_id)).scalar_one()
 
-            self.device_id.setText(measurement.device.serial)
+            self.device_id.setText(measurement.device_id)
             self.date_time.setText(measurement.date_time.strftime(MCR_RSLT__DATE_TIME__FORMAT))
-            self.chip_id.setText(measurement.chip.chip_id)
-            self.probe_id.setText(measurement.sample.probe_id)
+            self.chip_id.setText(measurement.chip_id)
+            self.probe_id.setText(measurement.probe_id)
 
             self._update_fields_with_signal_blocked(
-                column_count=measurement.chip.column_count,
-                row_count=measurement.chip.row_count,
-                spot_size=measurement.chip.spot_size,
+                column_count=measurement.column_count, row_count=measurement.row_count, spot_size=measurement.spot_size
             )
 
             if measurement.notes:
@@ -296,20 +294,19 @@ class MeasurementWidget(QWidget):
         with database.Session() as session, session.begin():
             measurement = session.execute(select(Measurement).where(Measurement.id == self.measurement_id)).scalar_one()
 
-            chip = measurement.chip
-            chip.column_count = self.column_count.value()
-            chip.row_count = self.row_count.value()
+            measurement.column_count = self.column_count.value()
+            measurement.row_count = self.row_count.value()
 
-            chip.spot_size = self.spot_size.value()
+            measurement.spot_size = self.spot_size.value()
 
-            chip.spot_corner_top_left_x = self.grid.corner_spots.top_left.x()
-            chip.spot_corner_top_left_y = self.grid.corner_spots.top_left.y()
-            chip.spot_corner_top_right_x = self.grid.corner_spots.top_right.x()
-            chip.spot_corner_top_right_y = self.grid.corner_spots.top_right.y()
-            chip.spot_corner_bottom_right_x = self.grid.corner_spots.bottom_right.x()
-            chip.spot_corner_bottom_right_y = self.grid.corner_spots.bottom_right.y()
-            chip.spot_corner_bottom_left_x = self.grid.corner_spots.bottom_left.x()
-            chip.spot_corner_bottom_left_y = self.grid.corner_spots.bottom_left.y()
+            measurement.spot_corner_top_left_x = self.grid.corner_spots.top_left.x()
+            measurement.spot_corner_top_left_y = self.grid.corner_spots.top_left.y()
+            measurement.spot_corner_top_right_x = self.grid.corner_spots.top_right.x()
+            measurement.spot_corner_top_right_y = self.grid.corner_spots.top_right.y()
+            measurement.spot_corner_bottom_right_x = self.grid.corner_spots.bottom_right.x()
+            measurement.spot_corner_bottom_right_y = self.grid.corner_spots.bottom_right.y()
+            measurement.spot_corner_bottom_left_x = self.grid.corner_spots.bottom_left.x()
+            measurement.spot_corner_bottom_left_y = self.grid.corner_spots.bottom_left.y()
 
         self._editing_mode_set_enabled(enabled=False)
 
@@ -325,19 +322,17 @@ class MeasurementWidget(QWidget):
             measurement = session.execute(select(Measurement).where(Measurement.id == self.measurement_id)).scalar_one()
 
             self._update_fields_with_signal_blocked(
-                column_count=measurement.chip.column_count,
-                row_count=measurement.chip.row_count,
-                spot_size=measurement.chip.spot_size,
+                column_count=measurement.column_count, row_count=measurement.row_count, spot_size=measurement.spot_size
             )
 
-            spot_corner_top_left_x = measurement.chip.spot_corner_top_left_x
-            spot_corner_top_left_y = measurement.chip.spot_corner_top_left_y
-            spot_corner_top_right_x = measurement.chip.spot_corner_top_right_x
-            spot_corner_top_right_y = measurement.chip.spot_corner_top_right_y
-            spot_corner_bottom_right_x = measurement.chip.spot_corner_bottom_right_x
-            spot_corner_bottom_right_y = measurement.chip.spot_corner_bottom_right_y
-            spot_corner_bottom_left_x = measurement.chip.spot_corner_bottom_left_x
-            spot_corner_bottom_left_y = measurement.chip.spot_corner_bottom_left_y
+            spot_corner_top_left_x = measurement.spot_corner_top_left_x
+            spot_corner_top_left_y = measurement.spot_corner_top_left_y
+            spot_corner_top_right_x = measurement.spot_corner_top_right_x
+            spot_corner_top_right_y = measurement.spot_corner_top_right_y
+            spot_corner_bottom_right_x = measurement.spot_corner_bottom_right_x
+            spot_corner_bottom_right_y = measurement.spot_corner_bottom_right_y
+            spot_corner_bottom_left_x = measurement.spot_corner_bottom_left_x
+            spot_corner_bottom_left_y = measurement.spot_corner_bottom_left_y
 
             corner_positions = CornerPositions(
                 top_left=Position(spot_corner_top_left_x, spot_corner_top_left_y),
