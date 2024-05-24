@@ -27,7 +27,7 @@ class Measurement(Base):
     image_data: Mapped[bytes]
     image_height: Mapped[int]
     image_width: Mapped[int]
-    checksum: Mapped[bytes] = mapped_column(BINARY(HASH__DIGEST_SIZE))
+    image_hash: Mapped[bytes] = mapped_column(BINARY(HASH__DIGEST_SIZE))
 
     row_count: Mapped[int]
     column_count: Mapped[int]

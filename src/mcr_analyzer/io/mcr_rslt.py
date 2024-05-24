@@ -162,22 +162,22 @@ def parse_mcr_rslt_in_directory_recursively(directory_path: "Path") -> tuple[lis
     mcr_rslt_file_path_generator = directory_path.glob("**/*.rslt")
     for mcr_rslt_file_path in mcr_rslt_file_path_generator:
         try:
-            rslt = McrRslt(mcr_rslt_file_path)
+            mcr_rslt = McrRslt(mcr_rslt_file_path)
         except ValueError:
             mcr_rslt_file_name_parse_fail_list.append(mcr_rslt_file_path.name)
             continue
 
-        image_pgm_file_path = rslt.dir.joinpath(rslt.result_image_pgm)
+        image_pgm_file_path = mcr_rslt.dir.joinpath(mcr_rslt.result_image_pgm)
 
         if image_pgm_file_path.exists():
-            mcr_rslt_list.append(rslt)
+            mcr_rslt_list.append(mcr_rslt)
 
         else:
             # Check for multi image measurements and mock them as individual
 
             image_pgm_file_stem = image_pgm_file_path.stem
-            for i, image_pgm_file_path_i in enumerate(sorted(rslt.dir.glob(f"{image_pgm_file_stem}-*.pgm"))):
-                mcr_rslt_copy = deepcopy(rslt)
+            for i, image_pgm_file_path_i in enumerate(sorted(mcr_rslt.dir.glob(f"{image_pgm_file_stem}-*.pgm"))):
+                mcr_rslt_copy = deepcopy(mcr_rslt)
 
                 mcr_rslt_copy.result_image_pgm = image_pgm_file_path_i.name
                 mcr_rslt_copy.date_time += timedelta(seconds=i)
