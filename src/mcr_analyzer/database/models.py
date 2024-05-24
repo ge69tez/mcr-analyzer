@@ -5,7 +5,7 @@ from datetime import (
 )
 
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, declared_attr, mapped_column
-from sqlalchemy.types import BINARY, Text
+from sqlalchemy.types import BINARY
 
 from mcr_analyzer.config.hash import HASH__DIGEST_SIZE
 
@@ -45,4 +45,4 @@ class Measurement(Base):
     spot_corner_bottom_left_x: Mapped[float]
     spot_corner_bottom_left_y: Mapped[float]
 
-    notes: Mapped[str | None] = mapped_column(Text, default=None)
+    notes: Mapped[str | None] = mapped_column(default=None)
