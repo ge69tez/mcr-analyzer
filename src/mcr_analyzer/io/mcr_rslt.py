@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Final, TypeVar
 
 from mcr_analyzer.config.image import CornerPositions, Position
 from mcr_analyzer.config.timezone import TZ_INFO
+from mcr_analyzer.ui.graphics_items import get_spot_corners_grid_coordinates
 from mcr_analyzer.utils.io import readline_skip, readlines
 from mcr_analyzer.utils.re import re_match_unwrap
 
@@ -88,15 +89,18 @@ class McrRslt:
 
             offset_from_top_left_to_center = Position(self.spot_size / 2, self.spot_size / 2)
 
-            row_min = 0
-            column_min = row_min
-            row_max = self.row_count - 1
-            column_max = self.column_count - 1
+            corners_grid_coordinates = get_spot_corners_grid_coordinates(
+                row_count=self.row_count, column_count=self.column_count
+            )
+            top_left = corners_grid_coordinates.top_left
+            top_right = corners_grid_coordinates.top_right
+            bottom_right = corners_grid_coordinates.bottom_right
+            bottom_left = corners_grid_coordinates.bottom_left
             self.corner_positions = CornerPositions(
-                top_left=spots[row_min][column_min] + offset_from_top_left_to_center,
-                top_right=spots[row_min][column_max] + offset_from_top_left_to_center,
-                bottom_right=spots[row_max][column_max] + offset_from_top_left_to_center,
-                bottom_left=spots[row_max][column_min] + offset_from_top_left_to_center,
+                top_left=spots[top_left.row][top_left.column] + offset_from_top_left_to_center,
+                top_right=spots[top_right.row][top_right.column] + offset_from_top_left_to_center,
+                bottom_right=spots[bottom_right.row][bottom_right.column] + offset_from_top_left_to_center,
+                bottom_left=spots[bottom_left.row][bottom_left.column] + offset_from_top_left_to_center,
             )
 
 

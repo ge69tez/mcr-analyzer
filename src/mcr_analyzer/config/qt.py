@@ -1,12 +1,12 @@
 from typing import TYPE_CHECKING, Final
 
 from PyQt6.QtCore import QSettings, QSize, Qt
-from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QColor, QPalette
 
 from mcr_analyzer.utils.list import list_remove_if_exist
 
 if TYPE_CHECKING:
-    from PyQt6.QtWidgets import QApplication
+    from PyQt6.QtWidgets import QApplication, QPushButton
 
 Q_SETTINGS__SESSION__LAST_EXPORT: Final[str] = "Session/LastExport"
 Q_SETTINGS__SESSION__RECENT_FILE_NAME_LIST__MAX_LENGTH: Final[int] = 5
@@ -68,10 +68,16 @@ BUTTON__ICON_SIZE: Final[QSize] = QSize(_BUTTON__ICON_SIZE__WIDTH, _BUTTON__ICON
 
 
 # - In the range 0.0 ~ 1.0
-ALPHA_CHANNEL_FLOAT: Final[float] = 0.5
+ALPHA_CHANNEL_FLOAT: Final[float] = 1.0
 
 
-def q_color(global_color: Qt.GlobalColor, alpha: float = ALPHA_CHANNEL_FLOAT) -> QColor:
-    color = QColor(global_color)
+def q_color_with_alpha(color_name: Qt.GlobalColor | QColor | str, alpha: float = ALPHA_CHANNEL_FLOAT) -> QColor:
+    color = QColor(color_name)
     color.setAlphaF(alpha)
     return color
+
+
+def set_button_color(push_button: "QPushButton", color: QColor) -> None:
+    palette = push_button.palette()
+    palette.setColor(QPalette.ColorRole.Button, color)
+    push_button.setPalette(palette)

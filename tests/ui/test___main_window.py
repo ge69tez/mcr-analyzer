@@ -8,7 +8,7 @@ from PyQt6.QtCore import QSortFilterProxyModel
 from mcr_analyzer.config.image import OPEN_CV__IMAGE__BRIGHTNESS__MAX, OPEN_CV__IMAGE__BRIGHTNESS__MIN
 from mcr_analyzer.config.importer import IMPORTER__COLUMN_INDEX__STATUS
 from mcr_analyzer.ui.main_window import MainWindow
-from mcr_analyzer.ui.models import ModelColumnIndex
+from mcr_analyzer.ui.models import MeasurementListModelColumnIndex
 from mcr_analyzer.utils.q_file_dialog import FileDialog
 
 if TYPE_CHECKING:
@@ -127,7 +127,7 @@ def _assert_measurement(
         hidden_count = 1
         if (
             measurement_list_model.data(
-                measurement_list_view.selectedIndexes()[ModelColumnIndex.chip_id.value - hidden_count]
+                measurement_list_view.selectedIndexes()[MeasurementListModelColumnIndex.chip_id.value - hidden_count]
             )
             == chip_id_expected
         ):

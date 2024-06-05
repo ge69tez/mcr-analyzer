@@ -1,8 +1,10 @@
 import cv2 as cv
 import numpy as np
 from PyQt6.QtCore import QItemSelection, QRegularExpression, QSignalBlocker, QSortFilterProxyModel, Qt, pyqtSlot
-from PyQt6.QtGui import QImage, QPixmap
+from PyQt6.QtGui import QColor, QImage, QPixmap, QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import (
+    QAbstractItemView,
+    QColorDialog,
     QFormLayout,
     QGraphicsPixmapItem,
     QGraphicsScene,
@@ -38,12 +40,21 @@ from mcr_analyzer.config.netpbm import (  # cSpell:ignore netpbm
     PGM__IMAGE__ND_ARRAY__DATA_TYPE,
     PGM__WIDTH,
 )
+from mcr_analyzer.config.qt import q_color_with_alpha, set_button_color
 from mcr_analyzer.database.database import database
-from mcr_analyzer.database.models import Measurement
+from mcr_analyzer.database.models import Group, Measurement, Spot
 from mcr_analyzer.io.mcr_rslt import MCR_RSLT__DATE_TIME__FORMAT, McrRslt
+from mcr_analyzer.ui.graphics_items import GroupInfo, SpotItem, get_spots_position
 from mcr_analyzer.ui.graphics_scene import Grid
 from mcr_analyzer.ui.graphics_view import GraphicsView
-from mcr_analyzer.ui.models import ModelColumnIndex, get_measurement_list_model_from_database
+from mcr_analyzer.ui.models import (
+    MeasurementListModelColumnIndex,
+    ResultListModelColumnIndex,
+    ResultListModelColumnName,
+    delete_groups,
+    get_group_info_dict_from_database,
+    get_measurement_list_model_from_database,
+)
 
 
 class MeasurementWidget(QWidget):
@@ -83,6 +94,7 @@ class MeasurementWidget(QWidget):
         self.measurement_list_filter.textChanged.connect(self._measurement_list_filter_changed)
 
         self.measurement_list_view = QTreeView()
+        self.measurement_list_view.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.measurement_list_view.setRootIsDecorated(False)
         self.measurement_list_view.setAlternatingRowColors(True)
         self.measurement_list_view.header().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
@@ -98,6 +110,7 @@ class MeasurementWidget(QWidget):
 
         layout.addWidget(self._initialize_metadata())
         layout.addWidget(self._initialize_image_and_grid_control())
+        layout.addWidget(self._initialize_group_control())
 
         self.save_button = QPushButton("Save")
         self.save_button.clicked.connect(self._save)
@@ -132,8 +145,6 @@ class MeasurementWidget(QWidget):
         layout.addRow(f"{McrRslt.AttributeName.probe_id.value.display}:", self.probe_id)
 
         self.notes = QPlainTextEdit()
-        self.notes.setPlaceholderText("Please enter additional notes here.")
-        self.notes.setMinimumWidth(250)
         layout.addRow("Notes:", self.notes)
 
         return widget
@@ -166,13 +177,13 @@ class MeasurementWidget(QWidget):
         )
         layout.addRow(self.adjust_grid_automatically_with_noise_reduction_filter_button)
 
-        self.column_count = QSpinBox()
-        self.column_count.setMinimum(2)
-        layout.addRow(f"{McrRslt.AttributeName.column_count.value.display}:", self.column_count)
-
         self.row_count = QSpinBox()
         self.row_count.setMinimum(2)
         layout.addRow(f"{McrRslt.AttributeName.row_count.value.display}:", self.row_count)
+
+        self.column_count = QSpinBox()
+        self.column_count.setMinimum(2)
+        layout.addRow(f"{McrRslt.AttributeName.column_count.value.display}:", self.column_count)
 
         self.spot_size = QSpinBox()
         layout.addRow(f"{McrRslt.AttributeName.spot_size.value.display}:", self.spot_size)
@@ -183,11 +194,43 @@ class MeasurementWidget(QWidget):
 
         return widget
 
+    def _initialize_group_control(self) -> QWidget:
+        widget = QGroupBox("Group control")
+        layout = QFormLayout(widget)
+
+        self.group_selected_spots_button = QPushButton("&Group selected spots")
+        self.group_selected_spots_button.setToolTip("Holding down the Ctrl key to select or deselect multiple spots")
+        self.group_selected_spots_button.clicked.connect(self._group_selected_spots)
+        layout.addRow(self.group_selected_spots_button)
+
+        self.group_name = QLineEdit()
+        layout.addRow("Group name:", self.group_name)
+
+        self.group_notes = QPlainTextEdit()
+        layout.addRow("Group notes:", self.group_notes)
+
+        self.color_push_button = QPushButton(self)
+        self.color_push_button.clicked.connect(self.on_color_clicked)
+
+        self._set_group_color()
+
+        layout.addRow("Group color:", self.color_push_button)
+
+        return widget
+
+    @pyqtSlot()
+    def on_color_clicked(self) -> None:
+        group_color = QColorDialog.getColor(self.group_color, self)
+
+        if group_color.isValid():
+            self._set_group_color(group_color)
+
     def _initialize_image_and_grid_view(self) -> QWidget:
         widget = QGroupBox("Image and grid view")
         layout = QVBoxLayout(widget)
 
-        widget.setMinimumSize(PGM__WIDTH, PGM__HEIGHT)
+        splitter = QSplitter(Qt.Orientation.Vertical)
+        layout.addWidget(splitter)
 
         self.scene = QGraphicsScene(self)
 
@@ -195,10 +238,93 @@ class MeasurementWidget(QWidget):
         self.scene.addItem(self.pixmap)
 
         self.graphics_view = GraphicsView(self.scene, self.pixmap)
+        self.graphics_view.setMinimumSize(PGM__WIDTH, PGM__HEIGHT)
 
-        layout.addWidget(self.graphics_view)
+        splitter.addWidget(self.graphics_view)
+
+        self.result_list_view = QTreeView()
+        self.result_list_view.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.result_list_view.setRootIsDecorated(False)
+        self.result_list_view.header().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        splitter.addWidget(self.result_list_view)
+
+        self.result_list_view.setSortingEnabled(True)
+        self.result_list_view.sortByColumn(ResultListModelColumnIndex.group_name.value, Qt.SortOrder.AscendingOrder)
+
+        self.result_list_proxy_model = QSortFilterProxyModel()
+        self.result_list_proxy_model.setFilterKeyColumn(ResultListModelColumnIndex.all.value)
+        self._set_result_list_model_from_grid_group_info_dict()
+
+        self.result_list_view.setModel(self.result_list_proxy_model)
 
         return widget
+
+    @pyqtSlot()
+    def _set_result_list_model_from_grid_group_info_dict(self) -> None:  # noqa: PLR0914
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels([column_name.value.display for column_name in ResultListModelColumnName])
+
+        grid = self.grid
+
+        if grid is not None and self.image_original is not None:
+            spot_size = self.spot_size.value()
+
+            row_count = self.row_count.value()
+            column_count = self.column_count.value()
+
+            image_data = self.image_original
+
+            spots_position = get_spots_position(
+                row_count=row_count, column_count=column_count, corner_positions=grid.get_corner_positions()
+            )
+
+            for group_info_dict in grid.get_group_info_dict().values():
+                group_name = group_info_dict.name
+                group_notes = group_info_dict.notes
+                group_color = group_info_dict.color
+                spots_grid_coordinates = group_info_dict.spots_grid_coordinates
+
+                spot_data_list = []
+                for spot_grid_coordinates in spots_grid_coordinates:
+                    spot_position = spots_position[spot_grid_coordinates]
+
+                    center_x = spot_position.x()
+                    center_y = spot_position.y()
+
+                    top_left_x = round(center_x - spot_size / 2)
+                    top_left_y = round(center_y - spot_size / 2)
+
+                    spot_data = image_data[top_left_y : top_left_y + spot_size, top_left_x : top_left_x + spot_size]
+                    spot_data_list.append(spot_data)
+
+                spots_data = np.concatenate(spot_data_list, axis=None)
+                spots_data = np.nan if spots_data.size == 0 else spots_data
+
+                result_count = len(spots_grid_coordinates)
+                result_min = np.min(spots_data)
+                result_max = np.max(spots_data)
+                result_mean = round(np.mean(spots_data))
+                result_standard_deviation = round(np.std(spots_data))
+
+                row_items = [
+                    QStandardItem(str(text))
+                    for text in [
+                        group_name,
+                        group_notes,
+                        result_count,
+                        result_min,
+                        result_max,
+                        result_mean,
+                        result_standard_deviation,
+                    ]
+                ]
+
+                for item in row_items:
+                    item.setBackground(q_color_with_alpha(color_name=group_color, alpha=0.2))
+
+                model.appendRow(row_items)
+
+        self.result_list_proxy_model.setSourceModel(model)
 
     @pyqtSlot()
     def reload_database(self) -> None:
@@ -215,14 +341,16 @@ class MeasurementWidget(QWidget):
         self.measurement_list_model = QSortFilterProxyModel()
 
         self.measurement_list_model.setSourceModel(get_measurement_list_model_from_database())
-        self.measurement_list_model.setFilterKeyColumn(ModelColumnIndex.all.value)
+        self.measurement_list_model.setFilterKeyColumn(MeasurementListModelColumnIndex.all.value)
 
         self.measurement_list_view.setModel(self.measurement_list_model)
         self.measurement_list_view.selectionModel().selectionChanged.connect(self._selection_changed)
-        self.measurement_list_view.setColumnHidden(ModelColumnIndex.id.value, True)
+        self.measurement_list_view.setColumnHidden(MeasurementListModelColumnIndex.id.value, True)
 
         self.measurement_list_view.setSortingEnabled(True)
-        self.measurement_list_view.sortByColumn(ModelColumnIndex.chip_id.value, Qt.SortOrder.AscendingOrder)
+        self.measurement_list_view.sortByColumn(
+            MeasurementListModelColumnIndex.chip_id.value, Qt.SortOrder.AscendingOrder
+        )
 
     @pyqtSlot(QItemSelection, QItemSelection)
     def _selection_changed(self, selected: QItemSelection, deselected: QItemSelection) -> None:  # noqa: ARG002
@@ -235,7 +363,7 @@ class MeasurementWidget(QWidget):
         if selection_is_empty:
             return
 
-        measurement_id = self.measurement_list_model.data(selected_indexes[ModelColumnIndex.id.value])
+        measurement_id = self.measurement_list_model.data(selected_indexes[MeasurementListModelColumnIndex.id.value])
 
         try:
             measurement_id = int(measurement_id)
@@ -252,9 +380,10 @@ class MeasurementWidget(QWidget):
             self.chip_id.setText(measurement.chip_id)
             self.probe_id.setText(measurement.probe_id)
 
-            self._update_fields_with_signal_blocked(
-                column_count=measurement.column_count, row_count=measurement.row_count, spot_size=measurement.spot_size
-            )
+            column_count = measurement.column_count
+            row_count = measurement.row_count
+            spot_size = measurement.spot_size
+            self._update_fields_with_signal_blocked(column_count=column_count, row_count=row_count, spot_size=spot_size)
 
             image_data = measurement.image_data
             image_height = measurement.image_height
@@ -262,10 +391,7 @@ class MeasurementWidget(QWidget):
 
             self.notes.setPlainText(measurement.notes)
 
-            if self.grid is not None:
-                self.scene.removeItem(self.grid)
-            self.grid = Grid(measurement_id)
-            self.scene.addItem(self.grid)
+            grid = Grid(measurement_id=measurement_id)
 
         image = (
             np.frombuffer(image_data, dtype=PGM__IMAGE__DATA_TYPE).reshape(image_height, image_width).copy()
@@ -277,6 +403,19 @@ class MeasurementWidget(QWidget):
         self._set_image_display(image_display=self.image_display)
         self.image_brightness.setValue(0)
         self.graphics_view.fit_in_view()
+
+        self._set_grid(grid)
+
+    def _set_grid(self, grid: Grid) -> None:
+        grid.grid_updated.connect(self._set_result_list_model_from_grid_group_info_dict)
+
+        if self.grid is not None:
+            self.scene.removeItem(self.grid)
+
+        self.grid = grid
+        self._set_result_list_model_from_grid_group_info_dict()
+
+        self.scene.addItem(self.grid)
 
     def _set_image_display(self, *, image_display: OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE) -> None:
         image_height, image_width = image_display.shape
@@ -293,27 +432,37 @@ class MeasurementWidget(QWidget):
         )
 
     @pyqtSlot()
-    def _update_grid(
+    def _update_grid(  # noqa: PLR0913
         self,
         *,
         column_count: int | None = None,
         row_count: int | None = None,
         spot_size: float | None = None,
         corner_positions: CornerPositions | None = None,
+        group_info_dict: dict[str, GroupInfo] | None = None,
     ) -> None:
-        if self.grid is not None:
-            if row_count is None:
-                row_count = self.row_count.value()
+        if self.measurement_id is None:
+            return
 
-            if column_count is None:
-                column_count = self.column_count.value()
+        if self.grid is None:
+            return
 
-            if spot_size is None:
-                spot_size = self.spot_size.value()
+        if row_count is None:
+            row_count = self.row_count.value()
 
-            self.grid.update_(
-                row_count=row_count, column_count=column_count, spot_size=spot_size, corner_positions=corner_positions
-            )
+        if column_count is None:
+            column_count = self.column_count.value()
+
+        if spot_size is None:
+            spot_size = self.spot_size.value()
+
+        self.grid.update_(
+            row_count=row_count,
+            column_count=column_count,
+            spot_size=spot_size,
+            corner_positions=corner_positions,
+            group_info_dict=group_info_dict,
+        )
 
     @pyqtSlot()
     def _save(self) -> None:
@@ -341,6 +490,25 @@ class MeasurementWidget(QWidget):
             measurement.spot_corner_bottom_left_y = self.grid.corner_spots.bottom_left.y()
 
             measurement.notes = self.notes.toPlainText()
+
+            delete_groups(session=session, measurement_id=self.measurement_id)
+
+            for group_info_dict in self.grid.get_group_info_dict().values():
+                group_name = group_info_dict.name
+                group_notes = group_info_dict.notes
+                group_color = group_info_dict.color
+                spots_grid_coordinates = group_info_dict.spots_grid_coordinates
+
+                group = Group(
+                    measurement=measurement, name=group_name, notes=group_notes, color_code_hex_rgb=group_color.name()
+                )
+
+                spot_list = [
+                    Spot(group=group, row=spot_grid_coordinates.row, column=spot_grid_coordinates.column)
+                    for spot_grid_coordinates in spots_grid_coordinates
+                ]
+
+                session.add_all([group, *spot_list])
 
     @pyqtSlot()
     def _reset(self) -> None:
@@ -375,7 +543,9 @@ class MeasurementWidget(QWidget):
 
             self.notes.setPlainText(measurement.notes)
 
-        self._update_grid(corner_positions=corner_positions)
+            group_info_dict = get_group_info_dict_from_database(session=session, measurement_id=self.measurement_id)
+
+        self._update_grid(corner_positions=corner_positions, group_info_dict=group_info_dict)
 
     @pyqtSlot()
     def _adjust_grid_automatically(self, *, use_noise_reduction_filter: bool = False) -> None:
@@ -408,6 +578,38 @@ class MeasurementWidget(QWidget):
         self._update_grid(corner_positions=corner_positions)
 
     @pyqtSlot()
+    def _group_selected_spots(self) -> None:
+        if self.measurement_id is None:
+            return
+
+        if self.grid is None:
+            return
+
+        group_name = self.group_name.text()
+        group_notes = self.group_notes.toPlainText()
+        group_color_code_hex_rgb = QColor(self.group_color.name())
+
+        if self.grid.has_group_name(group_name=group_name):
+            QMessageBox.warning(self, "Group name already exists", "Please use a unique group name.")
+            return
+
+        spots_grid_coordinates = [
+            selected_item.grid_coordinates
+            for selected_item in self.scene.selectedItems()
+            if isinstance(selected_item, SpotItem)
+            and not self.grid.is_grouped(spot_grid_coordinates=selected_item.grid_coordinates)
+        ]
+
+        self.grid.group_info_dict_add(
+            name=group_name,
+            notes=group_notes,
+            color=group_color_code_hex_rgb,
+            spots_grid_coordinates=spots_grid_coordinates,
+        )
+
+        self._update_grid()
+
+    @pyqtSlot()
     def _measurement_list_filter_changed(self) -> None:
         if self.measurement_list_model is None:
             return
@@ -438,6 +640,13 @@ class MeasurementWidget(QWidget):
             field_column_count.setValue(column_count)
             field_row_count.setValue(row_count)
             field_spot_size.setValue(spot_size)
+
+    def _set_group_color(self, color: QColor | None = None) -> None:
+        if color is None:
+            color = QColor(Qt.GlobalColor.red)
+
+        self.group_color = color
+        set_button_color(self.color_push_button, self.group_color)
 
 
 # - https://docs.opencv.org/4.x/d3/dc1/tutorial_basic_linear_transform.html
