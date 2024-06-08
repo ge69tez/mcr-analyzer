@@ -81,3 +81,5 @@ def set_button_color(push_button: "QPushButton", color: QColor) -> None:
     palette = push_button.palette()
     palette.setColor(QPalette.ColorRole.Button, color)
     push_button.setPalette(palette)
+    push_button.setFlat(True)
+    push_button.setAutoFillBackground(True)
