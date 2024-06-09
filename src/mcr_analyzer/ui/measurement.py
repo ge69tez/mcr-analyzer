@@ -44,7 +44,7 @@ from mcr_analyzer.config.qt import q_color_with_alpha, set_button_color
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Group, Measurement, Spot
 from mcr_analyzer.io.mcr_rslt import MCR_RSLT__DATE_TIME__FORMAT, McrRslt
-from mcr_analyzer.ui.graphics_items import GroupInfo, SpotItem, get_spots_position
+from mcr_analyzer.ui.graphics_items import GridCoordinates, GroupInfo, SpotItem, get_spots_position
 from mcr_analyzer.ui.graphics_scene import Grid
 from mcr_analyzer.ui.graphics_view import GraphicsView
 from mcr_analyzer.ui.models import (
@@ -55,6 +55,7 @@ from mcr_analyzer.ui.models import (
     get_group_info_dict_from_database,
     get_measurement_list_model_from_database,
 )
+from mcr_analyzer.utils.number import clamp
 
 
 class MeasurementWidget(QWidget):
@@ -284,31 +285,31 @@ class MeasurementWidget(QWidget):
                 group_color = group_info_dict.color
                 spots_grid_coordinates = group_info_dict.spots_grid_coordinates
 
-                spot_data_list = []
-                for spot_grid_coordinates in spots_grid_coordinates:
-                    spot_position = spots_position[spot_grid_coordinates]
-
-                    center_x = spot_position.x()
-                    center_y = spot_position.y()
-
-                    top_left_x = round(center_x - spot_size / 2)
-                    top_left_y = round(center_y - spot_size / 2)
-
-                    spot_data = image_data[top_left_y : top_left_y + spot_size, top_left_x : top_left_x + spot_size]
-                    spot_data_list.append(spot_data)
+                spot_data_list = _get_spot_data_list(
+                    spot_size=spot_size,
+                    image_data=image_data,
+                    spots_position=spots_position,
+                    spots_grid_coordinates=spots_grid_coordinates,
+                )
 
                 spots_data = np.concatenate(spot_data_list, axis=None)
-                spots_data = np.nan if spots_data.size == 0 else spots_data
 
-                result_count = len(spots_grid_coordinates)
-                result_min = np.min(spots_data)
-                result_max = np.max(spots_data)
-                result_mean = round(np.mean(spots_data))
-                result_standard_deviation = round(np.std(spots_data))
+                if spots_data.size == 0:
+                    result_count = np.nan
+                    result_min = np.nan
+                    result_max = np.nan
+                    result_mean = np.nan
+                    result_standard_deviation = np.nan
+                else:
+                    result_count = len(spots_grid_coordinates)
+                    result_min = np.min(spots_data)
+                    result_max = np.max(spots_data)
+                    result_mean = round(np.mean(spots_data))
+                    result_standard_deviation = round(np.std(spots_data))
 
                 row_items = [
-                    QStandardItem(str(text))
-                    for text in [
+                    QStandardItem(str(x))
+                    for x in [
                         group_name,
                         group_notes,
                         result_count,
@@ -655,3 +656,42 @@ def _change_image_brightness(
     *, input_image: OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE, brightness: int
 ) -> OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE:
     return cv.convertScaleAbs(src=input_image, beta=brightness)
+
+
+def _get_spot_data_list(
+    *,
+    spot_size: int,
+    image_data: PGM__IMAGE__ND_ARRAY__DATA_TYPE,
+    spots_position: dict[GridCoordinates, Position],
+    spots_grid_coordinates: list[GridCoordinates],
+) -> list[PGM__IMAGE__ND_ARRAY__DATA_TYPE]:
+    image_height, image_width = image_data.shape
+
+    image_height_min = 0
+    image_height_max = image_height - 1
+    image_width_min = 0
+    image_width_max = image_width - 1
+
+    spot_data_list = []
+    for spot_grid_coordinates in spots_grid_coordinates:
+        spot_position = spots_position[spot_grid_coordinates]
+
+        center_x = spot_position.x()
+        center_y = spot_position.y()
+
+        left = round(center_x - spot_size / 2)
+        top = round(center_y - spot_size / 2)
+
+        right = left + spot_size
+        bottom = top + spot_size
+
+        top = clamp(x=top, lower_bound=image_height_min, upper_bound=image_height_max)
+        bottom = clamp(x=bottom, lower_bound=image_height_min, upper_bound=image_height_max)
+
+        left = clamp(x=left, lower_bound=image_width_min, upper_bound=image_width_max)
+        right = clamp(x=right, lower_bound=image_width_min, upper_bound=image_width_max)
+
+        spot_data = image_data[top:bottom, left:right]
+        spot_data_list.append(spot_data)
+
+    return spot_data_list
