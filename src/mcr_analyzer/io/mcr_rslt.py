@@ -31,7 +31,7 @@ class Name:
 
 class McrRslt:
     class AttributeName(Enum):
-        date_time: Final[Name] = Name("Date/time", "Date time")
+        date_time: Final[Name] = Name("Date/time", "Measured at")
         device_id: Final[Name] = Name("Device ID")
         probe_id: Final[Name] = Name("Probe ID")
         chip_id: Final[Name] = Name("Chip ID")
