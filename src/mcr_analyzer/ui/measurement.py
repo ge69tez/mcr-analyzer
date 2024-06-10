@@ -266,6 +266,13 @@ class MeasurementWidget(QWidget):
         widget = QGroupBox("Result list")
         layout = QVBoxLayout(widget)
 
+        result_list_filter = QLineEdit()
+        result_list_filter.setClearButtonEnabled(True)
+        result_list_filter.setPlaceholderText("Filter")
+        layout.addWidget(result_list_filter)
+
+        result_list_filter.textChanged.connect(self._result_list_filter_changed)
+
         result_list_view = QTreeView()
         result_list_view.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         result_list_view.setRootIsDecorated(False)
@@ -281,6 +288,7 @@ class MeasurementWidget(QWidget):
 
         layout.addWidget(result_list_view)
 
+        self.result_list_filter = result_list_filter
         self.result_list_view = result_list_view
         self.result_list_proxy_model = result_list_proxy_model
 
@@ -669,11 +677,13 @@ class MeasurementWidget(QWidget):
         if self.measurement_list_model is None:
             return
 
-        pattern = QRegularExpression.escape(self.measurement_list_filter.text())
+        self.measurement_list_model.setFilterRegularExpression(
+            _get_regular_expression(self.measurement_list_filter.text())
+        )
 
-        regular_expression = QRegularExpression(pattern, QRegularExpression.PatternOption.CaseInsensitiveOption)
-
-        self.measurement_list_model.setFilterRegularExpression(regular_expression)
+    @pyqtSlot()
+    def _result_list_filter_changed(self) -> None:
+        self.result_list_proxy_model.setFilterRegularExpression(_get_regular_expression(self.result_list_filter.text()))
 
     @pyqtSlot()
     def _image_brightness_changed(self) -> None:
@@ -749,3 +759,9 @@ def _get_spot_data_list(
         spot_data_list.append(spot_data)
 
     return spot_data_list
+
+
+def _get_regular_expression(pattern: str) -> QRegularExpression:
+    pattern = QRegularExpression.escape(pattern)
+
+    return QRegularExpression(pattern, QRegularExpression.PatternOption.CaseInsensitiveOption)
