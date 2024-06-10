@@ -79,7 +79,7 @@ class MeasurementWidget(QWidget):
 
         splitter.addWidget(self._initialize_measurement_list(maximum_width=maximum_width_of_widget__measurement_list))
         splitter.addWidget(self._initialize_information_list(maximum_width=maximum_width_of_widget__measurement_list))
-        splitter.addWidget(self._initialize_image_and_grid_view())
+        splitter.addWidget(self._initialize_image_and_grid_view_and_result_list())
 
     def _initialize_measurement_list(self, *, maximum_width: int) -> QWidget:
         widget = QGroupBox("Measurement list")
@@ -111,7 +111,8 @@ class MeasurementWidget(QWidget):
 
         layout.addWidget(self._initialize_metadata())
         layout.addWidget(self._initialize_image_and_grid_control())
-        layout.addWidget(self._initialize_group_control())
+        layout.addWidget(self._initialize_group_creation())
+        layout.addWidget(self._initialize_group_removal())
 
         self.save_button = QPushButton("Save")
         self.save_button.clicked.connect(self._save)
@@ -195,14 +196,9 @@ class MeasurementWidget(QWidget):
 
         return widget
 
-    def _initialize_group_control(self) -> QWidget:
-        widget = QGroupBox("Group control")
+    def _initialize_group_creation(self) -> QWidget:
+        widget = QGroupBox("Group creation")
         layout = QFormLayout(widget)
-
-        self.group_selected_spots_button = QPushButton("&Group selected spots")
-        self.group_selected_spots_button.setToolTip("Holding down the Ctrl key to select or deselect multiple spots")
-        self.group_selected_spots_button.clicked.connect(self._group_selected_spots)
-        layout.addRow(self.group_selected_spots_button)
 
         self.group_name = QLineEdit()
         layout.addRow("Group name:", self.group_name)
@@ -217,46 +213,78 @@ class MeasurementWidget(QWidget):
 
         layout.addRow("Group color:", self.color_push_button)
 
+        self.group_selected_spots_button = QPushButton("&Group selected spots")
+        self.group_selected_spots_button.setToolTip("Holding down the Ctrl key to select or deselect multiple spots")
+        self.group_selected_spots_button.clicked.connect(self._group_selected_spots)
+        layout.addRow(self.group_selected_spots_button)
+
         return widget
 
-    @pyqtSlot()
-    def on_color_clicked(self) -> None:
-        group_color = QColorDialog.getColor(self.group_color, self)
+    def _initialize_group_removal(self) -> QWidget:
+        widget = QGroupBox("Group removal")
+        layout = QFormLayout(widget)
 
-        if group_color.isValid():
-            self._set_group_color(group_color)
+        self._ungroup_selected_row_in_result_list_button = QPushButton("Ungroup selected row in result list")
+        self._ungroup_selected_row_in_result_list_button.clicked.connect(self._ungroup_selected_row_in_result_list)
+        layout.addRow(self._ungroup_selected_row_in_result_list_button)
 
-    def _initialize_image_and_grid_view(self) -> QWidget:
-        widget = QGroupBox("Image and grid view")
+        return widget
+
+    def _initialize_image_and_grid_view_and_result_list(self) -> QWidget:
+        widget = QWidget()
         layout = QVBoxLayout(widget)
 
         splitter = QSplitter(Qt.Orientation.Vertical)
         layout.addWidget(splitter)
 
-        self.scene = QGraphicsScene(self)
+        splitter.addWidget(self._initialize_image_and_grid_view())
+        splitter.addWidget(self._initialize_result_list())
 
-        self.pixmap = QGraphicsPixmapItem()  # cSpell:ignore Pixmap
-        self.scene.addItem(self.pixmap)
+        return widget
 
-        self.graphics_view = GraphicsView(self.scene, self.pixmap)
-        self.graphics_view.setMinimumSize(PGM__WIDTH, PGM__HEIGHT)
+    def _initialize_image_and_grid_view(self) -> QWidget:
+        widget = QGroupBox("Image and grid view")
+        layout = QVBoxLayout(widget)
 
-        splitter.addWidget(self.graphics_view)
+        scene = QGraphicsScene(self)
 
-        self.result_list_view = QTreeView()
-        self.result_list_view.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.result_list_view.setRootIsDecorated(False)
-        self.result_list_view.header().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        splitter.addWidget(self.result_list_view)
+        pixmap = QGraphicsPixmapItem()  # cSpell:ignore Pixmap
+        scene.addItem(pixmap)
 
-        self.result_list_view.setSortingEnabled(True)
-        self.result_list_view.sortByColumn(ResultListModelColumnIndex.group_name.value, Qt.SortOrder.AscendingOrder)
+        graphics_view = GraphicsView(scene, pixmap)
+        graphics_view.setMinimumSize(PGM__WIDTH, PGM__HEIGHT)
 
-        self.result_list_proxy_model = QSortFilterProxyModel()
-        self.result_list_proxy_model.setFilterKeyColumn(ResultListModelColumnIndex.all.value)
+        layout.addWidget(graphics_view)
+
+        self.scene = scene
+        self.pixmap = pixmap
+        self.graphics_view = graphics_view
+
+        return widget
+
+    def _initialize_result_list(self) -> QWidget:
+        widget = QGroupBox("Result list")
+        layout = QVBoxLayout(widget)
+
+        result_list_view = QTreeView()
+        result_list_view.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        result_list_view.setRootIsDecorated(False)
+        result_list_view.header().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+
+        result_list_view.setSortingEnabled(True)
+        result_list_view.sortByColumn(ResultListModelColumnIndex.group_name.value, Qt.SortOrder.AscendingOrder)
+
+        result_list_proxy_model = QSortFilterProxyModel()
+        result_list_proxy_model.setFilterKeyColumn(ResultListModelColumnIndex.all.value)
+
+        result_list_view.setModel(result_list_proxy_model)
+
+        layout.addWidget(result_list_view)
+
+        self.result_list_view = result_list_view
+        self.result_list_proxy_model = result_list_proxy_model
+
         self._set_result_list_model_from_grid_group_info_dict()
-
-        self.result_list_view.setModel(self.result_list_proxy_model)
 
         return widget
 
@@ -607,6 +635,32 @@ class MeasurementWidget(QWidget):
             color=group_color_code_hex_rgb,
             spots_grid_coordinates=spots_grid_coordinates,
         )
+
+        self._update_grid()
+
+    @pyqtSlot()
+    def on_color_clicked(self) -> None:
+        group_color = QColorDialog.getColor(self.group_color, self)
+
+        if group_color.isValid():
+            self._set_group_color(group_color)
+
+    @pyqtSlot()
+    def _ungroup_selected_row_in_result_list(self) -> None:  # cSpell:ignore ungroup
+        if self.measurement_id is None:
+            return
+
+        if self.grid is None:
+            return
+
+        selected_indexes = self.result_list_view.selectedIndexes()
+
+        if len(selected_indexes) == 0:
+            return
+
+        group_name = self.result_list_proxy_model.data(selected_indexes[ResultListModelColumnIndex.group_name.value])
+
+        self.grid.group_info_dict_remove(name=group_name)
 
         self._update_grid()
 
