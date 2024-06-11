@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -22,8 +22,8 @@ if TYPE_CHECKING:
 
 class Image:
     class InputFormat(Enum):
-        mcr_txt: Final[int] = auto()  # MCR's own TXT format # cSpell:ignore MCR's
-        pnm: Final[int] = auto()  # Portable AnyMap Format
+        mcr_txt = auto()  # MCR's own TXT format # cSpell:ignore MCR's
+        pnm = auto()  # Portable AnyMap Format
 
     def __init__(self, file_path: "Path") -> None:
         with file_path.open(encoding="utf-8") as file:

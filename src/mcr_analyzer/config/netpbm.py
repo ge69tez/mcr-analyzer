@@ -26,13 +26,13 @@ PGM__WIDTH__PATTERN: Final[str] = str(PGM__WIDTH)
 
 class NetpbmMagicNumber:  # cSpell:ignore Netpbm
     class Type(Enum):
-        pbm: Final[int] = auto()  # Portable BitMap
-        pgm: Final[int] = auto()  # Portable GrayMap
-        ppm: Final[int] = auto()  # Portable PixMap
+        pbm = auto()  # Portable BitMap
+        pgm = auto()  # Portable GrayMap
+        ppm = auto()  # Portable PixMap
 
     class Encoding(Enum):
-        ascii_plain: Final[int] = auto()
-        binary_raw: Final[int] = auto()
+        ascii_plain = auto()
+        binary_raw = auto()
 
     def __init__(self, string: str) -> None:
         match = re_match_unwrap(NETPBM_MAGIC_NUMBER__PATTERN, string)

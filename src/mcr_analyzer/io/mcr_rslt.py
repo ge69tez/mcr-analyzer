@@ -31,21 +31,21 @@ class Name:
 
 class McrRslt:
     class AttributeName(Enum):
-        date_time: Final[Name] = Name("Date/time", "Measured at")
-        device_id: Final[Name] = Name("Device ID")
-        probe_id: Final[Name] = Name("Probe ID")
-        chip_id: Final[Name] = Name("Chip ID")
-        result_image_pgm: Final[Name] = Name("Result image PGM")
-        result_image_png: Final[Name] = Name("Result image PNG")
-        dark_frame_image_pgm: Final[Name] = Name("Dark frame image PGM")
-        temperature_ok: Final[Name] = Name("Temperature ok")
-        clean_image: Final[Name] = Name("Clean image")
-        thresholds: Final[Name] = Name("Thresholds")
+        date_time = Name("Date/time", "Measured at")
+        device_id = Name("Device ID")
+        probe_id = Name("Probe ID")
+        chip_id = Name("Chip ID")
+        result_image_pgm = Name("Result image PGM")
+        result_image_png = Name("Result image PNG")
+        dark_frame_image_pgm = Name("Dark frame image PGM")
+        temperature_ok = Name("Temperature ok")
+        clean_image = Name("Clean image")
+        thresholds = Name("Thresholds")
 
-        column_count: Final[Name] = Name("X", "Column count")
-        row_count: Final[Name] = Name("Y", "Row count")
+        column_count = Name("X", "Column count")
+        row_count = Name("Y", "Row count")
 
-        spot_size: Final[Name] = Name("Spot size")
+        spot_size = Name("Spot size")
 
     def __init__(self, mcr_rslt_file_path: "Path") -> None:
         self.path = mcr_rslt_file_path

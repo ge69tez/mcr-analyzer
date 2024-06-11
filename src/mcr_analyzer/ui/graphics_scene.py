@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum, auto
 from string import ascii_uppercase
-from typing import TYPE_CHECKING, Any, Final, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from PyQt6.QtCore import QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import QColor
@@ -33,10 +33,10 @@ T = TypeVar("T", SpotItem, GraphicsSquareTextItem)
 
 
 class CornerPosition(Enum):
-    top_left: Final[int] = auto()
-    top_right: Final[int] = auto()
-    bottom_right: Final[int] = auto()
-    bottom_left: Final[int] = auto()
+    top_left = auto()
+    top_right = auto()
+    bottom_right = auto()
+    bottom_left = auto()
 
 
 class CornerSpotItem(SpotItem):

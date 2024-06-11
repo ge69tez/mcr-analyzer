@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING
 
 from PyQt6.QtGui import QColor, QStandardItem, QStandardItemModel
 from sqlalchemy.sql.expression import delete, select
@@ -14,11 +14,11 @@ if TYPE_CHECKING:
 
 
 class MeasurementListModelColumnIndex(Enum):
-    all: Final[int] = -1
-    id: Final[int] = auto()
-    date_time: Final[int] = auto()
-    chip_id: Final[int] = auto()
-    probe_id: Final[int] = auto()
+    all = -1
+    id = auto()
+    date_time = auto()
+    chip_id = auto()
+    probe_id = auto()
 
 
 def get_measurement_list_model_from_database() -> QStandardItemModel:
@@ -46,24 +46,24 @@ def get_measurement_list_model_from_database() -> QStandardItemModel:
 
 
 class ResultListModelColumnIndex(Enum):
-    all: Final[int] = -1
-    group_name: Final[int] = auto()
-    group_notes: Final[int] = auto()
-    count: Final[int] = auto()
-    min: Final[int] = auto()
-    max: Final[int] = auto()
-    mean: Final[int] = auto()
-    standard_deviation: Final[int] = auto()
+    all = -1
+    group_name = auto()
+    group_notes = auto()
+    count = auto()
+    min = auto()
+    max = auto()
+    mean = auto()
+    standard_deviation = auto()
 
 
 class ResultListModelColumnName(Enum):
-    group_name: Final[Name] = Name("Group name")
-    group_notes: Final[Name] = Name("Group notes")
-    count: Final[Name] = Name("Count")
-    min: Final[Name] = Name("Min")
-    max: Final[Name] = Name("Max")
-    mean: Final[Name] = Name("Mean")
-    standard_deviation: Final[Name] = Name("Standard deviation")
+    group_name = Name("Group name")
+    group_notes = Name("Group notes")
+    count = Name("Count")
+    min = Name("Min")
+    max = Name("Max")
+    mean = Name("Mean")
+    standard_deviation = Name("Standard deviation")
 
 
 def get_group_info_dict_from_database(*, session: "Session", measurement_id: int) -> dict[str, GroupInfo]:
