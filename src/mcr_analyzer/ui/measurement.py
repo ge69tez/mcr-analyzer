@@ -330,14 +330,14 @@ class MeasurementWidget(QWidget):
 
                 spots_data = np.concatenate(spot_data_list, axis=None)
 
+                result_count = len(spots_grid_coordinates)
+
                 if spots_data.size == 0:
-                    result_count = np.nan
                     result_min = np.nan
                     result_max = np.nan
                     result_mean = np.nan
                     result_standard_deviation = np.nan
                 else:
-                    result_count = len(spots_grid_coordinates)
                     result_min = np.min(spots_data)
                     result_max = np.max(spots_data)
                     result_mean = round(np.mean(spots_data))
