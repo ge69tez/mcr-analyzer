@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from pooch import Unzip, retrieve
-from PyQt6.QtCore import QSortFilterProxyModel
+from PyQt6.QtCore import QModelIndex, QSortFilterProxyModel, pyqtBoundSignal
 from PyQt6.QtGui import QColor
 
 from mcr_analyzer.config.image import (
@@ -145,25 +145,22 @@ def _assert_measurement(
 
     assert index_expected is not None
 
-    # - Filter test
-    measurement_list_filter = measurement_widget.measurement_list_filter
-    with qtbot.waitSignal(selection_changed):
-        measurement_list_filter.setText(chip_id_expected)
-        measurement_list_view.setCurrentIndex(index)
-
-    assert measurement_widget.chip_id.text() == chip_id_expected
-
-    with qtbot.waitSignal(selection_changed):
-        measurement_list_filter.setText("invalid filter text")
-        measurement_list_filter.setText(chip_id_expected)
-        measurement_list_view.setCurrentIndex(index)
-
-    assert measurement_widget.chip_id.text() == chip_id_expected
+    _assert_filter(
+        qtbot=qtbot,
+        measurement_widget=measurement_widget,
+        selection_changed=selection_changed,
+        chip_id_expected=chip_id_expected,
+        column_count_expected=column_count_expected,
+        row_count_expected=row_count_expected,
+        index_expected=index_expected,
+    )
 
     # - Grid control test
     column_count_test = 3
     row_count_test = 3
     spot_size_test = 3
+
+    scene_item_count_test = _get_scene_item_count(row_count=row_count_test, column_count=column_count_test)
 
     assert column_count_test != column_count_expected
     assert row_count_test != row_count_expected
@@ -177,6 +174,8 @@ def _assert_measurement(
 
     measurement_widget.row_count.setValue(row_count_test)
     qtbot.waitUntil(lambda: len(grid.row_labels) == row_count_test)
+
+    assert len(measurement_widget.scene.items()) == scene_item_count_test
 
     measurement_widget.spot_size.setValue(spot_size_test)
     _assert_spot_size(qtbot=qtbot, grid=grid, spot_size_test=spot_size_test)
@@ -192,6 +191,38 @@ def _assert_measurement(
     _assert_image_brightness(measurement_widget=measurement_widget)
 
     _assert_group(measurement_widget=measurement_widget, grid=grid)
+
+
+def _assert_filter(  # noqa: PLR0913
+    *,
+    qtbot: "QtBot",
+    measurement_widget: "MeasurementWidget",
+    selection_changed: pyqtBoundSignal,
+    chip_id_expected: str,
+    column_count_expected: int,
+    row_count_expected: int,
+    index_expected: QModelIndex,
+) -> None:
+    measurement_list_view = measurement_widget.measurement_list_view
+
+    scene_item_count_expected = _get_scene_item_count(row_count=row_count_expected, column_count=column_count_expected)
+
+    measurement_list_filter = measurement_widget.measurement_list_filter
+    with qtbot.waitSignal(selection_changed):
+        measurement_list_filter.setText(chip_id_expected)
+        measurement_list_view.setCurrentIndex(index_expected)
+
+    assert measurement_widget.chip_id.text() == chip_id_expected
+    assert len(measurement_widget.scene.items()) == scene_item_count_expected
+
+    with qtbot.waitSignal(selection_changed):
+        measurement_list_filter.setText("invalid filter text")
+
+        measurement_list_filter.setText(chip_id_expected)
+        measurement_list_view.setCurrentIndex(index_expected)
+
+    assert measurement_widget.chip_id.text() == chip_id_expected
+    assert len(measurement_widget.scene.items()) == scene_item_count_expected
 
 
 def _assert_spot_size(*, qtbot: "QtBot", grid: "Grid", spot_size_test: int) -> None:
@@ -257,3 +288,11 @@ def _assert_group(*, measurement_widget: "MeasurementWidget", grid: "Grid") -> N
         measurement_widget._ungroup_selected_row_in_result_list()  # noqa: SLF001 # cSpell:ignore ungroup
 
     assert result_list_proxy_model.rowCount() == 0
+
+
+def _get_scene_item_count(*, row_count: int, column_count: int) -> int:
+    row_label_count = row_count
+    column_label_count = column_count
+    spot_count = row_count * column_count
+
+    return row_label_count + column_label_count + spot_count + 2
