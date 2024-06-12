@@ -592,6 +592,9 @@ class MeasurementWidget(QWidget):
         if self.grid is None:
             return
 
+        if self.image_display is None:
+            return
+
         image_normalized = self.image_display
 
         grid_result = get_grid(image=image_normalized, with_adaptive_threshold=not use_noise_reduction_filter)
