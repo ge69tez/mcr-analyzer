@@ -48,22 +48,18 @@ def get_measurement_list_model_from_database() -> QStandardItemModel:
 class ResultListModelColumnIndex(Enum):
     all = -1
     group_name = auto()
-    group_notes = auto()
     count = auto()
-    min = auto()
-    max = auto()
     mean = auto()
     standard_deviation = auto()
+    group_notes = auto()
 
 
 class ResultListModelColumnName(Enum):
     group_name = Name("Group name")
-    group_notes = Name("Group notes")
     count = Name("Count")
-    min = Name("Min")
-    max = Name("Max")
     mean = Name("Mean")
     standard_deviation = Name("Standard deviation")
+    group_notes = Name("Group notes")
 
 
 def get_group_info_dict_from_database(*, session: "Session", measurement_id: int) -> dict[str, GroupInfo]:

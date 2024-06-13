@@ -41,6 +41,7 @@ from mcr_analyzer.config.netpbm import (  # cSpell:ignore netpbm
     PGM__WIDTH,
 )
 from mcr_analyzer.config.qt import q_color_with_alpha, set_button_color
+from mcr_analyzer.config.spot import SPOT__NUMBER__OF__BRIGHTEST_PIXELS
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Group, Measurement, Spot
 from mcr_analyzer.io.mcr_rslt import MCR_RSLT__DATE_TIME__FORMAT, McrRslt
@@ -328,32 +329,25 @@ class MeasurementWidget(QWidget):
                     spots_grid_coordinates=spots_grid_coordinates,
                 )
 
-                spots_data = np.concatenate(spot_data_list, axis=None)
+                spot_data_mean_brightest_list = [
+                    np.mean(spot_data_sorted[-SPOT__NUMBER__OF__BRIGHTEST_PIXELS:])
+                    for spot_data_sorted in [np.sort(spot_data, axis=None) for spot_data in spot_data_list]
+                    if len(spot_data_sorted) > 0
+                ]
 
                 result_count = len(spots_grid_coordinates)
 
-                if spots_data.size == 0:
-                    result_min = np.nan
-                    result_max = np.nan
+                if len(spot_data_mean_brightest_list) == 0:
                     result_mean = np.nan
                     result_standard_deviation = np.nan
+
                 else:
-                    result_min = np.min(spots_data)
-                    result_max = np.max(spots_data)
-                    result_mean = round(np.mean(spots_data))
-                    result_standard_deviation = round(np.std(spots_data))
+                    result_mean = round(np.mean(spot_data_mean_brightest_list))
+                    result_standard_deviation = round(np.std(spot_data_mean_brightest_list))
 
                 row_items = [
                     QStandardItem(str(x))
-                    for x in [
-                        group_name,
-                        group_notes,
-                        result_count,
-                        result_min,
-                        result_max,
-                        result_mean,
-                        result_standard_deviation,
-                    ]
+                    for x in [group_name, result_count, result_mean, result_standard_deviation, group_notes]
                 ]
 
                 for item in row_items:
