@@ -1,5 +1,8 @@
+from typing import TYPE_CHECKING
+
 import cv2 as cv
 import numpy as np
+import pandas as pd
 from PyQt6.QtCore import QItemSelection, QRegularExpression, QSignalBlocker, QSortFilterProxyModel, Qt, pyqtSlot
 from PyQt6.QtGui import QColor, QImage, QPixmap, QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import (
@@ -25,6 +28,7 @@ from PyQt6.QtWidgets import (
 from returns.pipeline import is_successful
 from sqlalchemy.sql.expression import select
 
+from mcr_analyzer.config.csv import CSV__FILE_FILTER, CSV__FILENAME_EXTENSION
 from mcr_analyzer.config.image import (
     OPEN_CV__IMAGE__BRIGHTNESS__MAX,
     OPEN_CV__IMAGE__BRIGHTNESS__MIN,
@@ -58,6 +62,10 @@ from mcr_analyzer.ui.models import (
     get_measurement_list_model_from_database,
 )
 from mcr_analyzer.utils.number import clamp
+from mcr_analyzer.utils.q_file_dialog import FileDialog
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class MeasurementWidget(QWidget):
@@ -115,6 +123,7 @@ class MeasurementWidget(QWidget):
         layout.addWidget(self._initialize_image_and_grid_control())
         layout.addWidget(self._initialize_group_creation())
         layout.addWidget(self._initialize_group_removal())
+        layout.addWidget(self._initialize_result_list_control())
 
         self.save_button = QPushButton("Save")
         self.save_button.clicked.connect(self._save)
@@ -229,6 +238,16 @@ class MeasurementWidget(QWidget):
         self._ungroup_selected_row_in_result_list_button = QPushButton("Ungroup selected row in result list")
         self._ungroup_selected_row_in_result_list_button.clicked.connect(self._ungroup_selected_row_in_result_list)
         layout.addRow(self._ungroup_selected_row_in_result_list_button)
+
+        return widget
+
+    def _initialize_result_list_control(self) -> QWidget:
+        widget = QGroupBox("Result list control")
+        layout = QFormLayout(widget)
+
+        self.export_button = QPushButton("Export")
+        self.export_button.clicked.connect(self._export)
+        layout.addWidget(self.export_button)
 
         return widget
 
@@ -599,6 +618,37 @@ class MeasurementWidget(QWidget):
             group_info_dict = get_group_info_dict_from_database(session=session, measurement_id=self.measurement_id)
 
         self._update_grid(corner_positions=corner_positions, group_info_dict=group_info_dict)
+
+    @pyqtSlot()
+    def _export(self, *, file_path: "Path | None" = None) -> None:
+        if self.measurement_id is None:
+            return
+
+        if self.grid is None:
+            return
+
+        if file_path is None:
+            file_path = FileDialog.get_save_file_path(
+                parent=self,
+                caption="Export result list as",
+                directory=self.chip_id.text(),
+                filter=CSV__FILE_FILTER,
+                suffix=CSV__FILENAME_EXTENSION,
+            )
+
+        if file_path is None:
+            return
+
+        model = self.result_list_proxy_model
+
+        data = [
+            [model.data(model.index(row, column)) for column in range(model.columnCount())]
+            for row in range(model.rowCount())
+        ]
+
+        columns = [column_name.value.display for column_name in ResultListModelColumnName]
+
+        pd.DataFrame(data=data, columns=columns).to_csv(file_path, index=False)
 
     @pyqtSlot()
     def _adjust_grid_automatically(self, *, use_noise_reduction_filter: bool = False) -> None:

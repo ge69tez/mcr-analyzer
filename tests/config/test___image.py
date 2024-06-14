@@ -1,5 +1,4 @@
 from datetime import timedelta
-from secrets import SystemRandom
 
 import numpy as np
 from hypothesis import given, settings
@@ -17,9 +16,6 @@ from mcr_analyzer.config.image import (
     get_image_foreground_and_background_color,
 )
 from mcr_analyzer.config.netpbm import PGM__HEIGHT, PGM__SHAPE, PGM__WIDTH  # cSpell:ignore netpbm
-
-random = SystemRandom()
-random.seed(0)
 
 
 @st.composite

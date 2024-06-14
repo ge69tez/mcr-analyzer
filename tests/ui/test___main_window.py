@@ -6,6 +6,7 @@ from pooch import Unzip, retrieve
 from PyQt6.QtCore import QModelIndex, QSortFilterProxyModel, pyqtBoundSignal
 from PyQt6.QtGui import QColor
 
+from mcr_analyzer.config.csv import CSV__FILENAME_EXTENSION
 from mcr_analyzer.config.image import (
     OPEN_CV__IMAGE__BRIGHTNESS__MAX,
     OPEN_CV__IMAGE__BRIGHTNESS__MIN,
@@ -66,7 +67,11 @@ def _fetch_sample_results() -> None:
 
 
 def test_profile(
-    qtbot: "QtBot", monkeypatch: pytest.MonkeyPatch, main_window: MainWindow, tmp_sqlite_file_path: Path
+    qtbot: "QtBot",
+    monkeypatch: pytest.MonkeyPatch,
+    main_window: MainWindow,
+    tmp_sqlite_file_path: Path,
+    tmp_path: "Path",
 ) -> None:
     monkeypatch.setattr(FileDialog, "get_save_file_path", lambda **_: tmp_sqlite_file_path)
     monkeypatch.setattr(FileDialog, "get_directory_path", lambda **_: SAMPLE_RESULTS__DIR)
@@ -76,7 +81,10 @@ def test_profile(
         measurement_list_model = _assert_import(qtbot=qtbot, main_window=main_window)
 
     _assert_measurement(
-        qtbot=qtbot, measurement_widget=main_window.measurement_widget, measurement_list_model=measurement_list_model
+        qtbot=qtbot,
+        measurement_widget=main_window.measurement_widget,
+        measurement_list_model=measurement_list_model,
+        tmp_path=tmp_path,
     )
 
 
@@ -115,7 +123,11 @@ def _assert_import(*, qtbot: "QtBot", main_window: MainWindow) -> "QSortFilterPr
 
 
 def _assert_measurement(
-    *, qtbot: "QtBot", measurement_widget: "MeasurementWidget", measurement_list_model: "QSortFilterProxyModel"
+    *,
+    qtbot: "QtBot",
+    measurement_widget: "MeasurementWidget",
+    measurement_list_model: "QSortFilterProxyModel",
+    tmp_path: "Path",
 ) -> None:
     measurement_list_view = measurement_widget.measurement_list_view
 
@@ -190,7 +202,7 @@ def _assert_measurement(
 
     _assert_image_brightness(measurement_widget=measurement_widget)
 
-    _assert_group(measurement_widget=measurement_widget, grid=grid)
+    _assert_group(measurement_widget=measurement_widget, grid=grid, tmp_path=tmp_path)
 
 
 def _assert_filter(  # noqa: PLR0913
@@ -240,7 +252,7 @@ def _assert_image_brightness(*, measurement_widget: "MeasurementWidget") -> None
     measurement_widget.image_brightness.setValue(OPEN_CV__IMAGE__BRIGHTNESS__MAX)
 
 
-def _assert_group(*, measurement_widget: "MeasurementWidget", grid: "Grid") -> None:
+def _assert_group(*, measurement_widget: "MeasurementWidget", grid: "Grid", tmp_path: "Path") -> None:
     result_list_proxy_model = measurement_widget.result_list_proxy_model
 
     group_color_code_hex_rgb = QColor(measurement_widget.group_color.name())
@@ -282,6 +294,8 @@ def _assert_group(*, measurement_widget: "MeasurementWidget", grid: "Grid") -> N
         bottom_left=Position(-image_width, 2 * image_height),
     )
     measurement_widget._update_grid(corner_positions=corner_positions_outside_image)  # noqa: SLF001
+
+    measurement_widget._export(file_path=tmp_path.joinpath(f"tmp{CSV__FILENAME_EXTENSION}"))  # noqa: SLF001
 
     for _ in range(row_count):
         count_index = result_list_proxy_model.index(0, ResultListModelColumnIndex.count.value)

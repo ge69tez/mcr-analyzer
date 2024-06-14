@@ -36,12 +36,7 @@ class FileDialog:
         if file_name == "":
             return None
 
-        file_path = Path(file_name)
-
-        if suffix is not None and not file_path.exists() and file_path.suffix != "":
-            file_path = file_path.with_suffix(suffix)
-
-        return file_path
+        return _check_path_suffix(path=Path(file_name), suffix=suffix)
 
     @staticmethod
     def get_directory_path(*, parent: QWidget | None = None) -> Path | None:
@@ -53,3 +48,12 @@ class FileDialog:
             directory_path = Path(dialog.selectedFiles()[0])
 
         return directory_path
+
+
+def _check_path_suffix(*, path: Path, suffix: str | None) -> Path:
+    if suffix is not None and path.suffix == "":
+        path_with_suffix = path.with_suffix(suffix)
+        if not path_with_suffix.exists():
+            path = path_with_suffix
+
+    return path
