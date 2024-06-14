@@ -252,14 +252,20 @@ def _assert_group(*, measurement_widget: "MeasurementWidget", grid: "Grid") -> N
         spots_grid_coordinates = []
         group_name = f"{row}"
 
+        grid._clear_selection()  # noqa: SLF001
+
         for column in range(column_count):
             grid_coordinates = GridCoordinates(row=row, column=column)
 
             spots_grid_coordinates.append(grid_coordinates)
 
-        grid.group_info_dict_add(
-            name=group_name, notes="", color=group_color_code_hex_rgb, spots_grid_coordinates=spots_grid_coordinates
-        )
+            grid._select_spot_item(grid_coordinates=grid_coordinates)  # noqa: SLF001
+
+        measurement_widget.group_name.setText(group_name)
+        measurement_widget.notes.setPlainText("")
+        measurement_widget.group_color.setNamedColor(group_color_code_hex_rgb.name())
+
+        measurement_widget._group_selected_spots()  # noqa: SLF001
 
         measurement_widget._save()  # noqa: SLF001
         measurement_widget._reset()  # noqa: SLF001

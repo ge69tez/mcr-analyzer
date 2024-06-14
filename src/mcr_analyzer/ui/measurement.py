@@ -287,6 +287,7 @@ class MeasurementWidget(QWidget):
         result_list_proxy_model.setFilterKeyColumn(ResultListModelColumnIndex.all.value)
 
         result_list_view.setModel(result_list_proxy_model)
+        result_list_view.selectionModel().selectionChanged.connect(self._result_list_view_selection_changed)
 
         layout.addWidget(result_list_view)
 
@@ -376,7 +377,9 @@ class MeasurementWidget(QWidget):
         self.measurement_list_model.setFilterKeyColumn(MeasurementListModelColumnIndex.all.value)
 
         self.measurement_list_view.setModel(self.measurement_list_model)
-        self.measurement_list_view.selectionModel().selectionChanged.connect(self._selection_changed)
+        self.measurement_list_view.selectionModel().selectionChanged.connect(
+            self._measurement_list_view_selection_changed
+        )
         self.measurement_list_view.setColumnHidden(MeasurementListModelColumnIndex.id.value, True)
 
         self.measurement_list_view.setSortingEnabled(True)
@@ -385,7 +388,7 @@ class MeasurementWidget(QWidget):
         )
 
     @pyqtSlot(QItemSelection, QItemSelection)
-    def _selection_changed(self, selected: QItemSelection, deselected: QItemSelection) -> None:  # noqa: ARG002
+    def _measurement_list_view_selection_changed(self, selected: QItemSelection, deselected: QItemSelection) -> None:  # noqa: ARG002
         if self.measurement_list_model is None:
             return
 
@@ -462,6 +465,24 @@ class MeasurementWidget(QWidget):
                 )
             )
         )
+
+    @pyqtSlot(QItemSelection, QItemSelection)
+    def _result_list_view_selection_changed(self, selected: QItemSelection, deselected: QItemSelection) -> None:  # noqa: ARG002
+        if self.grid is None:
+            return
+
+        selected_indexes = selected.indexes()
+
+        selection_is_empty = len(selected_indexes) == 0
+        if selection_is_empty:
+            return
+
+        group_name = self.result_list_proxy_model.data(selected_indexes[ResultListModelColumnIndex.group_name.value])
+
+        if not isinstance(group_name, str):
+            return
+
+        self.grid.select_group(name=group_name)
 
     @pyqtSlot()
     def _update_grid(  # noqa: PLR0913

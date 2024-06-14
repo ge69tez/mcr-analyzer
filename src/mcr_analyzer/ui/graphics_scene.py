@@ -39,6 +39,25 @@ class CornerPosition(Enum):
     bottom_left = auto()
 
 
+def get_spot_corner_position(
+    *, grid_coordinates: GridCoordinates, row_count: int, column_count: int
+) -> CornerPosition | None:
+    result = None
+    spot_corners_grid_coordinates = get_spot_corners_grid_coordinates(row_count=row_count, column_count=column_count)
+
+    match grid_coordinates:
+        case spot_corners_grid_coordinates.top_left:
+            result = CornerPosition.top_left
+        case spot_corners_grid_coordinates.top_right:
+            result = CornerPosition.top_right
+        case spot_corners_grid_coordinates.bottom_left:
+            result = CornerPosition.bottom_left
+        case spot_corners_grid_coordinates.bottom_right:
+            result = CornerPosition.bottom_right
+
+    return result
+
+
 class CornerSpotItem(SpotItem):
     def __init__(  # noqa: PLR0913
         self,
@@ -448,6 +467,40 @@ class Grid(QGraphicsObject):
 
     def group_info_dict_remove(self, *, name: str) -> None:
         del self._group_info_dict[name]
+
+    def select_group(self, *, name: str) -> None:
+        self._clear_selection()
+
+        for grid_coordinates in self._group_info_dict[name].spots_grid_coordinates:
+            self._select_spot_item(grid_coordinates=grid_coordinates)
+
+    def _clear_selection(self) -> None:
+        self.scene().clearSelection()
+
+    def _select_spot_item(self, *, grid_coordinates: GridCoordinates) -> None:
+        row_count = self._get_row_count()
+        column_count = self._get_column_count()
+
+        spot_corner_position = get_spot_corner_position(
+            grid_coordinates=grid_coordinates, row_count=row_count, column_count=column_count
+        )
+
+        if spot_corner_position is None:
+            spot_item = self.spots[grid_coordinates]
+        else:
+            match spot_corner_position:
+                case CornerPosition.top_left:
+                    spot_item = self.corner_spots.top_left
+                case CornerPosition.top_right:
+                    spot_item = self.corner_spots.top_right
+                case CornerPosition.bottom_left:
+                    spot_item = self.corner_spots.bottom_left
+                case CornerPosition.bottom_right:
+                    spot_item = self.corner_spots.bottom_right
+                case _:
+                    raise NotImplementedError
+
+        spot_item.setSelected(True)
 
     def _prune_group_info_dict(self, *, row_count: int, column_count: int) -> None:
         for key in self._group_info_dict:
