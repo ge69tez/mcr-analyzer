@@ -31,6 +31,7 @@ from mcr_analyzer.config.image import (
     OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE,
     CornerPositions,
     Position,
+    get_distance,
     get_grid,
     normalize_image,
 )
@@ -752,7 +753,13 @@ def _get_spot_data_list(
         left = clamp(x=left, lower_bound=image_width_min, upper_bound=image_width_max)
         right = clamp(x=right, lower_bound=image_width_min, upper_bound=image_width_max)
 
-        spot_data = image_data[top:bottom, left:right]
+        spot_data = np.array([
+            image_data[row, column]
+            for row in range(top, bottom)
+            for column in range(left, right)
+            if get_distance(spot_position, Position(column, row)) <= spot_size / 2
+        ])
+
         spot_data_list.append(spot_data)
 
     return spot_data_list
