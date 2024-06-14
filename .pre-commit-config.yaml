@@ -38,19 +38,19 @@ repos:
       - id: rst-inline-touching-normal
 
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.6
+    rev: v2.3.0
     hooks:
       - id: codespell # cSpell:ignore codespell
         additional_dependencies:
           - tomli # cSpell:ignore tomli
 
   - repo: https://github.com/streetsidesoftware/cspell-cli
-    rev: v8.8.1
+    rev: v8.8.2
     hooks:
       - id: cspell
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.4
+    rev: v0.4.8
     hooks:
       - id: ruff
         args:
@@ -103,7 +103,7 @@ repos:
           - black
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: 2.0.4
+    rev: 2.1.3
     hooks:
       - id: pyproject-fmt # cSpell:ignore pyproject
 

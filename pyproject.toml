@@ -26,6 +26,7 @@ dynamic = [
 dependencies = [
   "numpy",         # cSpell:ignore numpy
   "opencv-python", # cSpell:ignore opencv
+  "pandas",
   "pyqt6",
   "pytz",          # cSpell:ignore pytz
   "returns",
@@ -59,122 +60,105 @@ mcr_analyzer = "python -m mcr_analyzer"
 
 [tool.ruff]
 line-length = 120
-src = [
-  "src",
-]
 namespace-packages = [
   "docs",
 ]
-show-fixes = true
+src = [
+  "src",
+]
 preview = true
 
-[tool.ruff.lint]
-select = [
-  "F",   # - Pyflakes # cSpell:ignore Pyflakes
-  "W",   # - pycodestyle - Warning
-  "E",   # - pycodestyle - Error # cSpell:ignore pycodestyle
-  "C90", # - mccabe # cSpell:ignore mccabe
-  "I",   # - isort # cSpell:ignore isort
-  "N",   # - pep8-naming
-  #"D", # - pydocstyle # cSpell:ignore pydocstyle
-  "UP",  # - pyupgrade # cSpell:ignore pyupgrade
-  "YTT", # - flake8-2020
-  #"ANN", # - flake8-annotations
+show-fixes = true
+format.preview = true
+format.skip-magic-trailing-comma = true
+format.docstring-code-format = true
+lint.select = [
+  #"A",     # - flake8-builtins # cSpell:ignore builtins
+  "AIR", # - Airflow
+  #"ANN",   # - flake8-annotations
+  "ARG",   # - flake8-unused-arguments
   "ASYNC", # - flake8-async
-  "S",     # - flake8-bandit
-  "BLE",   # - flake8-blind-except
-  "FBT",   # - flake8-boolean-trap
   "B",     # - flake8-bugbear
-  #"A", # - flake8-builtins # cSpell:ignore builtins
-  "COM", # - flake8-commas
-  #"CPY", # - flake8-copyright
-  "C4",   # - flake8-comprehensions
-  "DTZ",  # - flake8-datetimez # cSpell:ignore datetimez
-  "T10",  # - flake8-debugger
+  "BLE",   # - flake8-blind-except
+  "C4",    # - flake8-comprehensions
+  "C90",   # - mccabe # cSpell:ignore mccabe
+  "COM",   # - flake8-commas
+  #"CPY",   # - flake8-copyright
+  #"D",     # - pydocstyle # cSpell:ignore pydocstyle
   "DJ",   # - flake8-django
+  "DTZ",  # - flake8-datetimez # cSpell:ignore datetimez
+  "E",    # - pycodestyle - Error # cSpell:ignore pycodestyle
   "EM",   # - flake8-errmsg # cSpell:ignore errmsg
+  "ERA",  # - eradicate
   "EXE",  # - flake8-executable
+  "F",    # - Pyflakes # cSpell:ignore Pyflakes
   "FA",   # - flake8-future-annotations
-  "ISC",  # - flake8-implicit-str-concat # cSpell:ignore concat
-  "ICN",  # - flake8-import-conventions
+  "FBT",  # - flake8-boolean-trap
+  "FIX",  # - flake8-fixme
+  "FLY",  # - flynt # cSpell:ignore flynt
+  "FURB", # - refurb # cSpell:ignore FURB refurb
   "G",    # - flake8-logging-format
+  "I",    # - isort # cSpell:ignore isort
+  "ICN",  # - flake8-import-conventions
   "INP",  # - flake8-no-pep420
+  "INT",  # - flake8-gettext # cSpell:ignore gettext
+  "ISC",  # - flake8-implicit-str-concat # cSpell:ignore concat
+  "LOG",  # - flake8-logging
+  "N",    # - pep8-naming
+  "NPY",  # - NumPy-specific rules
+  "PD",   # - pandas-vet
+  "PERF", # - Perflint # cSpell:ignore Perflint
+  "PGH",  # - pygrep-hooks # cSpell:ignore pygrep
   "PIE",  # - flake8-pie
-  "T20",  # - flake8-print
-  "PYI",  # - flake8-pyi
+  "PL",   # - Pylint
   "PT",   # - flake8-pytest-style
+  "PTH",  # - flake8-use-pathlib # cSpell:ignore pathlib
+  "PYI",  # - flake8-pyi
   "Q",    # - flake8-quotes
-  "RSE",  # - flake8-raise
   "RET",  # - flake8-return
+  "RSE",  # - flake8-raise
+  "RUF",  # - Ruff-specific rules
+  "S",    # - flake8-bandit
+  "SIM",  # - flake8-simplify
   "SLF",  # - flake8-self
   "SLOT", # - flake8-slots
-  "SIM",  # - flake8-simplify
-  "TID",  # - flake8-tidy-imports
+  "T10",  # - flake8-debugger
+  "T20",  # - flake8-print
   "TCH",  # - flake8-type-checking
-  "INT",  # - flake8-gettext # cSpell:ignore gettext
-  "ARG",  # - flake8-unused-arguments
-  "PTH",  # - flake8-use-pathlib # cSpell:ignore pathlib
   "TD",   # - flake8-todos # cSpell:ignore todos
-  "FIX",  # - flake8-fixme
-  "ERA",  # - eradicate
-  "PD",   # - pandas-vet
-  "PGH",  # - pygrep-hooks # cSpell:ignore pygrep
-  "PL",   # - Pylint
+  "TID",  # - flake8-tidy-imports
   "TRY",  # - tryceratops # cSpell:ignore tryceratops
-  "FLY",  # - flynt # cSpell:ignore flynt
-  "NPY",  # - NumPy-specific rules
-  "AIR",  # - Airflow
-  "PERF", # - Perflint # cSpell:ignore Perflint
-  "FURB", # - refurb # cSpell:ignore FURB refurb
-  "LOG",  # - flake8-logging
-  "RUF",  # - Ruff-specific rules
+  "UP",   # - pyupgrade # cSpell:ignore pyupgrade
+  "W",    # - pycodestyle - Warning
+  "YTT",  # - flake8-2020
 ]
-unfixable = [ # cSpell:ignore unfixable
-  "ERA", # - eradicate
-]
-ignore = [
-  # - warning: The following rules may cause conflicts when used with the formatter:
-  "COM812", # - missing-trailing-comma
-  "ISC001", # - single-line-implicit-string-concatenation
-  #
+lint.ignore = [
+  "COM812",  # - missing-trailing-comma
   "E203",    # - whitespace-before-punctuation
   "FBT003",  # - boolean-positional-value-in-call - "arg__1" in "QtWidgets.QWidget.setDisabled(arg__1)"
+  "ISC001",  # - single-line-implicit-string-concatenation
   "PLC1901", # - compare-to-empty-string - High false positive rate
 ]
-
-[tool.ruff.lint.isort]
-# - warning: The isort option `isort.split-on-trailing-comma` is incompatible with the formatter `format.skip-magic-trailing-comma=true` option.
-split-on-trailing-comma = false
-
-known-first-party = [
-  "mcr_analyzer",
-]
-
-[tool.ruff.lint.flake8-bugbear]
-extend-immutable-calls = [
-  "PyQt6.QtCore.QModelIndex", # - Allow default arguments like "parent: QModelIndex = QModelIndex()".
-]
-
-[tool.ruff.lint.flake8-tidy-imports]
-ban-relative-imports = "all"
-
-[tool.ruff.lint.flake8-type-checking]
-# - Add quotes around type annotations, if doing so would allow an import to be moved into a type-checking block.
-quote-annotations = true
-
-[tool.ruff.lint.per-file-ignores]
-"tests/*" = [
+lint.per-file-ignores."tests/*" = [
   "PLR6301", # - no-self-use
   "S101",    # - assert
 ]
-
-[tool.ruff.lint.pydocstyle]
-convention = "google"
-
-[tool.ruff.format]
-preview = true
-docstring-code-format = true
-skip-magic-trailing-comma = true
+lint.unfixable = [
+  # cSpell:ignore unfixable
+  "ERA", # - eradicate
+]
+lint.flake8-bugbear.extend-immutable-calls = [
+  "PyQt6.QtCore.QModelIndex", # - Allow default arguments like "parent: QModelIndex = QModelIndex()".
+]
+lint.flake8-tidy-imports.ban-relative-imports = "all"
+# - Add quotes around type annotations, if doing so would allow an import to be moved into a type-checking block.
+lint.flake8-type-checking.quote-annotations = true
+lint.isort.known-first-party = [
+  "mcr_analyzer",
+]
+# - warning: The isort option `isort.split-on-trailing-comma` is incompatible with the formatter `format.skip-magic-trailing-comma=true` option.
+lint.isort.split-on-trailing-comma = false
+lint.pydocstyle.convention = "google"
 
 [tool.pyproject-fmt] # cSpell:ignore pyproject
 align_comments = false
