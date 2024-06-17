@@ -211,7 +211,7 @@ typing-extensions==4.11.0
     #   mypy
     #   returns
     #   sqlalchemy
-urllib3==2.2.1
+urllib3==2.2.2
     # via requests
 userpath==1.9.2
     # via hatch
