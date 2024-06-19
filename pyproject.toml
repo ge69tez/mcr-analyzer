@@ -47,7 +47,7 @@ optional-dependencies.dev = [
   "pytest-qt",
   "pytest-sugar",
   "ruff",
-  "scalene==1.5.31.1", # - With "scalene>1.5.31.1", "hook id: scalene-profile" results in "exit code: 1"
+  "scalene",
 ]
 gui-scripts.mcr_analyzer = "mcr_analyzer.__main__:main"
 

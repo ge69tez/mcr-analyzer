@@ -45,12 +45,12 @@ repos:
           - tomli # cSpell:ignore tomli
 
   - repo: https://github.com/streetsidesoftware/cspell-cli
-    rev: v8.8.2
+    rev: v8.9.0
     hooks:
       - id: cspell
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.8
+    rev: v0.4.10
     hooks:
       - id: ruff
         args:
@@ -150,9 +150,7 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
-        entry:
-          xvfb-run python3 -m scalene --no-browser --program-path src --cli --reduced-profile --- -m pytest --no-cov -k
-          test_profile
+        entry: bash tests/profile/gui.sh
         verbose: true
 
   - repo: local
@@ -162,7 +160,5 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
-        entry:
-          python3 -m scalene --no-browser --program-path src --cli --reduced-profile --- -m pytest --no-cov -k
-          test___config__image
+        entry: bash tests/profile/cli.sh
         verbose: true

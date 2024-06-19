@@ -6,13 +6,13 @@
 #
 greenlet==3.0.3
     # via sqlalchemy
-numpy==1.26.4
+numpy==2.0.0
     # via
     #   mcr-analyzer (pyproject.toml)
     #   opencv-python
     #   pandas
     #   scipy
-opencv-python==4.10.0.82
+opencv-python==4.10.0.84
     # via mcr-analyzer (pyproject.toml)
 pandas==2.2.2
     # via mcr-analyzer (pyproject.toml)
@@ -28,13 +28,13 @@ pytz==2024.1
     # via
     #   mcr-analyzer (pyproject.toml)
     #   pandas
-returns==0.22.0
+returns==0.23.0
     # via mcr-analyzer (pyproject.toml)
 scipy==1.13.1
     # via mcr-analyzer (pyproject.toml)
 six==1.16.0
     # via python-dateutil
-sqlalchemy==2.0.30
+sqlalchemy==2.0.31
     # via mcr-analyzer (pyproject.toml)
 typing-extensions==4.12.2
     # via
