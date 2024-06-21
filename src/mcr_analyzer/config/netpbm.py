@@ -1,12 +1,15 @@
+from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Final, TypeAlias
 
 import numpy as np
 import numpy.typing as npt
+from returns.pipeline import is_successful
+from returns.result import Failure, Result, Success
 
-from mcr_analyzer.utils.re import re_match_unwrap
+from mcr_analyzer.utils.re import re_match
 
-NETPBM_MAGIC_NUMBER__PATTERN: Final[str] = r"P[1-6]"
+NETPBM_MAGIC_NUMBER__PATTERN: Final[str] = "P[1-6]"
 
 PGM__COLOR_BIT_DEPTH: Final[int] = 16
 PGM__COLOR_RANGE_MIN: Final[int] = 0
@@ -24,6 +27,7 @@ PGM__HEIGHT__PATTERN: Final[str] = str(PGM__HEIGHT)
 PGM__WIDTH__PATTERN: Final[str] = str(PGM__WIDTH)
 
 
+@dataclass(frozen=True)
 class NetpbmMagicNumber:  # cSpell:ignore Netpbm
     class Type(Enum):
         pbm = auto()  # Portable BitMap
@@ -34,15 +38,23 @@ class NetpbmMagicNumber:  # cSpell:ignore Netpbm
         ascii_plain = auto()
         binary_raw = auto()
 
-    def __init__(self, string: str) -> None:
-        match = re_match_unwrap(NETPBM_MAGIC_NUMBER__PATTERN, string)
+    type: Type
+    encoding: Encoding
 
-        match match.group():
-            case "P2":
-                type = self.Type.pgm
-                encoding = self.Encoding.ascii_plain
-            case _:
-                raise NotImplementedError
 
-        self.type = type
-        self.encoding = encoding
+def parse_netpbm_magic_number(*, string: str) -> Result[NetpbmMagicNumber, str]:
+    netpbm_magic_number_result = re_match(NETPBM_MAGIC_NUMBER__PATTERN, string)
+
+    if not is_successful(netpbm_magic_number_result):
+        return Failure(netpbm_magic_number_result.failure())
+
+    netpbm_magic_number = netpbm_magic_number_result.unwrap().group()
+
+    match netpbm_magic_number:
+        case "P2":
+            type = NetpbmMagicNumber.Type.pgm
+            encoding = NetpbmMagicNumber.Encoding.ascii_plain
+        case _:
+            return Failure(f"not supported: NetpbmMagicNumber = {netpbm_magic_number}")
+
+    return Success(NetpbmMagicNumber(type=type, encoding=encoding))

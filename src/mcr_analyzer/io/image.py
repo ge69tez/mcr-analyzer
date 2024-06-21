@@ -2,6 +2,8 @@ from enum import Enum, auto
 from typing import TYPE_CHECKING
 
 import numpy as np
+from returns.pipeline import is_successful
+from returns.result import Failure, Result, Success
 
 from mcr_analyzer.config.netpbm import (  # cSpell:ignore netpbm
     NETPBM_MAGIC_NUMBER__PATTERN,
@@ -11,62 +13,71 @@ from mcr_analyzer.config.netpbm import (  # cSpell:ignore netpbm
     PGM__IMAGE__ND_ARRAY__DATA_TYPE,
     PGM__WIDTH__PATTERN,
     NetpbmMagicNumber,
+    parse_netpbm_magic_number,
 )
 from mcr_analyzer.utils.io import readlines
-from mcr_analyzer.utils.re import re_match_success
+from mcr_analyzer.utils.re import is_re_match_successful, re_match_unwrap
 
 if TYPE_CHECKING:
     from io import TextIOWrapper
     from pathlib import Path
 
 
-class Image:
-    class InputFormat(Enum):
-        mcr_txt = auto()  # MCR's own TXT format # cSpell:ignore MCR's
-        pnm = auto()  # Portable AnyMap Format
+class ImageFormat(Enum):
+    mcr_txt = auto()  # MCR's own TXT format # cSpell:ignore MCR's
+    pnm = auto()  # Portable AnyMap Format
 
-    def __init__(self, file_path: "Path") -> None:
-        with file_path.open(encoding="utf-8") as file:
-            header_lines, input_format = self.read_header(file)
 
-            data = self.read_data(file, header_lines, input_format)
+def parse_image(*, file_path: "Path") -> Result[tuple[PGM__IMAGE__ND_ARRAY__DATA_TYPE, int, int], str]:
+    with file_path.open(encoding="utf-8") as file:
+        return _parse_image_header(file=file).bind(_parse_image_data_test)
 
-            self.data = data
-            self.height, self.width = data.shape
 
-    def read_header(self, file: "TextIOWrapper") -> tuple[list[str], InputFormat]:
-        header_line_count = 3
-        header_lines = list(readlines(file, header_line_count))
+def _parse_image_header(
+    *, file: "TextIOWrapper"
+) -> Result[tuple["TextIOWrapper", ImageFormat, NetpbmMagicNumber, int, int], str]:
+    header_line_count = 3
+    header_lines = list(readlines(file, header_line_count))
 
-        if (
-            re_match_success(NETPBM_MAGIC_NUMBER__PATTERN, header_lines[0])
-            and re_match_success(PGM__WIDTH__PATTERN + r" " + PGM__HEIGHT__PATTERN, header_lines[1])
-            and re_match_success(str(PGM__COLOR_RANGE_MAX), header_lines[2])
-        ):
-            input_format = self.InputFormat.pnm
+    if (
+        is_re_match_successful(NETPBM_MAGIC_NUMBER__PATTERN, header_lines[0])
+        and is_re_match_successful(PGM__WIDTH__PATTERN + r" " + PGM__HEIGHT__PATTERN, header_lines[1])
+        and is_re_match_successful(str(PGM__COLOR_RANGE_MAX), header_lines[2])
+    ):
+        image_format = ImageFormat.pnm
 
-        else:
-            raise NotImplementedError
+        netpbm_magic_number_result = parse_netpbm_magic_number(string=header_lines[0])
 
-        return header_lines, input_format
+        if not is_successful(netpbm_magic_number_result):
+            return Failure(netpbm_magic_number_result.failure())
 
-    def read_data(
-        self, file: "TextIOWrapper", header_lines: list[str], input_format: InputFormat
-    ) -> PGM__IMAGE__ND_ARRAY__DATA_TYPE:
-        match input_format:
-            case self.InputFormat.pnm:
-                width, height = (int(x) for x in header_lines[1].split())
+        netpbm_magic_number = netpbm_magic_number_result.unwrap()
 
-                magic_number = NetpbmMagicNumber(header_lines[0])
-                match magic_number.type, magic_number.encoding:
-                    case NetpbmMagicNumber.Type.pgm, NetpbmMagicNumber.Encoding.ascii_plain:
-                        data = np.fromfile(file, dtype=PGM__IMAGE__DATA_TYPE, count=height * width, sep=" ").reshape(
-                            height, width
-                        )  # cSpell:ignore dtype
-                    case _:
-                        raise NotImplementedError
+        image_width, image_height = map(
+            int, re_match_unwrap(f"({PGM__WIDTH__PATTERN}) ({PGM__HEIGHT__PATTERN})", header_lines[1]).groups()
+        )
 
-            case _:
-                raise NotImplementedError
+    else:
+        return Failure("failed to parse image header")
 
-        return data
+    return Success((file, image_format, netpbm_magic_number, image_height, image_width))
+
+
+def _parse_image_data_test(
+    args: tuple["TextIOWrapper", ImageFormat, NetpbmMagicNumber, int, int],
+) -> Result[tuple[PGM__IMAGE__ND_ARRAY__DATA_TYPE, int, int], str]:
+    file, image_format, netpbm_magic_number, image_height, image_width = args
+    match image_format:
+        case ImageFormat.pnm:
+            match netpbm_magic_number.type, netpbm_magic_number.encoding:
+                case NetpbmMagicNumber.Type.pgm, NetpbmMagicNumber.Encoding.ascii_plain:
+                    image_data = np.fromfile(
+                        file, dtype=PGM__IMAGE__DATA_TYPE, count=image_height * image_width, sep=" "
+                    ).reshape(image_height, image_width)  # cSpell:ignore dtype
+                case _:
+                    return Failure(f"not supported: NetpbmMagicNumber.Type.{netpbm_magic_number.type.name}")
+
+        case _:
+            return Failure(f"not supported: ImageFormat.{image_format.name}")
+
+    return Success((image_data, image_height, image_width))

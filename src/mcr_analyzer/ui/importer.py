@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from returns.pipeline import is_successful
 from sqlalchemy.sql.expression import select
 
 from mcr_analyzer.config.hash import HASH__DIGEST_SIZE
@@ -21,7 +22,7 @@ from mcr_analyzer.config.importer import IMPORTER__COLUMN_INDEX__STATUS
 from mcr_analyzer.config.qt import BUTTON__ICON_SIZE
 from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement
-from mcr_analyzer.io.image import Image
+from mcr_analyzer.io.image import parse_image
 from mcr_analyzer.io.mcr_rslt import MCR_RSLT__DATE_TIME__FORMAT, McrRslt, parse_mcr_rslt_in_directory_recursively
 from mcr_analyzer.utils.q_file_dialog import FileDialog
 
@@ -139,13 +140,38 @@ class ImportWidget(QWidget):
 
     def _write_mcr_rslt_list_to_database(self) -> None:
         for i, mcr_rslt in enumerate(self.mcr_rslt_list):
-            self._write_mcr_rslt_to_database(i=i, mcr_rslt=mcr_rslt)
+            file_model_item_text, file_model_item_icon_pixmap = _write_mcr_rslt_to_database(mcr_rslt=mcr_rslt)
+
+            self._measurement_table_update(
+                i=i, file_model_item_text=file_model_item_text, file_model_item_icon_pixmap=file_model_item_icon_pixmap
+            )
 
             self.progress_bar.setValue(i + 1)
 
-    def _write_mcr_rslt_to_database(self, *, i: int, mcr_rslt: McrRslt) -> None:
-        image = Image(mcr_rslt.dir.joinpath(mcr_rslt.result_image_pgm))
-        image_hash_object = hashlib.sha256(image.data.tobytes())  # cSpell:ignore tobytes
+    def _measurement_table_update(
+        self, *, i: int, file_model_item_text: str, file_model_item_icon_pixmap: QStyle.StandardPixmap
+    ) -> None:
+        row = i + len(self.mcr_rslt_file_name_parse_fail_list)
+        column = IMPORTER__COLUMN_INDEX__STATUS
+
+        self.measurements_table.scrollTo(self.file_model.index(row, column))
+
+        file_model_item = self.file_model.item(row, column)
+        file_model_item.setText(file_model_item_text)
+        file_model_item.setIcon(self.style().standardIcon(file_model_item_icon_pixmap))
+
+
+def _write_mcr_rslt_to_database(*, mcr_rslt: McrRslt) -> tuple[str, QStyle.StandardPixmap]:
+    image_result = parse_image(file_path=mcr_rslt.dir.joinpath(mcr_rslt.result_image_pgm))
+
+    if not is_successful(image_result):
+        file_model_item_text = image_result.failure()
+        file_model_item_icon_pixmap = QStyle.StandardPixmap.SP_DialogNoButton
+
+    else:
+        image_data, image_height, image_width = image_result.unwrap()
+
+        image_hash_object = hashlib.sha256(image_data)  # cSpell:ignore tobytes
         if image_hash_object.digest_size != HASH__DIGEST_SIZE:
             msg = f"invalid hash digest size: {image_hash_object.digest_size} (expected: {HASH__DIGEST_SIZE})"
             raise ValueError(msg)
@@ -162,19 +188,15 @@ class ImportWidget(QWidget):
             file_model_item_icon_pixmap = QStyle.StandardPixmap.SP_DialogNoButton
 
         else:
-            mcr_rslt = self.mcr_rslt_list[i]
-
-            image = Image(mcr_rslt.dir.joinpath(mcr_rslt.result_image_pgm))
-
             with database.Session() as session, session.begin():
                 measurement = Measurement(
                     date_time=mcr_rslt.date_time,
                     device_id=mcr_rslt.device_id,
                     probe_id=mcr_rslt.probe_id,
                     chip_id=mcr_rslt.chip_id,
-                    image_data=image.data.tobytes(),  # cSpell:ignore ascontiguousarray
-                    image_height=image.height,
-                    image_width=image.width,
+                    image_data=image_data,  # cSpell:ignore ascontiguousarray
+                    image_height=image_height,
+                    image_width=image_width,
                     image_hash=image_hash,
                     row_count=mcr_rslt.row_count,
                     column_count=mcr_rslt.column_count,
@@ -195,11 +217,4 @@ class ImportWidget(QWidget):
             file_model_item_text = "Import successful"
             file_model_item_icon_pixmap = QStyle.StandardPixmap.SP_DialogYesButton
 
-        row = i + len(self.mcr_rslt_file_name_parse_fail_list)
-        column = IMPORTER__COLUMN_INDEX__STATUS
-
-        self.measurements_table.scrollTo(self.file_model.index(row, column))
-
-        file_model_item = self.file_model.item(row, column)
-        file_model_item.setText(file_model_item_text)
-        file_model_item.setIcon(self.style().standardIcon(file_model_item_icon_pixmap))
+    return file_model_item_text, file_model_item_icon_pixmap
