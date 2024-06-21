@@ -80,12 +80,10 @@ class CornerSpotItem(SpotItem):
     def itemChange(self, change: QGraphicsItem.GraphicsItemChange, value: Any) -> Any:  # noqa: N802
         match change:
             case QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged:
-                if not isinstance(value, Position):
-                    raise NotImplementedError
-
-                grid = self.parentItem()
-                if isinstance(grid, Grid):
-                    grid.corner_moved.emit(self)
+                if isinstance(value, Position):
+                    grid = self.parentItem()
+                    if isinstance(grid, Grid):
+                        grid.corner_moved.emit(self)
 
         return super().itemChange(change, value)
 
@@ -497,8 +495,6 @@ class Grid(QGraphicsObject):
                     spot_item = self.corner_spots.bottom_left
                 case CornerPosition.bottom_right:
                     spot_item = self.corner_spots.bottom_right
-                case _:
-                    raise NotImplementedError
 
         spot_item.setSelected(True)
 

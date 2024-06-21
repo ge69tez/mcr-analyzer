@@ -387,9 +387,6 @@ class MeasurementWidget(QWidget):
 
     @pyqtSlot()
     def update__measurement_list_view(self) -> None:
-        if not database.is_valid:
-            raise NotImplementedError
-
         self.measurement_list_model = QSortFilterProxyModel()
 
         self.measurement_list_model.setSourceModel(get_measurement_list_model_from_database())

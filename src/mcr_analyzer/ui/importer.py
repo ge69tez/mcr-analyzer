@@ -162,7 +162,7 @@ class ImportWidget(QWidget):
 
 
 def _write_mcr_rslt_to_database(*, mcr_rslt: McrRslt) -> tuple[str, QStyle.StandardPixmap]:
-    image_result = parse_image(file_path=mcr_rslt.dir.joinpath(mcr_rslt.result_image_pgm))
+    image_result = parse_image(file_path=mcr_rslt.image_pgm_file_path)
 
     if not is_successful(image_result):
         file_model_item_text = image_result.failure()

@@ -327,10 +327,10 @@ def get_fourier_transform_boundary_reference_spots(
     y_min = image_height
     y_max = 0.0
 
-    left = None
-    right = None
-    top = None
-    bottom = None
+    left = Position()
+    right = Position()
+    top = Position()
+    bottom = Position()
 
     for fourier_transform_contour_reference_spot in fourier_transform_contours_reference_spots:
         center, _radius = cv.minEnclosingCircle(points=fourier_transform_contour_reference_spot)
@@ -351,9 +351,6 @@ def get_fourier_transform_boundary_reference_spots(
         if y_max < y:
             y_max = y
             bottom = Position(x, y)
-
-    if left is None or right is None or top is None or bottom is None:
-        raise NotImplementedError
 
     return BoundaryPositions(left=left, right=right, top=top, bottom=bottom)
 

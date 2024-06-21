@@ -176,10 +176,7 @@ class GraphicsCircleItem(QGraphicsEllipseItem):
         width = rect.width()
         height = rect.height()
 
-        if width != height:
-            raise NotImplementedError
-
-        return width
+        return max(width, height)
 
     def _update(self, *, position: Position, size: float) -> None:
         self._set_position(position=position)
@@ -212,10 +209,7 @@ class GraphicsSquareItem(QGraphicsRectItem):
         width = rect.width()
         height = rect.height()
 
-        if width != height:
-            raise NotImplementedError
-
-        return width
+        return max(width, height)
 
     def _update(self, *, position: Position, size: float) -> None:
         self._set_position(position=position)

@@ -1,6 +1,5 @@
-from copy import deepcopy
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Final, TypeVar
 
@@ -29,6 +28,7 @@ class Name:
             self.display = self.original
 
 
+@dataclass(frozen=True)
 class McrRslt:
     class AttributeName(Enum):
         date_time = Name("Date/time", "Measured at")
@@ -36,6 +36,7 @@ class McrRslt:
         probe_id = Name("Probe ID")
         chip_id = Name("Chip ID")
         result_image_pgm = Name("Result image PGM")
+
         result_image_png = Name("Result image PNG")
         dark_frame_image_pgm = Name("Dark frame image PGM")
         temperature_ok = Name("Temperature ok")
@@ -47,82 +48,107 @@ class McrRslt:
 
         spot_size = Name("Spot size")
 
-    def __init__(self, mcr_rslt_file_path: "Path") -> None:
-        self.path = mcr_rslt_file_path
-        self.dir = self.path.parent
+    date_time: datetime
+    device_id: str
+    probe_id: str
+    chip_id: str
+    result_image_pgm: str
 
-        with self.path.open(encoding="utf-8") as file:
-            self.date_time = datetime.strptime(
-                _readline_get_value(file, self.AttributeName.date_time.value.original), MCR_RSLT__DATE_TIME__FORMAT
-            ).replace(tzinfo=TZ_INFO)
-            self.device_id = _readline_get_value(file, self.AttributeName.device_id.value.original)
-            self.probe_id = _readline_get_value(file, self.AttributeName.probe_id.value.original)
-            self.chip_id = _readline_get_value(file, self.AttributeName.chip_id.value.original)
-            self.result_image_pgm = _readline_get_value(file, self.AttributeName.result_image_pgm.value.original)
-            self.result_image_png = _readline_get_value(file, self.AttributeName.result_image_png.value.original)
+    result_image_png: str
+    dark_frame_image_pgm: str
+    temperature_ok: str
+    clean_image: str
+    thresholds: str
 
-            dark_frame_image_pgm = _readline_get_value(file, self.AttributeName.dark_frame_image_pgm.value.original)
-            self.dark_frame_image_pgm = (
-                "" if dark_frame_image_pgm == "Do not store PGM file for dark frame any more" else dark_frame_image_pgm
-            )
+    column_count: int
+    row_count: int
 
-            self.temperature_ok = _readline_get_value(file, self.AttributeName.temperature_ok.value.original) == "yes"
-            self.clean_image = _readline_get_value(file, self.AttributeName.clean_image.value.original) == "yes"
-            self.thresholds = [
-                int(x) for x in _readline_get_value(file, self.AttributeName.thresholds.value.original).split(sep=", ")
-            ]
+    results: list[list[int]]
 
-            readline_skip(file)
+    spot_size: int
+    spots: list[list[Position]]
 
-            self.column_count = int(_readline_get_value(file, self.AttributeName.column_count.value.original))
-            self.row_count = int(_readline_get_value(file, self.AttributeName.row_count.value.original))
-
-            readline_skip(file)
-
-            self.results = _read_mcr_rslt_table(file, self.row_count, self.column_count, int)
-
-            readline_skip(file, 2)
-
-            self.spot_size = int(_readline_get_value(file, self.AttributeName.spot_size.value.original))
-
-            spots = _read_mcr_rslt_table(file, self.row_count, self.column_count, _parse_spot)
-
-            offset_from_top_left_to_center = Position(self.spot_size / 2, self.spot_size / 2)
-
-            corners_grid_coordinates = get_spot_corners_grid_coordinates(
-                row_count=self.row_count, column_count=self.column_count
-            )
-            top_left = corners_grid_coordinates.top_left
-            top_right = corners_grid_coordinates.top_right
-            bottom_right = corners_grid_coordinates.bottom_right
-            bottom_left = corners_grid_coordinates.bottom_left
-            self.corner_positions = CornerPositions(
-                top_left=spots[top_left.row][top_left.column] + offset_from_top_left_to_center,
-                top_right=spots[top_right.row][top_right.column] + offset_from_top_left_to_center,
-                bottom_right=spots[bottom_right.row][bottom_right.column] + offset_from_top_left_to_center,
-                bottom_left=spots[bottom_left.row][bottom_left.column] + offset_from_top_left_to_center,
-            )
+    image_pgm_file_path: "Path"
+    corner_positions: CornerPositions
 
 
-def _readline_key_value(file: "TextIOWrapper") -> tuple[str, str]:
+def _parse_mcr_rslt(*, file_path: "Path") -> McrRslt:  # noqa: PLR0914
+    with file_path.open(encoding="utf-8") as file:
+        date_time = datetime.strptime(
+            _readline_get_value(file, McrRslt.AttributeName.date_time.value.original), MCR_RSLT__DATE_TIME__FORMAT
+        ).replace(tzinfo=TZ_INFO)
+        device_id = _readline_get_value(file, McrRslt.AttributeName.device_id.value.original)
+        probe_id = _readline_get_value(file, McrRslt.AttributeName.probe_id.value.original)
+        chip_id = _readline_get_value(file, McrRslt.AttributeName.chip_id.value.original)
+        result_image_pgm = _readline_get_value(file, McrRslt.AttributeName.result_image_pgm.value.original)
+
+        result_image_png = _readline_get_value(file, McrRslt.AttributeName.result_image_png.value.original)
+        dark_frame_image_pgm = _readline_get_value(file, McrRslt.AttributeName.dark_frame_image_pgm.value.original)
+        temperature_ok = _readline_get_value(file, McrRslt.AttributeName.temperature_ok.value.original)
+        clean_image = _readline_get_value(file, McrRslt.AttributeName.clean_image.value.original)
+        thresholds = _readline_get_value(file, McrRslt.AttributeName.thresholds.value.original)
+
+        readline_skip(file)
+
+        column_count = int(_readline_get_value(file, McrRslt.AttributeName.column_count.value.original))
+
+        row_count = int(_readline_get_value(file, McrRslt.AttributeName.row_count.value.original))
+
+        readline_skip(file)
+
+        results = _read_mcr_rslt_table(file, row_count, column_count, int)
+
+        readline_skip(file, 2)
+
+        spot_size = int(_readline_get_value(file, McrRslt.AttributeName.spot_size.value.original))
+
+        spots = _read_mcr_rslt_table(file, row_count, column_count, _parse_spot)
+
+    image_pgm_file_path = file_path.parent.joinpath(result_image_pgm)
+
+    offset_from_top_left_to_center = Position(spot_size / 2, spot_size / 2)
+
+    corners_grid_coordinates = get_spot_corners_grid_coordinates(row_count=row_count, column_count=column_count)
+    top_left = corners_grid_coordinates.top_left
+    top_right = corners_grid_coordinates.top_right
+    bottom_right = corners_grid_coordinates.bottom_right
+    bottom_left = corners_grid_coordinates.bottom_left
+    corner_positions = CornerPositions(
+        top_left=spots[top_left.row][top_left.column] + offset_from_top_left_to_center,
+        top_right=spots[top_right.row][top_right.column] + offset_from_top_left_to_center,
+        bottom_right=spots[bottom_right.row][bottom_right.column] + offset_from_top_left_to_center,
+        bottom_left=spots[bottom_left.row][bottom_left.column] + offset_from_top_left_to_center,
+    )
+
+    return McrRslt(
+        date_time=date_time,
+        device_id=device_id,
+        probe_id=probe_id,
+        chip_id=chip_id,
+        result_image_pgm=result_image_pgm,
+        result_image_png=result_image_png,
+        dark_frame_image_pgm=dark_frame_image_pgm,
+        temperature_ok=temperature_ok,
+        clean_image=clean_image,
+        thresholds=thresholds,
+        column_count=column_count,
+        row_count=row_count,
+        results=results,
+        spot_size=spot_size,
+        spots=spots,
+        image_pgm_file_path=image_pgm_file_path,
+        corner_positions=corner_positions,
+    )
+
+
+def _readline_get_value(file: "TextIOWrapper", key_pattern: str, value_pattern: str = ".+") -> str:
     string = file.readline()
 
-    match = re_match_unwrap(r"^([^:]+): (.+)$", string)
+    match = re_match_unwrap(f"^({key_pattern}): ({value_pattern})$", string)
 
-    key: str = match.group(1)
     value: str = match.group(2)
 
-    return key, value
-
-
-def _readline_get_value(file: "TextIOWrapper", key: str) -> str:
-    k, v = _readline_key_value(file)
-
-    if k != key:
-        msg = f"not matched: {k} != {key}"
-        raise ValueError(msg)
-
-    return v
+    return value
 
 
 T = TypeVar("T")
@@ -166,26 +192,14 @@ def parse_mcr_rslt_in_directory_recursively(directory_path: "Path") -> tuple[lis
     mcr_rslt_file_path_generator = directory_path.glob("**/*.rslt")
     for mcr_rslt_file_path in mcr_rslt_file_path_generator:
         try:
-            mcr_rslt = McrRslt(mcr_rslt_file_path)
+            mcr_rslt = _parse_mcr_rslt(file_path=mcr_rslt_file_path)
         except ValueError:
             mcr_rslt_file_name_parse_fail_list.append(mcr_rslt_file_path.name)
             continue
 
-        image_pgm_file_path = mcr_rslt.dir.joinpath(mcr_rslt.result_image_pgm)
+        image_pgm_file_path = mcr_rslt.image_pgm_file_path
 
         if image_pgm_file_path.exists():
             mcr_rslt_list.append(mcr_rslt)
-
-        else:
-            # Check for multi image measurements and mock them as individual
-
-            image_pgm_file_stem = image_pgm_file_path.stem
-            for i, image_pgm_file_path_i in enumerate(sorted(mcr_rslt.dir.glob(f"{image_pgm_file_stem}-*.pgm"))):
-                mcr_rslt_copy = deepcopy(mcr_rslt)
-
-                mcr_rslt_copy.result_image_pgm = image_pgm_file_path_i.name
-                mcr_rslt_copy.date_time += timedelta(seconds=i)
-
-                mcr_rslt_list.append(mcr_rslt_copy)
 
     return mcr_rslt_list, mcr_rslt_file_name_parse_fail_list

@@ -6,7 +6,6 @@ from returns.pipeline import is_successful
 from returns.result import Failure, Result, Success
 
 from mcr_analyzer.config.netpbm import (  # cSpell:ignore netpbm
-    NETPBM_MAGIC_NUMBER__PATTERN,
     PGM__COLOR_RANGE_MAX,
     PGM__HEIGHT__PATTERN,
     PGM__IMAGE__DATA_TYPE,
@@ -16,7 +15,7 @@ from mcr_analyzer.config.netpbm import (  # cSpell:ignore netpbm
     parse_netpbm_magic_number,
 )
 from mcr_analyzer.utils.io import readlines
-from mcr_analyzer.utils.re import is_re_match_successful, re_match_unwrap
+from mcr_analyzer.utils.re import is_re_match_successful, re_match
 
 if TYPE_CHECKING:
     from io import TextIOWrapper
@@ -39,23 +38,19 @@ def _parse_image_header(
     header_line_count = 3
     header_lines = list(readlines(file, header_line_count))
 
+    netpbm_magic_number_result = parse_netpbm_magic_number(string=header_lines[0])
+
+    image_width_image_height_pattern = f"({PGM__WIDTH__PATTERN}) ({PGM__HEIGHT__PATTERN})"
+    image_width_image_height_pattern_match_result = re_match(image_width_image_height_pattern, header_lines[1])
+
     if (
-        is_re_match_successful(NETPBM_MAGIC_NUMBER__PATTERN, header_lines[0])
-        and is_re_match_successful(PGM__WIDTH__PATTERN + r" " + PGM__HEIGHT__PATTERN, header_lines[1])
+        is_successful(netpbm_magic_number_result)
+        and is_successful(image_width_image_height_pattern_match_result)
         and is_re_match_successful(str(PGM__COLOR_RANGE_MAX), header_lines[2])
     ):
         image_format = ImageFormat.pnm
-
-        netpbm_magic_number_result = parse_netpbm_magic_number(string=header_lines[0])
-
-        if not is_successful(netpbm_magic_number_result):
-            return Failure(netpbm_magic_number_result.failure())
-
         netpbm_magic_number = netpbm_magic_number_result.unwrap()
-
-        image_width, image_height = map(
-            int, re_match_unwrap(f"({PGM__WIDTH__PATTERN}) ({PGM__HEIGHT__PATTERN})", header_lines[1]).groups()
-        )
+        image_width, image_height = map(int, image_width_image_height_pattern_match_result.unwrap().groups())
 
     else:
         return Failure("failed to parse image header")
