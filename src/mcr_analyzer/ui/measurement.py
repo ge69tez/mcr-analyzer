@@ -39,12 +39,7 @@ from mcr_analyzer.config.image import (
     get_grid,
     normalize_image,
 )
-from mcr_analyzer.config.netpbm import (  # cSpell:ignore netpbm
-    PGM__HEIGHT,
-    PGM__IMAGE__DATA_TYPE,
-    PGM__IMAGE__ND_ARRAY__DATA_TYPE,
-    PGM__WIDTH,
-)
+from mcr_analyzer.config.netpbm import PGM__IMAGE__DATA_TYPE, PGM__IMAGE__ND_ARRAY__DATA_TYPE  # cSpell:ignore netpbm
 from mcr_analyzer.config.qt import q_color_with_alpha, set_button_color
 from mcr_analyzer.config.spot import SPOT__NUMBER__OF__BRIGHTEST_PIXELS
 from mcr_analyzer.database.database import database
@@ -273,7 +268,6 @@ class MeasurementWidget(QWidget):
         scene.addItem(pixmap)
 
         graphics_view = GraphicsView(scene, pixmap)
-        graphics_view.setMinimumSize(PGM__WIDTH, PGM__HEIGHT)
 
         layout.addWidget(graphics_view)
 
