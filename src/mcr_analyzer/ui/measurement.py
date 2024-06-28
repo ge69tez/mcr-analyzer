@@ -120,7 +120,7 @@ class MeasurementWidget(QWidget):
         layout.addWidget(self._initialize_group_removal())
         layout.addWidget(self._initialize_result_list_control())
 
-        self.save_button = QPushButton("Save")
+        self.save_button = QPushButton("&Save")
         self.save_button.clicked.connect(self._save)
         layout.addWidget(self.save_button)
 
