@@ -13,9 +13,7 @@ class FileDialog:
             parent=parent, caption=caption, directory=directory, filter=filter
         )
 
-        # - If the user presses Cancel, it returns a null string.
-        #   - https://doc.qt.io/qt-6/qfiledialog.html#getOpenFileName
-        return None if file_name == "" else Path(file_name)
+        return None if FileDialog._is_canceled(return_string=file_name) else Path(file_name)
 
     @staticmethod
     def get_save_file_path(
@@ -30,24 +28,25 @@ class FileDialog:
             parent=parent, caption=caption, directory=directory, filter=filter
         )
 
-        # - If the user presses Cancel, it returns a null string.
-        #   - https://doc.qt.io/qt-6/qfiledialog.html#getSaveFileName
-        #   - https://doc.qt.io/qt-6/qfiledialog.html#getOpenFileName
-        if file_name == "":
-            return None
-
-        return _check_path_suffix(path=Path(file_name), suffix=suffix)
+        return (
+            None
+            if FileDialog._is_canceled(return_string=file_name)
+            else _check_path_suffix(path=Path(file_name), suffix=suffix)
+        )
 
     @staticmethod
     def get_directory_path(*, parent: QWidget | None = None) -> Path | None:
-        directory_path = None
+        directory_path = QFileDialog.getExistingDirectory(parent=parent, options=QFileDialog.Option.ShowDirsOnly)
 
-        dialog = QFileDialog(parent)
-        dialog.setFileMode(QFileDialog.FileMode.Directory)
-        if dialog.exec():
-            directory_path = Path(dialog.selectedFiles()[0])
+        return None if FileDialog._is_canceled(return_string=directory_path) else Path(directory_path)
 
-        return directory_path
+    @staticmethod
+    def _is_canceled(*, return_string: str) -> bool:
+        # - If the user presses Cancel, it returns a null string.
+        #   - https://doc.qt.io/qt-6/qfiledialog.html#getSaveFileName
+        #   - https://doc.qt.io/qt-6/qfiledialog.html#getOpenFileName
+        #   - https://doc.qt.io/qt-6/qfiledialog.html#getExistingDirectoryUrl
+        return return_string == ""
 
 
 def _check_path_suffix(*, path: Path, suffix: str | None) -> Path:

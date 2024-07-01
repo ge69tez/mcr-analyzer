@@ -9,7 +9,6 @@ from PyQt6.QtWidgets import QGraphicsItem, QGraphicsObject, QStyleOptionGraphics
 from sqlalchemy.sql.expression import select
 
 from mcr_analyzer.config.image import CornerPositions, Position
-from mcr_analyzer.database.database import database
 from mcr_analyzer.database.models import Measurement
 from mcr_analyzer.ui.graphics_items import (
     CornersGridCoordinates,
@@ -28,6 +27,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
     from PyQt6.QtGui import QPainter
+    from sqlalchemy.orm import Session
 
 T = TypeVar("T", SpotItem, GraphicsSquareTextItem)
 
@@ -125,14 +125,14 @@ class Grid(QGraphicsObject):
     corner_moved = pyqtSignal(CornerSpotItem)
     grid_updated = pyqtSignal()
 
-    def __init__(self, measurement_id: int, parent: QGraphicsItem | None = None) -> None:
+    def __init__(self, session: "Session", measurement_id: int, parent: QGraphicsItem | None = None) -> None:
         super().__init__(parent)
 
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemHasNoContents)
 
         self.measurement_id = measurement_id
 
-        self._initialize_instance_variables(measurement_id=measurement_id)
+        self._initialize_instance_variables(session=session, measurement_id=measurement_id)
 
     # - References
     #   - https://doc.qt.io/qt-6/qtwidgets-graphicsview-dragdroprobot-example.html
@@ -150,25 +150,24 @@ class Grid(QGraphicsObject):
     def paint(self, painter: "QPainter", option: QStyleOptionGraphicsItem, widget: QWidget | None = None) -> None:
         pass
 
-    def _initialize_instance_variables(self, *, measurement_id: int) -> None:
-        with database.Session() as session:
-            statement = select(Measurement).where(Measurement.id == measurement_id)
-            measurement = session.execute(statement).scalar_one()
+    def _initialize_instance_variables(self, *, session: "Session", measurement_id: int) -> None:
+        statement = select(Measurement).where(Measurement.id == measurement_id)
+        measurement = session.execute(statement).scalar_one()
 
-            column_count = measurement.column_count
-            row_count = measurement.row_count
-            spot_size = measurement.spot_size
+        column_count = measurement.column_count
+        row_count = measurement.row_count
+        spot_size = measurement.spot_size
 
-            spot_corner_top_left_x = measurement.spot_corner_top_left_x
-            spot_corner_top_left_y = measurement.spot_corner_top_left_y
-            spot_corner_top_right_x = measurement.spot_corner_top_right_x
-            spot_corner_top_right_y = measurement.spot_corner_top_right_y
-            spot_corner_bottom_right_x = measurement.spot_corner_bottom_right_x
-            spot_corner_bottom_right_y = measurement.spot_corner_bottom_right_y
-            spot_corner_bottom_left_x = measurement.spot_corner_bottom_left_x
-            spot_corner_bottom_left_y = measurement.spot_corner_bottom_left_y
+        spot_corner_top_left_x = measurement.spot_corner_top_left_x
+        spot_corner_top_left_y = measurement.spot_corner_top_left_y
+        spot_corner_top_right_x = measurement.spot_corner_top_right_x
+        spot_corner_top_right_y = measurement.spot_corner_top_right_y
+        spot_corner_bottom_right_x = measurement.spot_corner_bottom_right_x
+        spot_corner_bottom_right_y = measurement.spot_corner_bottom_right_y
+        spot_corner_bottom_left_x = measurement.spot_corner_bottom_left_x
+        spot_corner_bottom_left_y = measurement.spot_corner_bottom_left_y
 
-            group_info_dict = get_group_info_dict_from_database(session=session, measurement_id=measurement_id)
+        group_info_dict = get_group_info_dict_from_database(session=session, measurement_id=measurement_id)
 
         corners_grid_coordinates = get_spot_corners_grid_coordinates(row_count=row_count, column_count=column_count)
 
@@ -392,13 +391,13 @@ class Grid(QGraphicsObject):
         group_info_dict: dict[str, GroupInfo] | None = None,
     ) -> None:
         if column_count is None:
-            column_count = self._get_column_count()
+            column_count = self.get_column_count()
 
         if row_count is None:
-            row_count = self._get_row_count()
+            row_count = self.get_row_count()
 
         if spot_size is None:
-            spot_size = self._get_spot_size()
+            spot_size = self.get_spot_size()
 
         if corner_positions is None:
             corner_positions = self.get_corner_positions()
@@ -431,13 +430,13 @@ class Grid(QGraphicsObject):
 
         self.grid_updated.emit()
 
-    def _get_column_count(self) -> int:
+    def get_column_count(self) -> int:
         return len(self.column_labels)
 
-    def _get_row_count(self) -> int:
+    def get_row_count(self) -> int:
         return len(self.row_labels)
 
-    def _get_spot_size(self) -> float:
+    def get_spot_size(self) -> float:
         return self.corner_spots.top_left.get_size()
 
     def _get_grouped_spots_grid_coordinates(self) -> list[GridCoordinates]:
@@ -476,8 +475,8 @@ class Grid(QGraphicsObject):
         self.scene().clearSelection()
 
     def _select_spot_item(self, *, grid_coordinates: GridCoordinates) -> None:
-        row_count = self._get_row_count()
-        column_count = self._get_column_count()
+        row_count = self.get_row_count()
+        column_count = self.get_column_count()
 
         spot_corner_position = get_spot_corner_position(
             grid_coordinates=grid_coordinates, row_count=row_count, column_count=column_count

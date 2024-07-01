@@ -3,7 +3,15 @@ from typing import TYPE_CHECKING
 import cv2 as cv
 import numpy as np
 import pandas as pd
-from PyQt6.QtCore import QItemSelection, QRegularExpression, QSignalBlocker, QSortFilterProxyModel, Qt, pyqtSlot
+from PyQt6.QtCore import (
+    QAbstractItemModel,
+    QItemSelection,
+    QRegularExpression,
+    QSignalBlocker,
+    QSortFilterProxyModel,
+    Qt,
+    pyqtSlot,
+)
 from PyQt6.QtGui import QColor, QImage, QPixmap, QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import (
     QAbstractItemView,
@@ -313,62 +321,8 @@ class MeasurementWidget(QWidget):
         return widget
 
     @pyqtSlot()
-    def _set_result_list_model_from_grid_group_info_dict(self) -> None:  # noqa: PLR0914
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels([column_name.value.display for column_name in ResultListModelColumnName])
-
-        grid = self.grid
-
-        if grid is not None and self.image_original is not None:
-            spot_size = self.spot_size.value()
-
-            row_count = self.row_count.value()
-            column_count = self.column_count.value()
-
-            image_data = self.image_original
-
-            spots_position = get_spots_position(
-                row_count=row_count, column_count=column_count, corner_positions=grid.get_corner_positions()
-            )
-
-            for group_info_dict in grid.get_group_info_dict().values():
-                group_name = group_info_dict.name
-                group_notes = group_info_dict.notes
-                group_color = group_info_dict.color
-                spots_grid_coordinates = group_info_dict.spots_grid_coordinates
-
-                spot_data_list = _get_spot_data_list(
-                    spot_size=spot_size,
-                    image_data=image_data,
-                    spots_position=spots_position,
-                    spots_grid_coordinates=spots_grid_coordinates,
-                )
-
-                spot_data_mean_brightest_list = [
-                    np.mean(spot_data_sorted[-SPOT__NUMBER__OF__BRIGHTEST_PIXELS:])
-                    for spot_data_sorted in [np.sort(spot_data, axis=None) for spot_data in spot_data_list]
-                    if len(spot_data_sorted) > 0
-                ]
-
-                result_count = len(spots_grid_coordinates)
-
-                if len(spot_data_mean_brightest_list) == 0:
-                    result_mean = np.nan
-                    result_standard_deviation = np.nan
-
-                else:
-                    result_mean = round(np.mean(spot_data_mean_brightest_list))
-                    result_standard_deviation = round(np.std(spot_data_mean_brightest_list))
-
-                row_items = [
-                    QStandardItem(str(x))
-                    for x in [group_name, result_count, result_mean, result_standard_deviation, group_notes]
-                ]
-
-                for item in row_items:
-                    item.setBackground(q_color_with_alpha(color_name=group_color, alpha=0.2))
-
-                model.appendRow(row_items)
+    def _set_result_list_model_from_grid_group_info_dict(self) -> None:
+        model = get_result_list_model_from_grid_group_info_dict(grid=self.grid, image_data=self.image_original)
 
         self.result_list_proxy_model.setSourceModel(model)
 
@@ -436,7 +390,7 @@ class MeasurementWidget(QWidget):
 
             self.notes.setPlainText(measurement.notes)
 
-            grid = Grid(measurement_id=measurement_id)
+            grid = Grid(session=session, measurement_id=measurement_id)
 
         image = (
             np.frombuffer(image_data, dtype=PGM__IMAGE__DATA_TYPE).reshape(image_height, image_width).copy()
@@ -630,16 +584,7 @@ class MeasurementWidget(QWidget):
         if file_path is None:
             return
 
-        model = self.result_list_proxy_model
-
-        data = [
-            [model.data(model.index(row, column)) for column in range(model.columnCount())]
-            for row in range(model.rowCount())
-        ]
-
-        columns = [column_name.value.display for column_name in ResultListModelColumnName]
-
-        pd.DataFrame(data=data, columns=columns).to_csv(file_path, index=False)
+        result_list_model_to_csv(file_path=file_path, result_list_model=self.result_list_proxy_model)
 
     @pyqtSlot()
     def _adjust_grid_automatically(self, *, use_noise_reduction_filter: bool = False) -> None:
@@ -784,16 +729,16 @@ def _change_image_brightness(
 
 def _get_spot_data_list(
     *,
-    spot_size: int,
+    spot_size: float,
     image_data: PGM__IMAGE__ND_ARRAY__DATA_TYPE,
     spots_position: dict[GridCoordinates, Position],
     spots_grid_coordinates: list[GridCoordinates],
 ) -> list[PGM__IMAGE__ND_ARRAY__DATA_TYPE]:
     image_height, image_width = image_data.shape
 
-    image_height_min = 0
+    image_height_min = 0.0
     image_height_max = image_height - 1
-    image_width_min = 0
+    image_width_min = 0.0
     image_width_max = image_width - 1
 
     spot_data_list = []
@@ -809,11 +754,11 @@ def _get_spot_data_list(
         right = left + spot_size
         bottom = top + spot_size
 
-        top = clamp(x=top, lower_bound=image_height_min, upper_bound=image_height_max)
-        bottom = clamp(x=bottom, lower_bound=image_height_min, upper_bound=image_height_max)
+        top = round(clamp(x=top, lower_bound=image_height_min, upper_bound=image_height_max))
+        bottom = round(clamp(x=bottom, lower_bound=image_height_min, upper_bound=image_height_max))
 
-        left = clamp(x=left, lower_bound=image_width_min, upper_bound=image_width_max)
-        right = clamp(x=right, lower_bound=image_width_min, upper_bound=image_width_max)
+        left = round(clamp(x=left, lower_bound=image_width_min, upper_bound=image_width_max))
+        right = round(clamp(x=right, lower_bound=image_width_min, upper_bound=image_width_max))
 
         spot_data = np.array([
             image_data[row, column]
@@ -831,3 +776,73 @@ def _get_regular_expression(pattern: str) -> QRegularExpression:
     pattern = QRegularExpression.escape(pattern)
 
     return QRegularExpression(pattern, QRegularExpression.PatternOption.CaseInsensitiveOption)
+
+
+def get_result_list_model_from_grid_group_info_dict(
+    *, grid: Grid | None, image_data: PGM__IMAGE__ND_ARRAY__DATA_TYPE | None
+) -> QStandardItemModel:
+    model = QStandardItemModel()
+    model.setHorizontalHeaderLabels([column_name.value.display for column_name in ResultListModelColumnName])
+
+    if grid is not None and image_data is not None:
+        spot_size = grid.get_spot_size()
+        row_count = grid.get_row_count()
+        column_count = grid.get_column_count()
+
+        spots_position = get_spots_position(
+            row_count=row_count, column_count=column_count, corner_positions=grid.get_corner_positions()
+        )
+
+        for group_info_dict in grid.get_group_info_dict().values():
+            group_name = group_info_dict.name
+            group_notes = group_info_dict.notes
+            group_color = group_info_dict.color
+            spots_grid_coordinates = group_info_dict.spots_grid_coordinates
+
+            spot_data_list = _get_spot_data_list(
+                spot_size=spot_size,
+                image_data=image_data,
+                spots_position=spots_position,
+                spots_grid_coordinates=spots_grid_coordinates,
+            )
+
+            spot_data_mean_brightest_list = [
+                np.mean(spot_data_sorted[-SPOT__NUMBER__OF__BRIGHTEST_PIXELS:])
+                for spot_data_sorted in [np.sort(spot_data, axis=None) for spot_data in spot_data_list]
+                if len(spot_data_sorted) > 0
+            ]
+
+            result_count = len(spots_grid_coordinates)
+
+            if len(spot_data_mean_brightest_list) == 0:
+                result_mean = np.nan
+                result_standard_deviation = np.nan
+
+            else:
+                result_mean = round(np.mean(spot_data_mean_brightest_list))
+                result_standard_deviation = round(np.std(spot_data_mean_brightest_list))
+
+            row_items = [
+                QStandardItem(str(x))
+                for x in [group_name, result_count, result_mean, result_standard_deviation, group_notes]
+            ]
+
+            for item in row_items:
+                item.setBackground(q_color_with_alpha(color_name=group_color, alpha=0.2))
+
+            model.appendRow(row_items)
+
+    return model
+
+
+def result_list_model_to_csv(*, file_path: "Path", result_list_model: QAbstractItemModel) -> None:
+    model = result_list_model
+
+    data = [
+        [model.data(model.index(row, column)) for column in range(model.columnCount())]
+        for row in range(model.rowCount())
+    ]
+
+    columns = [column_name.value.display for column_name in ResultListModelColumnName]
+
+    pd.DataFrame(data=data, columns=columns).to_csv(file_path, index=False)
