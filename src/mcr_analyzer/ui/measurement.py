@@ -465,6 +465,11 @@ class MeasurementWidget(QWidget):
 
         self.grid.select_group(name=group_name)
 
+        group_info = self.grid.get_group_info_dict()[group_name]
+        self.group_name.setText(group_name)
+        self.group_notes.setPlainText(group_info.notes)
+        self._set_group_color(group_info.color)
+
     @pyqtSlot()
     def _update_grid(  # noqa: PLR0913
         self,
