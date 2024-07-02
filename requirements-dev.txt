@@ -35,13 +35,13 @@ cloudpickle==3.0.0
     #   pytest-cov
 coverage-badge==1.1.1
     # via scalene
-coverage[toml]==7.5.3
+coverage[toml]==7.5.4
     # via mcr-analyzer (pyproject.toml)
 cryptography==42.0.8
     # via secretstorage
 distlib==0.3.8
     # via virtualenv
-filelock==3.15.3
+filelock==3.15.4
     # via virtualenv
 greenlet==3.0.3
     # via sqlalchemy
@@ -49,7 +49,7 @@ h11==0.14.0
     # via httpcore
 hatch==1.12.0
     # via mcr-analyzer (pyproject.toml)
-hatchling==1.24.2
+hatchling==1.25.0
     # via hatch
 httpcore==1.0.5
     # via httpx
@@ -57,7 +57,7 @@ httpx==0.27.0
     # via hatch
 hyperlink==21.0.0
     # via hatch
-hypothesis==6.103.2
+hypothesis==6.104.2
     # via mcr-analyzer (pyproject.toml)
 identify==2.5.36
     # via pre-commit
@@ -67,7 +67,7 @@ idna==3.7
     #   httpx
     #   hyperlink
     #   requests
-importlib-metadata==7.2.0
+importlib-metadata==8.0.0
     # via keyring
 iniconfig==2.0.0
     # via pytest
@@ -95,13 +95,13 @@ more-itertools==10.3.0
     # via
     #   jaraco-classes
     #   jaraco-functools
-mypy==1.10.0
+mypy==1.10.1
     # via mcr-analyzer (pyproject.toml)
 mypy-extensions==1.0.0
     # via mypy
 nodeenv==1.9.1
     # via pre-commit
-numpy==2.0.0
+numpy==1.26.4
     # via
     #   mcr-analyzer (pyproject.toml)
     #   opencv-python
@@ -157,7 +157,7 @@ pyproject-hooks==1.1.0
     #   pip-tools
 pyqt6==6.7.0
     # via mcr-analyzer (pyproject.toml)
-pyqt6-qt6==6.7.1
+pyqt6-qt6==6.7.2
     # via pyqt6
 pyqt6-sip==13.6.0
     # via pyqt6
@@ -189,7 +189,7 @@ rich==13.7.1
     # via
     #   hatch
     #   scalene
-ruff==0.4.10
+ruff==0.5.0
     # via mcr-analyzer (pyproject.toml)
 scalene==1.5.42.2
     # via mcr-analyzer (pyproject.toml)
@@ -215,7 +215,7 @@ tomli-w==1.0.0
     # via hatch
 tomlkit==0.12.5
     # via hatch
-trove-classifiers==2024.5.22
+trove-classifiers==2024.7.1
     # via hatchling
 typing-extensions==4.12.2
     # via
@@ -228,9 +228,9 @@ urllib3==2.2.2
     # via requests
 userpath==1.9.2
     # via hatch
-uv==0.2.13
+uv==0.2.18
     # via hatch
-virtualenv==20.26.2
+virtualenv==20.26.3
     # via
     #   hatch
     #   pre-commit

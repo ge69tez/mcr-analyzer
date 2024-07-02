@@ -24,13 +24,13 @@ dynamic = [
   "version",
 ]
 dependencies = [
-  "numpy",         # cSpell:ignore numpy
+  "numpy<2",       # cSpell:ignore numpy
   "opencv-python", # cSpell:ignore opencv
   "pandas",
   "pyqt6",
   "pytz",          # cSpell:ignore pytz
   "returns",
-  "scipy",         # cSpell:ignore scipy
+  "scipy<1.14",    # cSpell:ignore scipy
   "sqlalchemy",
 ]
 optional-dependencies.dev = [

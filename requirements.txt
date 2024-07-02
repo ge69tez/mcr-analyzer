@@ -6,7 +6,7 @@
 #
 greenlet==3.0.3
     # via sqlalchemy
-numpy==2.0.0
+numpy==1.26.4
     # via
     #   mcr-analyzer (pyproject.toml)
     #   opencv-python
@@ -18,7 +18,7 @@ pandas==2.2.2
     # via mcr-analyzer (pyproject.toml)
 pyqt6==6.7.0
     # via mcr-analyzer (pyproject.toml)
-pyqt6-qt6==6.7.1
+pyqt6-qt6==6.7.2
     # via pyqt6
 pyqt6-sip==13.6.0
     # via pyqt6
