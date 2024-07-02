@@ -462,6 +462,8 @@ class Grid(QGraphicsObject):
             name=name, notes=notes, color=color, spots_grid_coordinates=spots_grid_coordinates
         )
 
+        self.update_()
+
     def group_info_dict_remove(self, *, name: str) -> None:
         del self._group_info_dict[name]
 

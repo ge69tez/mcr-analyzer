@@ -81,6 +81,8 @@ class MeasurementWidget(QWidget):
         self.image_display: OPEN_CV__IMAGE__ND_ARRAY__DATA_TYPE | None = None
         self.grid: Grid | None = None
 
+        self.group_pattern_clipboard_measurement_id: int | None = None
+
         self._initialize_layout()
 
     def _initialize_layout(self) -> None:
@@ -126,13 +128,14 @@ class MeasurementWidget(QWidget):
         layout.addWidget(self._initialize_image_and_grid_control())
         layout.addWidget(self._initialize_group_creation())
         layout.addWidget(self._initialize_group_removal())
+        layout.addWidget(self._initialize_group_pattern())
         layout.addWidget(self._initialize_result_list_control())
 
         self.save_button = QPushButton("&Save")
         self.save_button.clicked.connect(self._save)
         layout.addWidget(self.save_button)
 
-        self.reset_button = QPushButton("Reset")
+        self.reset_button = QPushButton("&Reset")
         self.reset_button.clicked.connect(self._reset)
         layout.addWidget(self.reset_button)
 
@@ -238,9 +241,23 @@ class MeasurementWidget(QWidget):
         widget = QGroupBox("Group removal")
         layout = QFormLayout(widget)
 
-        self._ungroup_selected_row_in_result_list_button = QPushButton("Ungroup selected row in result list")
+        self._ungroup_selected_row_in_result_list_button = QPushButton("&Ungroup selected row in result list")
         self._ungroup_selected_row_in_result_list_button.clicked.connect(self._ungroup_selected_row_in_result_list)
         layout.addRow(self._ungroup_selected_row_in_result_list_button)
+
+        return widget
+
+    def _initialize_group_pattern(self) -> QWidget:
+        widget = QGroupBox("Group pattern")
+        layout = QHBoxLayout(widget)
+
+        self._copy = QPushButton("&Copy")
+        self._copy.clicked.connect(self._group_pattern_copy)
+        layout.addWidget(self._copy)
+
+        self._paste = QPushButton("&Paste")
+        self._paste.clicked.connect(self._group_pattern_paste)
+        layout.addWidget(self._paste)
 
         return widget
 
@@ -649,8 +666,6 @@ class MeasurementWidget(QWidget):
             spots_grid_coordinates=spots_grid_coordinates,
         )
 
-        self._update_grid()
-
     @pyqtSlot()
     def on_color_clicked(self) -> None:
         group_color = QColorDialog.getColor(self.group_color, self)
@@ -676,6 +691,54 @@ class MeasurementWidget(QWidget):
         self.grid.group_info_dict_remove(name=group_name)
 
         self._update_grid()
+
+    @pyqtSlot()
+    def _group_pattern_copy(self) -> None:  # cSpell:ignore ungroup
+        if self.measurement_id is None:
+            return
+
+        if self.grid is None:
+            return
+
+        self.group_pattern_clipboard_measurement_id = self.measurement_id
+
+    @pyqtSlot()
+    def _group_pattern_paste(self) -> None:  # cSpell:ignore ungroup
+        measurement_id = self.measurement_id
+        group_pattern_clipboard_measurement_id = self.group_pattern_clipboard_measurement_id
+
+        if measurement_id is None:
+            return
+
+        if self.grid is None:
+            return
+
+        if group_pattern_clipboard_measurement_id is None:
+            return
+
+        if group_pattern_clipboard_measurement_id == measurement_id:
+            return
+
+        with database.Session() as session:
+            group_info_dict = get_group_info_dict_from_database(
+                session=session, measurement_id=group_pattern_clipboard_measurement_id
+            )
+
+        if any(self.grid.has_group_name(group_name=group_name) for group_name in group_info_dict):
+            QMessageBox.warning(
+                self,
+                "Group name already exists",
+                "Please make sure that the current group names are different from the names in the copied group pattern.",  # noqa: E501
+            )
+            return
+
+        for group_info in group_info_dict.values():
+            self.grid.group_info_dict_add(
+                name=group_info.name,
+                notes=group_info.notes,
+                color=group_info.color,
+                spots_grid_coordinates=group_info.spots_grid_coordinates,
+            )
 
     @pyqtSlot()
     def _measurement_list_filter_changed(self) -> None:
