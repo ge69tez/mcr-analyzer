@@ -12,7 +12,7 @@ backports-tarfile==1.2.0
     # via jaraco-context
 build==1.2.1
     # via pip-tools
-certifi==2024.6.2
+certifi==2024.7.4
     # via
     #   httpcore
     #   httpx
@@ -57,9 +57,9 @@ httpx==0.27.0
     # via hatch
 hyperlink==21.0.0
     # via hatch
-hypothesis==6.104.2
+hypothesis==6.105.1
     # via mcr-analyzer (pyproject.toml)
-identify==2.5.36
+identify==2.6.0
     # via pre-commit
 idna==3.7
     # via
@@ -215,7 +215,7 @@ tomli-w==1.0.0
     # via hatch
 tomlkit==0.12.5
     # via hatch
-trove-classifiers==2024.7.1
+trove-classifiers==2024.7.2
     # via hatchling
 typing-extensions==4.12.2
     # via
@@ -228,7 +228,7 @@ urllib3==2.2.2
     # via requests
 userpath==1.9.2
     # via hatch
-uv==0.2.18
+uv==0.2.22
     # via hatch
 virtualenv==20.26.3
     # via
