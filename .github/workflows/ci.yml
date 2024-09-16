@@ -72,7 +72,7 @@ jobs:
         with:
           install-only: true
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@main
         with:
           python-version-file: pyproject.toml
           cache: pip
